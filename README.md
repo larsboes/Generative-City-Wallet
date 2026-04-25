@@ -44,6 +44,14 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | [`docs/06-MVP-SCOPE.md`](docs/06-MVP-SCOPE.md) | Hackathon scope: what to build, tech stack, timeline |
 | [`docs/07-DEMO-SCRIPT.md`](docs/07-DEMO-SCRIPT.md) | Demo narrative, Stuttgart scenario, killer moments |
 | [`docs/08-OPEN-QUESTIONS.md`](docs/08-OPEN-QUESTIONS.md) | Unresolved questions and decisions |
+| [`docs/09-CRITIQUE.md`](docs/09-CRITIQUE.md) | What was wrong with the original idea and how it was fixed |
+| [`docs/10-OFFER-SELECTION.md`](docs/10-OFFER-SELECTION.md) | Single-offer principle, scoring algorithm, anti-spam, anticipatory delivery |
+| [`docs/11-CONSUMER-UX.md`](docs/11-CONSUMER-UX.md) | All user-facing screens: consent, offer card, QR, cashback animation, wallet |
+| [`docs/12-SUBMISSION-README.md`](docs/12-SUBMISSION-README.md) | Template for the final hackathon GitHub README |
+| [`docs/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md`](docs/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md) | User KG (SQLite), on-device LLMs, Air Canada hard rails & audit trail |
+| [`docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md`](docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md) | Temporal conflict model, coupon mechanics, framing rules, decision tree |
+| [`docs/15-FINN-BRIEFING.md`](docs/15-FINN-BRIEFING.md) | Finn's complete implementation spec: Payone generator, density, occupancy, conflict engine, hard rails |
+| [`docs/16-ADVANCED-SIGNALS.md`](docs/16-ADVANCED-SIGNALS.md) | Exercise states, OCR transit scan, wallet pass KG seeds, Spark Wave social coordination |
 
 ---
 

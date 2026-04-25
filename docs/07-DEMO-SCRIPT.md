@@ -98,11 +98,14 @@ Use these to make the demo feel local and real:
 - Offer: warm drink + pastry, 15% off, 20 min valid
 - Trigger: Payone density drop + weather + browsing IMU
 
-### Scenario B: VVS Transit Delay (Bonus)
-- "The U14 toward Heslach has a 9-minute delay at Rathaus stop"
-- User is stationary at the stop (IMU: stationary)
-- Nearest café 80m: "While you wait — free refill on any hot drink at Café Mitte"
-- This scenario takes 20 seconds and is incredibly Stuttgart-specific
+### Scenario B: VVS Transit Delay (Bonus — now with OCR precision)
+- User photographs their DB ticket: "S1 → Schwabstraße, 18:02, Gleis 2"
+- On-device OCR (ML Kit) parses: train S1, departure 18:02, platform 2
+- Backend queries marudor.de: S1 running 14 minutes late
+- Offer fires: "Your S1's 14 minutes late. Bäckerei Wolf is 90m away — grab a pretzel. We'll alert you 4 minutes before you need to board."
+- The **"4 minutes before you need to board" notification** is the gasp moment. Not just the offer — the deadline awareness.
+- Without OCR fallback: if user hasn't scanned a ticket, backend still polls VVS for delays affecting trains at Stuttgart Hbf and sends a softer offer for any user with `transit_waiting` movement mode at the station
+- This scenario takes 30 seconds including the ticket scan and is uniquely Stuttgart (marudor is S-Bahn/RE specific, works perfectly here)
 
 ### Scenario C: Hackathon Night (Tonight!)
 - Time: tonight, wherever the hackathon is

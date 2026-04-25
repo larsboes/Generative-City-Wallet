@@ -99,8 +99,13 @@ Add Gaussian noise + day-of-week variation (Monday different from Saturday). Thi
 - `browsing` — slow, irregular, non-directional → **prime offer moment**
 - `stationary` — stopped for > 2 min → **offer if dwell near merchant**
 - `transit_waiting` — at a transit stop → **perfect for transit-delay offers**
+- `exercising` — high cadence, sustained pace (>7 km/h GPS or ~2Hz accelerometer oscillation) → **do NOT send offer; absolute hard block**
+- `post_workout` — pace decelerating from exercising state within last 8 min → **prime window for recovery/hydration offers; boost healthy café, smoothie bar, sports nutrition categories**
+- `cycling` — smooth oscillation pattern, 12-25 km/h, low step frequency → **do NOT send, unsafe for screen interaction**
 
 **The "browsing" detection directly maps to the Mia persona** in the challenge brief: *"It knows Mia has stopped twice in the last ten minutes and is moving slowly — the behavioural signature of someone browsing, not commuting."*
+
+**Post-workout is the under-exploited moment.** Nobody else detects this. The offer category shifts entirely: not cafés for comfort, but recovery — protein, hydration, something cold on a hot day. See doc 16 for the full framing vocabulary and demo scenario.
 
 **Other mobility signals:**
 - Battery < 20% → prioritize "places with free charging" offers
