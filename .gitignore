@@ -53,9 +53,6 @@ data/
 .env.*
 !.env.example
 
-# uv
-uv.lock
-
 # IDE / editor
 .vscode/
 .idea/
