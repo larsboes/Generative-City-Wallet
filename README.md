@@ -68,8 +68,79 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 
 ---
 
+## Occupancy API
+
+The first backend component is a generic FastAPI data source for venue demand and occupancy signals. Munich is the default seed city, but the importer and API are city/category configurable.
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Fetch Munich venues from OpenStreetMap and import them into SQLite:
+
+```bash
+python scripts/fetch_venues.py --city München --limit 100 --db-path data/occupancy.db
+```
+
+Start the API:
+
+```bash
+uvicorn backend.app.main:app --reload
+```
+
+Prepare transaction history and a live Payone-style update:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/api/transactions/generate/history" \
+  -H "Content-Type: application/json" \
+  -d "{\"city\":\"München\",\"category\":\"bar,cafe,restaurant\",\"limit\":10,\"days\":28,\"seed\":42}"
+
+curl -X POST "http://127.0.0.1:8000/api/transactions/generate/live-update" \
+  -H "Content-Type: application/json" \
+  -d "{\"city\":\"München\",\"category\":\"bar,cafe,restaurant\",\"limit\":10,\"seed\":43}"
+```
+
+Example calls:
+
+```bash
+curl "http://127.0.0.1:8000/health"
+curl "http://127.0.0.1:8000/api/venues?category=bar,cafe&city=M%C3%BCnchen&limit=10"
+curl "http://127.0.0.1:8000/api/occupancy/osm_node_12345"
+curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/transactions/daily"
+curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/transactions/averages?lookback_days=28"
+curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/revenue/last-7-days"
+curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/dashboard/today"
+curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/transactions/hour-rankings?lookback_days=28"
+curl -X POST "http://127.0.0.1:8000/api/occupancy/query" \
+  -H "Content-Type: application/json" \
+  -d "{\"merchant_ids\":[\"osm_node_12345\"],\"arrival_offset_minutes\":10}"
+```
+
+When `München` is used in a URL query string, encode the umlaut as `M%C3%BCnchen`. Raw non-ASCII characters in the URL can make Uvicorn reject the request as invalid. JSON request bodies can keep `München` as-is.
+
+On PowerShell, use `curl.exe` if `curl` is aliased to `Invoke-WebRequest`. You can also let curl encode query params:
+
+```powershell
+curl.exe -G "http://127.0.0.1:8000/api/venues" `
+  --data-urlencode "category=bar,cafe,restaurant" `
+  --data-urlencode "city=München" `
+  --data-urlencode "limit=10"
+```
+
+---
+
 ## Name & Branding
 
 **Spark** — a direct nod to *Sparkasse* (German Savings Banks). Suggests igniting the local economy. The "Spark cashback" animation (credit flying into wallet balance) closes the loop visually.
 
 Tagline: **"Make every minute local."**
+
+
+$venues = curl.exe "http://127.0.0.1:8000/api/venues?category=bar,pub,nightclub,biergarten&city=M%C3%BCnchen&limit=1" | ConvertFrom-Json
+$MID = $venues.venues[0].merchant_id
+
+curl.exe -X POST "http://127.0.0.1:8000/api/occupancy/query" `
+  -H "Content-Type: application/json" `
+  -d "{`"merchant_ids`":[`"$MID`"],`"arrival_offset_minutes`":10}"
