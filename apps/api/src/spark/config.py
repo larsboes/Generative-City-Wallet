@@ -46,6 +46,9 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
 OFFER_LLM_PROVIDER = os.getenv("OFFER_LLM_PROVIDER", "gemini").strip().lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+# ollama = /api/chat, openai = /v1/chat/completions-compatible.
+OLLAMA_API_STYLE = os.getenv("OLLAMA_API_STYLE", "ollama").strip().lower()
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
 
 # ── Strands Agent ──────────────────────────────────────────────────────────────
 AGENT_ENABLED = os.getenv("AGENT_ENABLED", "auto").lower()

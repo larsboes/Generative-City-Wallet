@@ -16,9 +16,14 @@ Copy `.env.example` to `.env` and set:
 ## Commands
 
 ```bash
-cd mobile
+cd apps/mobile
 npm install
 npx expo start
 ```
 
 Use **EAS / `expo prebuild`** before adding the LiteRT native module; managed workflow alone cannot load Gemma weights.
+
+## Local LLM spike scaffolding
+
+- TS bridge + tool schema: `src/local-llm/`
+- Native implementation runbook: `LOCAL_LLM_SPIKE.md`

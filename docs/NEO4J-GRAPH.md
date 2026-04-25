@@ -324,6 +324,7 @@ sequenceDiagram
 
 ## See also
 
-- **[`REPOSITORY-OVERVIEW.md`](REPOSITORY-OVERVIEW.md)** — full backend layout, hybrid offer agent path, CI/Docker, and how this graph fits the rest of the repo.
+- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — full backend layout, hybrid offer agent path, and how this graph fits the rest of the repo.
+- **[`DEVELOPMENT.md`](DEVELOPMENT.md)** — repo structure, CI, Docker, and npm/uv commands.
 - **[`planning/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md`](planning/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md)** — original KG + on-device framing (complements this server graph).
 - **[`../README.md`](../README.md#graph-ops-neo4j)** — quick `curl` and cron examples.

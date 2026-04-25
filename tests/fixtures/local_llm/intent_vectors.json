@@ -1,0 +1,39 @@
+[
+  {
+    "grid_cell": "STR-MITTE-047",
+    "movement_mode": "browsing",
+    "time_bucket": "tuesday_lunch",
+    "weather_need": "warmth_seeking",
+    "social_preference": "quiet",
+    "price_tier": "mid",
+    "recent_categories": ["cafe"],
+    "dwell_signal": false,
+    "battery_low": false,
+    "session_id": "fixture-intent-001"
+  },
+  {
+    "grid_cell": "STR-WEST-112",
+    "movement_mode": "commuting",
+    "time_bucket": "weekday_evening",
+    "weather_need": "refreshment_seeking",
+    "social_preference": "social",
+    "price_tier": "high",
+    "recent_categories": ["bar", "restaurant"],
+    "dwell_signal": false,
+    "battery_low": true,
+    "session_id": "fixture-intent-002"
+  },
+  {
+    "grid_cell": "STR-SUED-031",
+    "movement_mode": "post_workout",
+    "time_bucket": "saturday_afternoon",
+    "weather_need": "neutral",
+    "social_preference": "neutral",
+    "price_tier": "low",
+    "recent_categories": ["bakery"],
+    "dwell_signal": true,
+    "battery_low": false,
+    "session_id": "fixture-intent-003"
+  }
+]
+

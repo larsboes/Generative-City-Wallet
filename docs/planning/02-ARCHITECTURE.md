@@ -1,6 +1,6 @@
 # 02 — System Architecture
 
-**Runtime add-on:** an optional **Neo4j user knowledge graph** on the Spark backend (session preferences, offer lifecycle, deterministic pre-LLM rules, explainability) is described in **[`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md)**. The diagram below is the original privacy boundary; the graph augments the backend box when enabled.
+**Runtime add-on:** an optional **Neo4j user knowledge graph** on the Spark backend (session preferences, offer lifecycle, deterministic pre-LLM rules, explainability) is described in **[`../NEO4J-GRAPH.md`](../NEO4J-GRAPH.md)**. The diagram below is the original privacy boundary; the graph augments the backend box when enabled.
 
 ## Overview: Privacy-First, Context-Driven
 

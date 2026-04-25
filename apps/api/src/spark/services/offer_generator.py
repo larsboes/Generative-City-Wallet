@@ -14,6 +14,8 @@ from spark.config import (
     GEMINI_MODEL,
     GOOGLE_AI_API_KEY,
     OFFER_LLM_PROVIDER,
+    OLLAMA_API_KEY,
+    OLLAMA_API_STYLE,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
 )
@@ -185,6 +187,38 @@ async def _generate_ollama(state: CompositeContextState) -> LLMOfferOutput:
     return LLMOfferOutput(**raw)
 
 
+async def _generate_ollama_openai_compat(
+    state: CompositeContextState,
+) -> LLMOfferOutput:
+    """OpenAI-compatible chat/completions JSON path for local dev providers."""
+    user_prompt = build_user_prompt(state)
+    payload = {
+        "model": OLLAMA_MODEL,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.75,
+    }
+    headers: dict[str, str] = {}
+    if OLLAMA_API_KEY:
+        headers["Authorization"] = f"Bearer {OLLAMA_API_KEY}"
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        r = await client.post(
+            f"{OLLAMA_BASE_URL}/v1/chat/completions", json=payload, headers=headers
+        )
+        r.raise_for_status()
+        data = r.json()
+    choices = data.get("choices") or []
+    content = ""
+    if choices:
+        content = ((choices[0] or {}).get("message") or {}).get("content") or ""
+    raw = _parse_llm_json_blob(content)
+    return LLMOfferOutput(**raw)
+
+
 async def generate_offer_llm(state: CompositeContextState) -> LLMOfferOutput:
     """
     Raw LLM offer JSON before hard-rails enforcement.
@@ -192,6 +226,8 @@ async def generate_offer_llm(state: CompositeContextState) -> LLMOfferOutput:
     """
     if OFFER_LLM_PROVIDER == "ollama":
         try:
+            if OLLAMA_API_STYLE == "openai":
+                return await _generate_ollama_openai_compat(state)
             return await _generate_ollama(state)
         except Exception as e:
             print(f"⚠️  Ollama error, using fallback: {e}")

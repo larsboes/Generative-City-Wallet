@@ -11,6 +11,7 @@ from typing import Any
 from spark.config import DB_PATH
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+_SHARED_MEMORY_KEEPALIVE: sqlite3.Connection | None = None
 
 
 def _normalize_sqlite_target(db_path: str) -> tuple[str, bool]:
@@ -25,6 +26,10 @@ def _normalize_sqlite_target(db_path: str) -> tuple[str, bool]:
 def get_connection(db_path: str | None = None) -> sqlite3.Connection:
     """Return a new SQLite connection with WAL mode and row factory."""
     target, use_uri = _normalize_sqlite_target(db_path or DB_PATH)
+    global _SHARED_MEMORY_KEEPALIVE
+    if use_uri and _SHARED_MEMORY_KEEPALIVE is None:
+        _SHARED_MEMORY_KEEPALIVE = sqlite3.connect(target, uri=True)
+        _SHARED_MEMORY_KEEPALIVE.execute("PRAGMA foreign_keys=ON")
     conn = sqlite3.connect(target, uri=use_uri)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")

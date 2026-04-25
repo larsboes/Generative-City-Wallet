@@ -288,8 +288,8 @@ def seed_database(db_path: str | None = None) -> None:
 
     # Clear old data
     conn.execute("DELETE FROM payone_transactions")
-    conn.execute("DELETE FROM merchants")
     conn.execute("DELETE FROM merchant_coupons")
+    conn.execute("DELETE FROM merchants")
 
     # Seed merchants
     for m in DEMO_MERCHANTS:

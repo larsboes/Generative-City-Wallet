@@ -42,6 +42,7 @@
 | File | What it answers |
 |---|---|
 | `15-FINN-BRIEFING.md` | Finn's full spec: Payone generator, density signal, occupancy, conflict engine |
+| `15-1-TRANSACTION-GENERATION.md` | Deep dive on transaction generation and synthetic data seeding rules |
 | `06-MVP-SCOPE.md` | Must/Should/Nice-to-Have tiers, build timeline, tech stack |
 | `08-OPEN-QUESTIONS.md` | Unresolved platform decisions (mobile platform, APIs, discount ranges) |
 
@@ -88,7 +89,7 @@
 | Gemini Flash prompt + JSON schema | 17 | 04 |
 | Hard rails / Air Canada liability | 13 | 17 |
 | User knowledge graph | 13 | 17 |
-| **Server Neo4j graph (implemented)** | [`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md) | [`../REPOSITORY-OVERVIEW.md`](../REPOSITORY-OVERVIEW.md) |
+| **Server Neo4j graph (implemented)** | [`../NEO4J-GRAPH.md`](../NEO4J-GRAPH.md) | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) |
 | Transaction history KG seeding | 13 (Part 4) | — |
 | Conflict resolution (empty venue + social user) | 14 | 15 |
 | Coupon mechanics (milestone coupon) | 14 | 15 |
@@ -102,3 +103,4 @@
 | Spark Wave social feature | 16 | 14 |
 | Gemma 3n on-device | 13 | 17 |
 | Vision + why we built this | BACKGROUND | — |
+ROUND | — |

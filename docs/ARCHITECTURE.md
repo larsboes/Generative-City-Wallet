@@ -1,14 +1,14 @@
-# Repository overview — what lives here today
+# Architecture — Spark
 
-This repo is a **Spark monorepo**: **FastAPI** (`apps/api/src/spark`) + SQLite (merchants, synthetic Payone, offer audit, wallet) plus an **optional Neo4j** user/session graph; **Expo mobile** (`apps/mobile`); **Vite + React merchant dashboard** scaffold (`apps/web-dashboard`); **shared TS contracts** (`packages/shared`). Root **`package.json`** wires npm workspaces + Turbo; Python stays **`uv`** + root **`pyproject.toml`**.
-
-For **Neo4j-only** depth (model, rules, ops, diagrams), see **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. For **workspaces and root scripts**, see **[`MONOREPO-STRUCTURE.md`](MONOREPO-STRUCTURE.md)**. For product and pitch material, see **[`planning/README.md`](planning/README.md)**.
+This document covers the high-level system design, backend routers, the hybrid offer pipeline, and data stores. 
+For how to build, run, and test the code, see **[`DEVELOPMENT.md`](DEVELOPMENT.md)**. 
+For deep graph database logic, see **[`NEO4J-GRAPH.md`](NEO4J-GRAPH.md)**.
 
 ---
 
 ## Layout (mental map)
 
-```
+```text
 Generative-City-Wallet/
 ├── apps/
 │   ├── api/src/spark/    # FastAPI app, services, SQLite, Neo4j graph layer
@@ -17,12 +17,9 @@ Generative-City-Wallet/
 ├── packages/shared/      # @spark/shared — TS contracts (mirror spark.models.contracts)
 ├── tests/                # pytest: smoke, graph rules, repository fallbacks, integration
 ├── scripts/              # benchmark_offer_latency, run_graph_maintenance
-├── docs/                 # Current implementation docs (this file, Neo4j doc, README index)
-├── docs/planning/        # Design specs, moved from legacy flat docs/
-├── data/                 # spark.db (SQLite), optional neo4j/ volume mount
-├── docker-compose.yml    # Backend + .env + ./data mount
-├── Dockerfile            # Production-style image (uv sync, uvicorn)
-└── .github/workflows/    # CI: ruff, pyright, pytest, pip-audit, Docker build
+├── docs/                 # Current implementation docs
+├── docs/planning/        # Design specs and historical product decisions
+└── data/                 # spark.db (SQLite), optional neo4j/ volume mount
 ```
 
 ```mermaid
@@ -108,7 +105,7 @@ flowchart TD
 
 **ASCII — two content sources, one rail:**
 
-```
+```text
   Agent (Strands)          Gemini Flash / fallback
         \                         /
          \____ both funnel ______/
@@ -136,85 +133,4 @@ Notable tables:
 
 ### Neo4j (optional)
 
-See **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. Merchants are **mirrored** from SQLite on successful connect.
-
----
-
-## Shared contracts
-
-- **Python:** `apps/api/src/spark/models/contracts.py` (Pydantic) — intent, composite state, offer object, redemption types, **`explainability`** on offers.
-- **TypeScript:** `packages/shared/src/contracts.ts` — keep in sync for Expo / web-dashboard consumers.
-
----
-
-## Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `scripts/ops/benchmark_offer_latency.py` | Spawns API twice (Neo4j on/off), measures p95 for `/api/offers/generate` |
-| `scripts/ops/run_graph_maintenance.py` | One-shot cleanup + preference decay (cron-friendly) |
-| `scripts/dev/smoke_intent_vector.py` | POST sample intent to a running API |
-| `scripts/dev/check_contract_symbols.py` | CI guard: shared TS vs Python contract names |
-
----
-
-## CI / quality (`.github/workflows/ci.yml`)
-
-- **Lint:** `ruff check` + `ruff format --check` on `apps/api/src/spark`, `tests`, `scripts`
-- **Types:** `pyright apps/api/src/spark/`
-- **JS:** `npm ci` + `npm run typecheck` + `npm run test:contracts`
-- **Tests:** `pytest tests/` with `SPARK_DB_PATH=:memory:`
-- **Smoke:** uvicorn boot + `GET /api/health`
-- **Security:** `pip-audit`, SBOM + Grype (non-blocking), Docker build + Trivy scan
-
----
-
-## Docker
-
-- **`Dockerfile`:** Python 3.12 slim, `uv sync --frozen`, copies `apps/api/src/spark`, sets `PYTHONPATH`, runs uvicorn `spark.main:app` on `8000`.
-- **`docker-compose.yml`:** single `backend` service, `.env`, mounts `./data` → `/app/data` (SQLite + optional Neo4j host data).
-
-Neo4j is **not** defined in compose in-repo; run it separately or extend compose (see root **`README.md`** Graph Ops).
-
----
-
-## Tests (`tests/`)
-
-| File | Focus |
-|------|--------|
-| `integration/test_smoke.py` | Health, merchants, density, offer generate, conflict |
-| `unit/test_graph_rules.py` | `GraphValidationService` with fake repository |
-| `integration/test_graph_repository_fallback.py` | Fail-soft when graph unavailable |
-| `integration/test_composite_graph_integration.py` | Composite + offer path with stubs |
-| `unit/test_offer_generator_json_blob.py` | Offer generator JSON blob behavior |
-
----
-
-## Other folders
-
-| Path | Notes |
-|------|--------|
-| `resources/` | Markdown notes (e.g. Gemini chat, liability thread) — reference only |
-| `AGENTS.md` | Cursor/agent workspace preferences and learned facts |
-
----
-
-## Configuration reference
-
-Authoritative defaults and env vars: **`apps/api/src/spark/config.py`**. Highlights:
-
-- `SPARK_DB_PATH`, `GOOGLE_AI_API_KEY`, `OPENWEATHER_API_KEY`, `GEMINI_MODEL`, `SPARK_HMAC_SECRET`
-- `AGENT_ENABLED` (`auto` / `true` / `false`)
-- `NEO4J_*`, `GRAPH_*` rule thresholds, retention, decay (Neo4j doc tables duplicate this for graph-only readers)
-
----
-
-## See also
-
-| Doc | Use when |
-|-----|----------|
-| [`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md) | Graph model, APIs, env, diagrams, ops |
-| [`../README.md`](../README.md) | Product pitch + Graph Ops `curl` / cron |
-| [`MONOREPO-STRUCTURE.md`](MONOREPO-STRUCTURE.md) | Workspaces, Turbo, npm scripts, `scripts/` layout |
-| [`../apps/api/README.md`](../apps/api/README.md) | Short backend quick start (may be narrower than this file) |
-| [`planning/README.md`](planning/README.md) | Design and planning archive |
+See **[`NEO4J-GRAPH.md`](NEO4J-GRAPH.md)**. Merchants are **mirrored** from SQLite on successful connect.
