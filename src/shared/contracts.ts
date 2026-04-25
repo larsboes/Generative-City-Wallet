@@ -123,6 +123,12 @@ export interface OfferObject {
   };
   expires_at: string;
   qr_payload?: string;
+  explainability?: {
+    code: string;
+    reason: string;
+    score: number;
+    metadata?: Record<string, unknown>;
+  }[];
 }
 
 // ── QR Redemption ─────────────────────────────────────────────────────────────

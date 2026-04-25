@@ -6,6 +6,11 @@ Useful for the demo dashboard and operational checks. Read-only.
 
 from fastapi import APIRouter
 
+from src.backend.config import (
+    GRAPH_PREF_DECAY_DEFAULT_RATE,
+    GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
+    GRAPH_RETENTION_DAYS,
+)
 from src.backend.graph import get_metrics, is_available
 from src.backend.graph.repository import get_repository
 
@@ -67,3 +72,33 @@ async def session_recent_offers(session_id: str, limit: int = 10):
             for o in offers
         ],
     }
+
+
+@router.post("/cleanup")
+async def run_graph_cleanup(retention_days: int = GRAPH_RETENTION_DAYS):
+    """Delete graph session/offer artifacts older than retention window."""
+    repo = get_repository()
+    stats = await repo.cleanup_old_data(retention_days=retention_days)
+    return {
+        "available": is_available(),
+        "cleanup": stats,
+    }
+
+
+@router.post("/decay-preferences")
+async def run_preference_decay(
+    stale_after_days: int = GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
+    default_decay_rate: float = GRAPH_PREF_DECAY_DEFAULT_RATE,
+):
+    repo = get_repository()
+    decay = await repo.decay_stale_preferences(
+        stale_after_days=stale_after_days,
+        default_decay_rate=default_decay_rate,
+    )
+    return {"available": is_available(), "decay": decay}
+
+
+@router.get("/migrations")
+async def graph_migrations():
+    repo = get_repository()
+    return {"available": is_available(), "migrations": await repo.migration_status()}

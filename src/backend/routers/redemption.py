@@ -4,7 +4,10 @@ Redemption and wallet endpoints.
 
 from fastapi import APIRouter
 
-from src.backend.models.contracts import ConflictResolveRequest, RedemptionValidationRequest
+from src.backend.models.contracts import (
+    ConflictResolveRequest,
+    RedemptionValidationRequest,
+)
 from src.backend.services.conflict import resolve_conflict
 from src.backend.services.redemption import (
     confirm_redemption,

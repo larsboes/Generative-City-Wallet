@@ -7,10 +7,13 @@ import hmac
 import json
 import logging
 import time
-import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from src.backend.config import HMAC_SECRET, DEFAULT_QR_VALID_MINUTES
+from src.backend.config import (
+    HMAC_SECRET,
+    DEFAULT_QR_VALID_MINUTES,
+    GRAPH_PREF_DECAY_DEFAULT_RATE,
+)
 from src.backend.db.connection import get_connection
 from src.backend.graph.repository import get_repository
 
@@ -77,7 +80,9 @@ def validate_qr(
             return {"valid": False, "offer_id": offer_id, "error": "INVALID_TOKEN"}
 
         # Parse discount from final_offer
-        final_offer = json.loads(offer_row["final_offer"]) if offer_row["final_offer"] else {}
+        final_offer = (
+            json.loads(offer_row["final_offer"]) if offer_row["final_offer"] else {}
+        )
         discount = final_offer.get("discount", {})
 
         conn.close()
@@ -92,8 +97,8 @@ def validate_qr(
             "expires_at": datetime.fromtimestamp(expiry_unix).isoformat(),
         }
 
-    except Exception as e:
-        return {"valid": False, "error": f"INVALID_TOKEN"}
+    except Exception:
+        return {"valid": False, "error": "INVALID_TOKEN"}
 
 
 def confirm_redemption(
@@ -120,7 +125,9 @@ def confirm_redemption(
     )
 
     # Calculate cashback (discount value as cashback EUR)
-    final_offer = json.loads(offer_row["final_offer"]) if offer_row["final_offer"] else {}
+    final_offer = (
+        json.loads(offer_row["final_offer"]) if offer_row["final_offer"] else {}
+    )
     discount = final_offer.get("discount", {})
     discount_pct = discount.get("value", 0)
     merchant_name = final_offer.get("merchant", {}).get("name", "Unknown")
@@ -194,7 +201,9 @@ async def project_redemption_to_graph(
                 session_id=session_id,
                 category=merchant_category,
                 delta=PREFERENCE_DELTA_REDEEM,
+                base_weight=0.5,
                 source_type="redemption",
+                decay_rate=GRAPH_PREF_DECAY_DEFAULT_RATE,
             )
     except Exception as exc:  # defensive — never fail the redemption flow
         logger.warning("Graph projection of redemption failed: %s", exc)
@@ -226,14 +235,18 @@ async def project_offer_outcome_to_graph(
                 session_id=session_id,
                 category=merchant_category,
                 delta=PREFERENCE_DELTA_DECLINE,
+                base_weight=0.5,
                 source_type="decline",
+                decay_rate=GRAPH_PREF_DECAY_DEFAULT_RATE,
             )
         elif status == "EXPIRED" and merchant_category:
             await repo.reinforce_category(
                 session_id=session_id,
                 category=merchant_category,
                 delta=PREFERENCE_DELTA_EXPIRE,
+                base_weight=0.5,
                 source_type="expire",
+                decay_rate=GRAPH_PREF_DECAY_DEFAULT_RATE,
             )
     except Exception as exc:
         logger.warning("Graph projection of outcome failed: %s", exc)

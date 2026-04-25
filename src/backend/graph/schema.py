@@ -33,13 +33,18 @@ CONSTRAINTS_AND_INDEXES: list[str] = [
     "FOR (o:Offer) REQUIRE o.offer_id IS UNIQUE",
     "CREATE CONSTRAINT redemption_offer_id IF NOT EXISTS "
     "FOR (r:Redemption) REQUIRE r.offer_id IS UNIQUE",
+    "CREATE CONSTRAINT wallet_event_offer_id IF NOT EXISTS "
+    "FOR (w:WalletEvent) REQUIRE w.offer_id IS UNIQUE",
+    "CREATE CONSTRAINT context_snapshot_offer_id IF NOT EXISTS "
+    "FOR (ctx:ContextSnapshot) REQUIRE ctx.offer_id IS UNIQUE",
+    "CREATE CONSTRAINT graph_migration_id IF NOT EXISTS "
+    "FOR (gm:GraphMigration) REQUIRE gm.id IS UNIQUE",
+    "CREATE CONSTRAINT graph_meta_key IF NOT EXISTS "
+    "FOR (g:GraphMeta) REQUIRE g.key IS UNIQUE",
     # ── Lookup indexes ─────────────────────────────────────────────────────
-    "CREATE INDEX offer_created_at IF NOT EXISTS "
-    "FOR (o:Offer) ON (o.created_at_unix)",
-    "CREATE INDEX merchant_grid IF NOT EXISTS "
-    "FOR (m:Merchant) ON (m.grid_cell)",
-    "CREATE INDEX merchant_category IF NOT EXISTS "
-    "FOR (m:Merchant) ON (m.category)",
+    "CREATE INDEX offer_created_at IF NOT EXISTS FOR (o:Offer) ON (o.created_at_unix)",
+    "CREATE INDEX merchant_grid IF NOT EXISTS FOR (m:Merchant) ON (m.grid_cell)",
+    "CREATE INDEX merchant_category IF NOT EXISTS FOR (m:Merchant) ON (m.category)",
 ]
 
 

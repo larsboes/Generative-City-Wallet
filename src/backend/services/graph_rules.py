@@ -195,7 +195,9 @@ class GraphValidationService:
         )
         if recent:
             same_category = sum(
-                1 for o in recent if (o.category or "").lower() == merchant_category.lower()
+                1
+                for o in recent
+                if (o.category or "").lower() == merchant_category.lower()
             )
             result.metadata["recent_same_category"] = same_category
             if same_category >= diversity_window:
@@ -214,5 +216,47 @@ class GraphValidationService:
                     )
                 )
                 result.soft_adjustments.append("diversify_framing")
+
+        # Rule 5 — fairness budget by category share in recent window.
+        fairness_window = int(self.config["fairness_window"])
+        fairness_min_obs = int(self.config["fairness_min_observations"])
+        fairness_max_share = float(self.config["fairness_max_category_share"])
+        if fairness_max_share < 1.0:
+            fairness_recent = await self.repo.recent_offers(
+                session_id=session_id, limit=fairness_window
+            )
+            total = len(fairness_recent)
+            if total >= fairness_min_obs:
+                same_category = sum(
+                    1
+                    for o in fairness_recent
+                    if (o.category or "").lower() == merchant_category.lower()
+                )
+                share = same_category / float(total)
+                result.metadata["fairness_same_category"] = same_category
+                result.metadata["fairness_total_observations"] = total
+                result.metadata["fairness_share"] = round(share, 3)
+                if share >= fairness_max_share:
+                    result.accepted = False
+                    result.recheck_in_minutes = 30
+                    result.violations.append(
+                        RuleViolation(
+                            rule_id="fairness_budget",
+                            severity=RuleSeverity.HARD,
+                            reason=(
+                                f"Category '{merchant_category}' already consumes "
+                                f"{share:.0%} of last {total} offers "
+                                f"(max={fairness_max_share:.0%})."
+                            ),
+                            metadata={
+                                "category": merchant_category,
+                                "share": round(share, 3),
+                                "max_share": fairness_max_share,
+                                "window": fairness_window,
+                                "total": total,
+                            },
+                        )
+                    )
+                    return result
 
         return result

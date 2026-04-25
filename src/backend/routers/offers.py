@@ -1,47 +1,167 @@
 """
 Offer generation endpoint — the core pipeline.
-IntentVector → CompositeState → GraphValidation → Gemini Flash
-              → Hard Rails → SQLite audit → KG write → OfferObject
+
+HYBRID ARCHITECTURE:
+  Agent path:  IntentVector → GraphValidation → StrAnds OfferAgent (tools)
+               → Hard Rails → SQLite audit → KG write → OfferObject
+  Fallback:    IntentVector → CompositeState → GraphValidation → Gemini Flash
+               → Hard Rails → SQLite audit → KG write → OfferObject
 """
 
 import json
+import logging
 import uuid
 
 from fastapi import APIRouter
 
+from src.backend.config import AGENT_ENABLED
 from src.backend.db.connection import get_connection
 from src.backend.graph.repository import get_repository
-from src.backend.models.contracts import GenerateOfferRequest
+from src.backend.models.contracts import ExplainabilityReason, GenerateOfferRequest
 from src.backend.services.composite import build_composite_state
 from src.backend.services.graph_rules import GraphValidationService
 from src.backend.services.hard_rails import enforce_hard_rails
 from src.backend.services.offer_generator import generate_offer_llm
 from src.backend.services.redemption import generate_qr_payload
 
+logger = logging.getLogger("spark.offers")
 router = APIRouter(prefix="/api/offers", tags=["offers"])
+
+
+def _build_explainability(
+    state, rule_result, agent_reasoning: str | None = None
+) -> list[ExplainabilityReason]:
+    reasons: list[ExplainabilityReason] = []
+
+    # Agent reasoning (when available)
+    if agent_reasoning:
+        reasons.append(
+            ExplainabilityReason(
+                code="agent_reasoning",
+                reason=agent_reasoning,
+                score=0.9,
+                metadata={"source": "strands_agent"},
+            )
+        )
+
+    top_pref = sorted(
+        state.user.preference_scores.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )[:2]
+    for category, weight in top_pref:
+        reasons.append(
+            ExplainabilityReason(
+                code="preference_match",
+                reason=f"High affinity for '{category}' from past interactions.",
+                score=round(float(weight), 3),
+                metadata={"category": category},
+            )
+        )
+
+    if rule_result.soft_violations:
+        v = rule_result.soft_violations[0]
+        reasons.append(
+            ExplainabilityReason(
+                code=v.rule_id,
+                reason=v.reason,
+                score=0.5,
+                metadata=v.metadata,
+            )
+        )
+
+    if rule_result.metadata.get("graph_available"):
+        reasons.append(
+            ExplainabilityReason(
+                code="graph_rules_passed",
+                reason="Deterministic graph guardrails passed for this candidate.",
+                score=0.7,
+                metadata={
+                    "session_offers_24h": rule_result.metadata.get(
+                        "session_offers_24h"
+                    ),
+                    "merchant_offers_24h": rule_result.metadata.get(
+                        "merchant_offers_24h"
+                    ),
+                },
+            )
+        )
+
+    return reasons[:4]
 
 
 @router.post("/generate")
 async def generate_offer(request: GenerateOfferRequest):
     """
-    Full offer generation pipeline:
+    Hybrid offer generation pipeline:
 
-    1. Build composite context state (now graph-aware)
-    2. Run deterministic graph-rule gate (anti-spam, fatigue, cooldown)
-    3. Skip if conflict resolution says DO_NOT_RECOMMEND
-    4. Call Gemini Flash (or smart fallback)
-    5. Enforce hard rails
-    6. Persist QR + SQLite audit
-    7. Project the offer into the user knowledge graph (best-effort)
+    1. Try Strands OfferAgent (if AGENT_ENABLED + API key present)
+       - Agent calls tools to reason about merchant selection + framing
+       - Falls back to deterministic pipeline on any failure
+    2. Build composite context state (graph-aware)
+    3. Run deterministic graph-rule gate (anti-spam, fatigue, cooldown)
+    4. Call Gemini Flash or smart fallback (if agent didn't run)
+    5. Enforce hard rails — DB always wins
+    6. Persist QR + SQLite audit + KG projection
     """
-    # 1. Build composite state
+    agent_decision = None
+    agent_reasoning = None
+    pipeline_source = "deterministic"
+
+    # ── AGENT PATH (try first if enabled) ──────────────────────────────────
+    if AGENT_ENABLED:
+        try:
+            from src.backend.agents.agent import run_offer_agent
+
+            agent_decision = await run_offer_agent(
+                session_id=request.intent.session_id,
+                grid_cell=request.intent.grid_cell,
+                movement_mode=request.intent.movement_mode.value,
+                social_preference=request.intent.social_preference.value,
+                price_tier=request.intent.price_tier.value,
+                weather_need=request.intent.weather_need.value,
+                time_bucket=request.intent.time_bucket,
+                recent_categories=request.intent.recent_categories,
+                merchant_id=request.merchant_id,
+            )
+
+            if agent_decision and not agent_decision.get("skip"):
+                # Agent succeeded — override merchant selection
+                request.merchant_id = agent_decision.get(
+                    "merchant_id", request.merchant_id
+                )
+                agent_reasoning = agent_decision.get("reasoning")
+                pipeline_source = "agent"
+                logger.info(
+                    "agent_selected_merchant",
+                    extra={
+                        "merchant_id": request.merchant_id,
+                        "reasoning": agent_reasoning,
+                    },
+                )
+            elif agent_decision and agent_decision.get("skip"):
+                return {
+                    "offer": None,
+                    "reason": agent_decision.get(
+                        "reason", "Agent determined no suitable merchant."
+                    ),
+                    "pipeline": "agent",
+                    "recheck_in_minutes": 30,
+                }
+        except Exception as e:
+            logger.warning("agent_fallback: %s", e)
+            pipeline_source = "deterministic"
+            agent_decision = None
+
+    # ── DETERMINISTIC PIPELINE (always runs for graph rules + hard rails) ──
+    # 1. Build composite state (uses agent's merchant_id if selected)
     state = await build_composite_state(
         request.intent,
         request.merchant_id,
         request.demo_overrides,
     )
 
-    # 2. Graph-rule gate — runs before any LLM call.
+    # 2. Graph-rule gate — runs before any content generation
     rules = GraphValidationService()
     rule_result = await rules.validate(
         session_id=state.session_id,
@@ -56,9 +176,10 @@ async def generate_offer(request: GenerateOfferRequest):
             "rule_id": violation.rule_id,
             "recheck_in_minutes": rule_result.recheck_in_minutes or 30,
             "graph_decision": rule_result.to_audit_dict(),
+            "pipeline": pipeline_source,
         }
 
-    # 3. Conflict-resolution gate (existing rules engine)
+    # 3. Conflict-resolution gate
     if state.conflict_resolution.recommendation == "DO_NOT_RECOMMEND":
         return {
             "offer": None,
@@ -66,22 +187,54 @@ async def generate_offer(request: GenerateOfferRequest):
             "recommendation": state.conflict_resolution.recommendation,
             "recheck_in_minutes": 30,
             "graph_decision": rule_result.to_audit_dict(),
+            "pipeline": pipeline_source,
         }
 
-    # 4. Generate offer via LLM
+    # 4. Generate offer content
     offer_id = str(uuid.uuid4())
-    llm_output = await generate_offer_llm(state)
 
-    # 5. Enforce hard rails
+    if agent_decision and agent_decision.get("content"):
+        # Agent provided content + GenUI → wrap as LLMOfferOutput
+        from src.backend.models.contracts import LLMOfferOutput
+
+        llm_output = LLMOfferOutput(
+            content=agent_decision["content"],
+            genui=agent_decision.get(
+                "genui",
+                {
+                    "color_palette": "warm_amber",
+                    "typography_weight": "medium",
+                    "background_style": "gradient",
+                    "imagery_prompt": "contextual offer card",
+                    "urgency_style": "gentle_pulse",
+                    "card_mood": "cozy",
+                },
+            ),
+            framing_band_used=state.conflict_resolution.framing_band or "",
+        )
+    else:
+        # Deterministic fallback — direct LLM call
+        llm_output = await generate_offer_llm(state)
+
+    # 5. Enforce hard rails — DB ALWAYS WINS
     offer = enforce_hard_rails(llm_output, state, offer_id)
+    offer.explainability = _build_explainability(state, rule_result, agent_reasoning)
 
     # 6. Generate QR payload
     offer.qr_payload = generate_qr_payload(offer_id, state.session_id)
 
-    # 7. SQLite audit (source of truth) — keep first
-    _log_offer_audit(offer_id, state, llm_output, offer, rule_result.to_audit_dict())
+    # 7. SQLite audit (source of truth)
+    _log_offer_audit(
+        offer_id,
+        state,
+        llm_output,
+        offer,
+        rule_result.to_audit_dict(),
+        pipeline_source,
+        agent_reasoning,
+    )
 
-    # 8. Project into knowledge graph (best-effort, never raises)
+    # 8. Project into knowledge graph (best-effort)
     repo = get_repository()
     await repo.write_offer(
         offer_id=offer_id,
@@ -114,7 +267,15 @@ async def generate_offer(request: GenerateOfferRequest):
     return offer
 
 
-def _log_offer_audit(offer_id, state, llm_output, offer, graph_decision: dict | None = None):
+def _log_offer_audit(
+    offer_id,
+    state,
+    llm_output,
+    offer,
+    graph_decision: dict | None = None,
+    pipeline_source: str = "deterministic",
+    agent_reasoning: str | None = None,
+):
     """Write offer details to audit log."""
     try:
         conn = get_connection()
@@ -142,11 +303,22 @@ def _log_offer_audit(offer_id, state, llm_output, offer, graph_decision: dict | 
                 state.conflict_resolution.recommendation,
                 state.conflict_resolution.recommendation,
                 state.conflict_resolution.framing_band,
-                state.merchant.active_coupon.type if state.merchant.active_coupon else None,
-                json.dumps(state.merchant.active_coupon.config) if state.merchant.active_coupon else None,
+                state.merchant.active_coupon.type
+                if state.merchant.active_coupon
+                else None,
+                json.dumps(state.merchant.active_coupon.config)
+                if state.merchant.active_coupon
+                else None,
                 llm_output.model_dump_json(),
                 offer.model_dump_json(),
-                json.dumps({"rails_applied": True, "graph_decision": graph_decision or {}}),
+                json.dumps(
+                    {
+                        "rails_applied": True,
+                        "pipeline": pipeline_source,
+                        "agent_reasoning": agent_reasoning,
+                        "graph_decision": graph_decision or {},
+                    }
+                ),
                 "SENT",
             ),
         )

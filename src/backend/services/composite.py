@@ -20,7 +20,7 @@ from src.backend.models.contracts import (
     UserContext,
     DemoOverrides,
 )
-from src.backend.services.density import compute_density_signal, infer_occupancy_pct
+from src.backend.services.density import compute_density_signal
 from src.backend.services.conflict import resolve_conflict
 from src.backend.services.weather import get_stuttgart_weather
 
@@ -176,7 +176,9 @@ async def build_composite_state(
         # Reverse-engineer txn_rate from occupancy override
         density["current_occupancy_pct"] = demo_overrides.merchant_occupancy_pct / 100
         # Adjust density_score based on override
-        density["density_score"] = max(0.05, 1 - (demo_overrides.merchant_occupancy_pct / 100))
+        density["density_score"] = max(
+            0.05, 1 - (demo_overrides.merchant_occupancy_pct / 100)
+        )
         density["drop_pct"] = 1 - density["density_score"]
         density["offer_eligible"] = density["drop_pct"] >= 0.30
         if density["drop_pct"] >= 0.70:
@@ -197,15 +199,31 @@ async def build_composite_state(
             weather = weather.copy()
             weather["temp_celsius"] = demo_overrides.temp_celsius
             weather["feels_like_celsius"] = demo_overrides.temp_celsius - 3
-            from src.backend.services.weather import classify_weather_need, classify_vibe_signal
-            weather["weather_need"] = classify_weather_need(demo_overrides.temp_celsius, weather.get("weather_condition", "clear"))
-            weather["vibe_signal"] = classify_vibe_signal(weather["weather_need"], demo_overrides.temp_celsius, now.hour)
+            from src.backend.services.weather import (
+                classify_weather_need,
+                classify_vibe_signal,
+            )
+
+            weather["weather_need"] = classify_weather_need(
+                demo_overrides.temp_celsius, weather.get("weather_condition", "clear")
+            )
+            weather["vibe_signal"] = classify_vibe_signal(
+                weather["weather_need"], demo_overrides.temp_celsius, now.hour
+            )
         if demo_overrides.weather_condition is not None:
             weather = weather.copy()
             weather["weather_condition"] = demo_overrides.weather_condition
-            from src.backend.services.weather import classify_weather_need, classify_vibe_signal
-            weather["weather_need"] = classify_weather_need(weather["temp_celsius"], demo_overrides.weather_condition)
-            weather["vibe_signal"] = classify_vibe_signal(weather["weather_need"], weather["temp_celsius"], now.hour)
+            from src.backend.services.weather import (
+                classify_weather_need,
+                classify_vibe_signal,
+            )
+
+            weather["weather_need"] = classify_weather_need(
+                weather["temp_celsius"], demo_overrides.weather_condition
+            )
+            weather["vibe_signal"] = classify_vibe_signal(
+                weather["weather_need"], weather["temp_celsius"], now.hour
+            )
 
     # ── Social preference (may be overridden) ──────────────────────────────────
     social_pref = intent.social_preference
@@ -216,7 +234,9 @@ async def build_composite_state(
     coupon = merchant_info.get("coupon")
     conflict = resolve_conflict(
         merchant_id=merchant_id,
-        user_social_pref=social_pref.value if hasattr(social_pref, 'value') else social_pref,
+        user_social_pref=social_pref.value
+        if hasattr(social_pref, "value")
+        else social_pref,
         current_txn_rate=density["current_rate"],
         current_dt=now,
         active_coupon=coupon,
@@ -224,9 +244,8 @@ async def build_composite_state(
     )
 
     # ── Time bucket ────────────────────────────────────────────────────────────
-    time_bucket = intent.time_bucket
     if demo_overrides and demo_overrides.time_bucket:
-        time_bucket = demo_overrides.time_bucket
+        pass
 
     # ── Assemble ───────────────────────────────────────────────────────────────
     # Simple distance estimate (stub — in production, use Haversine from user grid cell)

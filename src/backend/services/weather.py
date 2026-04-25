@@ -8,7 +8,11 @@ from datetime import datetime
 
 import httpx
 
-from src.backend.config import OPENWEATHER_API_KEY, STUTTGART_CITY_ID, WEATHER_CACHE_TTL_SECONDS
+from src.backend.config import (
+    OPENWEATHER_API_KEY,
+    STUTTGART_CITY_ID,
+    WEATHER_CACHE_TTL_SECONDS,
+)
 
 # ── In-memory cache ───────────────────────────────────────────────────────────
 
@@ -34,7 +38,11 @@ def classify_weather_need(temp: float, condition: str, humidity: int = 50) -> st
     """Map weather conditions to user needs."""
     condition_lower = condition.lower()
 
-    if "rain" in condition_lower or "drizzle" in condition_lower or "thunderstorm" in condition_lower:
+    if (
+        "rain" in condition_lower
+        or "drizzle" in condition_lower
+        or "thunderstorm" in condition_lower
+    ):
         return "shelter_seeking"
     if temp < 12:
         return "warmth_seeking"

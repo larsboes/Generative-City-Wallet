@@ -61,6 +61,8 @@ def test_offer_generation(client):
     if data.get("offer_id"):
         assert data["merchant"]["name"] == "Café Römer"
         assert data["discount"]["source"] == "merchant_rules_db"
+        assert "explainability" in data
+        assert isinstance(data["explainability"], list)
         assert data["genui"]["color_palette"] in [
             "warm_amber", "cool_blue", "deep_green",
             "electric_purple", "soft_cream", "dark_contrast", "sunset_orange",

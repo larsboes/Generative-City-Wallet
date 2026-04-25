@@ -1,5 +1,7 @@
 # 13 — On-Device AI, Knowledge Graph & Liability Architecture
 
+> **Server implementation (Neo4j):** the live backend user/session graph — personalization, rule gate, writes, explainability, retention, migrations — is documented in **[`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md)**. This chapter remains the **product and liability** framing for on-device inference and local graph intent.
+
 ## Three Threads That Connect Into One Design
 
 Three things landed at once: the knowledge graph idea, the on-device LLM options (Gemma 3n, Qwen3), and the Air Canada AI liability Reddit thread. On the surface they're separate topics. They're actually the same argument.

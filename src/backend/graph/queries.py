@@ -41,40 +41,38 @@ RETURN m.id AS id
 WRITE_OFFER = """
 MERGE (u:UserSession {session_id: $session_id})
 ON CREATE SET u.created_at_unix = $now, u.offers_today = 0
-SET u.last_seen_unix = $now,
-    u.offers_today = coalesce(u.offers_today, 0) + 1
+SET u.last_seen_unix = $now
 WITH u
 MERGE (m:Merchant {id: $merchant_id})
 ON CREATE SET m.name = $merchant_name, m.category = $merchant_category
 WITH u, m
 MERGE (cat:MerchantCategory {name: $merchant_category})
 MERGE (m)-[:IN_CATEGORY]->(cat)
-CREATE (o:Offer {
-    offer_id: $offer_id,
-    created_at_unix: $now,
-    framing_band: $framing_band,
-    density_signal: $density_signal,
-    drop_pct: $drop_pct,
-    distance_m: $distance_m,
-    coupon_type: $coupon_type,
-    discount_pct: $discount_pct,
-    status: 'SENT'
-})
-CREATE (ctx:ContextSnapshot {
-    timestamp: $timestamp,
-    grid_cell: $grid_cell,
-    movement_mode: $movement_mode,
-    time_bucket: $time_bucket,
-    weather_need: $weather_need,
-    vibe_signal: $vibe_signal,
-    temp_c: $temp_c,
-    social_preference: $social_preference,
-    occupancy_pct: $occupancy_pct,
-    predicted_occupancy_pct: $predicted_occupancy_pct
-})
-CREATE (u)-[:RECEIVED_OFFER {ts_unix: $now}]->(o)
-CREATE (o)-[:AT_MERCHANT]->(m)
-CREATE (o)-[:GENERATED_IN]->(ctx)
+MERGE (o:Offer {offer_id: $offer_id})
+ON CREATE SET o.created_at_unix = $now
+SET o.framing_band = $framing_band,
+    o.density_signal = $density_signal,
+    o.drop_pct = $drop_pct,
+    o.distance_m = $distance_m,
+    o.coupon_type = $coupon_type,
+    o.discount_pct = $discount_pct,
+    o.status = 'SENT'
+WITH u, m, o
+MERGE (ctx:ContextSnapshot {offer_id: $offer_id})
+SET ctx.timestamp = $timestamp,
+    ctx.grid_cell = $grid_cell,
+    ctx.movement_mode = $movement_mode,
+    ctx.time_bucket = $time_bucket,
+    ctx.weather_need = $weather_need,
+    ctx.vibe_signal = $vibe_signal,
+    ctx.temp_c = $temp_c,
+    ctx.social_preference = $social_preference,
+    ctx.occupancy_pct = $occupancy_pct,
+    ctx.predicted_occupancy_pct = $predicted_occupancy_pct
+MERGE (u)-[ro:RECEIVED_OFFER {offer_id: $offer_id}]->(o)
+SET ro.ts_unix = coalesce(ro.ts_unix, $now)
+MERGE (o)-[:AT_MERCHANT]->(m)
+MERGE (o)-[:GENERATED_IN]->(ctx)
 RETURN o.offer_id AS offer_id
 """
 
@@ -128,13 +126,15 @@ MERGE (u)-[p:PREFERS]->(c)
 ON CREATE SET p.weight = $base_weight,
               p.created_at_unix = $now,
               p.source_type = $source_type,
-              p.last_reinforced_unix = $now
+              p.last_reinforced_unix = $now,
+              p.decay_rate = $decay_rate
 ON MATCH  SET p.weight = CASE
                    WHEN coalesce(p.weight, 0) + $delta > 1.0 THEN 1.0
                    WHEN coalesce(p.weight, 0) + $delta < 0.0 THEN 0.0
                    ELSE coalesce(p.weight, 0) + $delta
                  END,
               p.last_reinforced_unix = $now,
+              p.decay_rate = coalesce(p.decay_rate, $decay_rate),
               p.source_type = coalesce(p.source_type, $source_type)
 RETURN p.weight AS weight
 """
@@ -191,4 +191,67 @@ RETURN
   count { (:Redemption) }              AS redemptions,
   count { (:WalletEvent) }             AS wallet_events,
   count { ()-[r:PREFERS]->() }         AS prefers_edges
+"""
+
+CLEANUP_OLD_OFFERS = """
+MATCH (o:Offer)
+WHERE coalesce(o.created_at_unix, 0) < $cutoff_unix
+OPTIONAL MATCH (o)-[:GENERATED_IN]->(ctx:ContextSnapshot)
+OPTIONAL MATCH (r:Redemption)-[:FOR_OFFER]->(o)
+OPTIONAL MATCH (w:WalletEvent)-[:CREDIT_FOR]->(r)
+WITH collect(DISTINCT w) AS ws,
+     collect(DISTINCT r) AS rs,
+     collect(DISTINCT ctx) AS cs,
+     collect(DISTINCT o) AS os
+FOREACH (w IN ws | DETACH DELETE w)
+FOREACH (r IN rs | DETACH DELETE r)
+FOREACH (c IN cs | DETACH DELETE c)
+FOREACH (o IN os | DETACH DELETE o)
+RETURN
+  size(os) AS offers_deleted,
+  size(cs) AS contexts_deleted,
+  size(rs) AS redemptions_deleted,
+  size(ws) AS wallet_events_deleted
+"""
+
+CLEANUP_STALE_SESSIONS = """
+MATCH (u:UserSession)
+WHERE coalesce(u.last_seen_unix, u.created_at_unix, 0) < $cutoff_unix
+  AND NOT (u)-[:RECEIVED_OFFER]->(:Offer)
+WITH collect(u) AS users
+FOREACH (u IN users | DETACH DELETE u)
+RETURN size(users) AS sessions_deleted
+"""
+
+CLEANUP_OLD_PREFERENCE_EDGES = """
+MATCH (:UserSession)-[p:PREFERS|AVOIDS]->(:MerchantCategory|:Attribute)
+WHERE coalesce(p.last_reinforced_unix, p.created_at_unix, 0) < $cutoff_unix
+WITH collect(p) AS edges
+FOREACH (e IN edges | DELETE e)
+RETURN size(edges) AS preference_edges_deleted
+"""
+
+DECAY_STALE_PREFERENCES = """
+MATCH (:UserSession)-[p:PREFERS]->(:MerchantCategory)
+WHERE coalesce(p.last_reinforced_unix, p.created_at_unix, 0) < $stale_cutoff_unix
+WITH p,
+     coalesce(p.weight, 0.5) AS current_weight,
+     (($now_unix - coalesce(p.last_reinforced_unix, p.created_at_unix, $now_unix)) / 86400.0) AS age_days,
+     coalesce(p.decay_rate, $default_decay_rate) AS decay_rate
+WITH p, current_weight, age_days, decay_rate,
+     (current_weight - (age_days * decay_rate)) AS raw_weight
+SET p.weight = CASE
+        WHEN raw_weight < 0.0 THEN 0.0
+        WHEN raw_weight > 1.0 THEN 1.0
+        ELSE raw_weight
+    END,
+    p.last_decay_unix = $now_unix,
+    p.decay_rate = decay_rate
+RETURN count(p) AS edges_touched
+"""
+
+GET_MIGRATION_STATUS = """
+MATCH (m:GraphMigration)
+RETURN m.id AS id, m.description AS description, m.applied_at_unix AS applied_at_unix
+ORDER BY m.applied_at_unix ASC
 """

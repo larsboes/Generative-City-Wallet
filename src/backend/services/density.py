@@ -11,8 +11,8 @@ from src.backend.db.connection import get_connection
 # ── Occupancy calibration (txn_rate_at_empty, txn_rate_at_capacity, capacity) ─
 
 OCCUPANCY_CALIBRATION: dict[str, tuple[float, float, int]] = {
-    "MERCHANT_003": (0.5, 22, 120),   # Bar Unter
-    "MERCHANT_005": (0, 35, 300),      # Club Schräglage
+    "MERCHANT_003": (0.5, 22, 120),  # Bar Unter
+    "MERCHANT_005": (0, 35, 300),  # Club Schräglage
 }
 
 
@@ -144,7 +144,9 @@ def predict_occupancy_at(
 def get_all_merchants_density(db_path: str | None = None) -> list[dict]:
     """Return density info for all merchants."""
     conn = get_connection(db_path)
-    merchants = conn.execute("SELECT id, name, type, lat, lon, address, grid_cell FROM merchants").fetchall()
+    merchants = conn.execute(
+        "SELECT id, name, type, lat, lon, address, grid_cell FROM merchants"
+    ).fetchall()
     conn.close()
 
     results = []

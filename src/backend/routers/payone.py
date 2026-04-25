@@ -4,7 +4,10 @@ Payone density endpoints.
 
 from fastapi import APIRouter
 
-from src.backend.services.density import compute_density_signal, get_all_merchants_density
+from src.backend.services.density import (
+    compute_density_signal,
+    get_all_merchants_density,
+)
 
 router = APIRouter(prefix="/api/payone", tags=["payone"])
 

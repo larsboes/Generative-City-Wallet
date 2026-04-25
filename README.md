@@ -33,32 +33,11 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 
 ## Documentation
 
-→ **[`docs/README.md`](docs/README.md)** — navigation guide: who reads what, quick start by role, topic index
-
-### Full file listing
-
-| File | Contents |
-|------|----------|
-| [`docs/00-VISION.md`](docs/00-VISION.md) | Product vision, target markets, business model, competitive moat |
-| [`docs/01-CHALLENGE-ANALYSIS.md`](docs/01-CHALLENGE-ANALYSIS.md) | Deep reading of the hackathon brief, what judges actually want |
-| [`docs/02-ARCHITECTURE.md`](docs/02-ARCHITECTURE.md) | Technical architecture: on-device, cloud, AI agents |
-| [`docs/03-CONTEXT-ENGINE.md`](docs/03-CONTEXT-ENGINE.md) | Composite context state machine, all signals, Stuttgart-specific |
-| [`docs/04-GENERATIVE-ENGINE.md`](docs/04-GENERATIVE-ENGINE.md) | GenUI, offer generation, ML intent model, preference learning |
-| [`docs/05-MERCHANT-PLATFORM.md`](docs/05-MERCHANT-PLATFORM.md) | Merchant dashboard, rule engine, inventory, analytics |
-| [`docs/06-MVP-SCOPE.md`](docs/06-MVP-SCOPE.md) | Hackathon scope: what to build, tech stack, timeline |
-| [`docs/07-DEMO-SCRIPT.md`](docs/07-DEMO-SCRIPT.md) | Demo narrative, Stuttgart scenario, killer moments |
-| [`docs/08-OPEN-QUESTIONS.md`](docs/08-OPEN-QUESTIONS.md) | Unresolved questions and decisions |
-| [`docs/09-CRITIQUE.md`](docs/09-CRITIQUE.md) | What was wrong with the original idea and how it was fixed |
-| [`docs/10-OFFER-SELECTION.md`](docs/10-OFFER-SELECTION.md) | Single-offer principle, scoring algorithm, anti-spam, anticipatory delivery |
-| [`docs/11-CONSUMER-UX.md`](docs/11-CONSUMER-UX.md) | All user-facing screens: consent, offer card, QR, cashback animation, wallet |
-| [`docs/12-SUBMISSION-README.md`](docs/12-SUBMISSION-README.md) | Template for the final hackathon GitHub README |
-| [`docs/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md`](docs/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md) | User KG (SQLite), on-device LLMs, Air Canada hard rails & audit trail |
-| [`docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md`](docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md) | Temporal conflict model, coupon mechanics, framing rules, decision tree |
-| [`docs/15-FINN-BRIEFING.md`](docs/15-FINN-BRIEFING.md) | Finn's complete implementation spec: Payone generator, density, occupancy, conflict engine, hard rails |
-| [`docs/16-ADVANCED-SIGNALS.md`](docs/16-ADVANCED-SIGNALS.md) | Exercise states, OCR transit scan, wallet pass KG seeds, Spark Wave social coordination |
-| [`docs/17-BUILD-PLAN.md`](docs/17-BUILD-PLAN.md) | **START HERE** — shared contracts, Gemini prompt, data engineering sequence, frontend phasing, team split |
-| [`docs/18-DSV-GAP-ANALYSIS.md`](docs/18-DSV-GAP-ANALYSIS.md) | **PITCH AMMO** — DSV's confirmed product gaps, TreueWelt shutdown, S-POS Cube, business case for adoption |
-| [`docs/19-PRODUCT-OVERVIEW.md`](docs/19-PRODUCT-OVERVIEW.md) | **START HERE FOR DESIGN** — all screens, all flows, feature inventory, brand language, what not to build |
+| Where | What |
+|-------|------|
+| **[`docs/README.md`](docs/README.md)** | **Current** docs index — implementation truth + Neo4j user graph |
+| **[`docs/USER-KNOWLEDGE-GRAPH-NEO4J.md`](docs/USER-KNOWLEDGE-GRAPH-NEO4J.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
+| **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
 
 ---
 
@@ -72,6 +51,42 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 - **Context APIs:** OpenWeatherMap, Google Places, Luma, VVS (Stuttgart transit)
 - **Merchant Data:** Simulated Payone transaction feed (Python generator)
 - **Maps:** Mapbox (merchant heatmap)
+- **User knowledge graph (optional):** Neo4j — session preferences, offer lifecycle, deterministic guardrails, explainability on offers
+
+---
+
+## Graph Ops (Neo4j)
+
+The backend can persist a **pseudonymous session graph** (preferences, offers, outcomes) when Neo4j is enabled. Configure connection and tuning via `.env` (see `src/backend/config.py` for `NEO4J_*`, `GRAPH_*`, retention, and decay variables).
+
+**What you get:** machine-readable **explainability** on generated offers; **idempotent** graph writes on retries; **preference decay** so old signals fade; **retention** for offers and stale preference edges; **migrations** tracked in the graph for schema evolution.
+
+With the API running on `http://localhost:8000`:
+
+```bash
+# Health + driver metrics
+curl -s http://localhost:8000/api/graph/health | jq .
+
+# Node/edge counts
+curl -s http://localhost:8000/api/graph/stats | jq .
+
+# Applied migrations (GraphMigration nodes)
+curl -s http://localhost:8000/api/graph/migrations | jq .
+
+# Delete old offers/contexts/redemptions/wallet events + stale sessions + old PREFERS/AVOIDS edges
+curl -s -X POST 'http://localhost:8000/api/graph/cleanup?retention_days=30' | jq .
+
+# Linear decay on stale PREFERS edges (after N days without reinforcement)
+curl -s -X POST 'http://localhost:8000/api/graph/decay-preferences?stale_after_days=7&default_decay_rate=0.01' | jq .
+```
+
+**Scheduled maintenance (cron)** — from the repo root; uses the same `.env` as the app:
+
+```cron
+0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python scripts/run_graph_maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
+```
+
+Adjust `cd` and `uv` path to your machine. The script runs **cleanup** (artifact + preference-edge retention) then **decay** in one shot.
 
 ---
 

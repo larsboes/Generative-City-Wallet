@@ -4,7 +4,6 @@ Post-LLM guard — runs ALWAYS before returning an offer to the device.
 Rule: if in doubt, the DB wins. The LLM never determines what the user owes.
 """
 
-import json
 import re
 from datetime import datetime, timedelta
 
@@ -22,10 +21,20 @@ from src.backend.config import DEFAULT_OFFER_VALID_MINUTES
 # ── Banned copy patterns (GDPR / regulatory) ──────────────────────────────────
 
 BANNED_COPY_PATTERNS = [
-    "helps you", "good for your health", "improves", "boosts your",
-    "doctors recommend", "clinically", "heals",
-    "hilft dir", "gesund", "verbessert", "steigert dein",
-    "ärzte empfehlen", "klinisch", "heilt",
+    "helps you",
+    "good for your health",
+    "improves",
+    "boosts your",
+    "doctors recommend",
+    "clinically",
+    "heals",
+    "hilft dir",
+    "gesund",
+    "verbessert",
+    "steigert dein",
+    "ärzte empfehlen",
+    "klinisch",
+    "heilt",
 ]
 
 
@@ -49,7 +58,9 @@ def enforce_hard_rails(
     conn.close()
 
     merchant_name = merchant_row["name"] if merchant_row else state.merchant.name
-    merchant_address = merchant_row["address"] if merchant_row else state.merchant.address
+    merchant_address = (
+        merchant_row["address"] if merchant_row else state.merchant.address
+    )
 
     # 2. Discount — capped to what merchant configured
     max_discount = state.merchant.active_coupon.max_discount_pct
@@ -64,11 +75,22 @@ def enforce_hard_rails(
 
     # 3. Replace placeholders in content
     content = llm_output.content.model_copy()
-    content.headline = _replace_placeholders(content.headline, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES)
-    content.subtext = _replace_placeholders(content.subtext, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES)
-    content.cta_text = _replace_placeholders(content.cta_text, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES)
+    content.headline = _replace_placeholders(
+        content.headline, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES
+    )
+    content.subtext = _replace_placeholders(
+        content.subtext, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES
+    )
+    content.cta_text = _replace_placeholders(
+        content.cta_text, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES
+    )
     if content.emotional_hook:
-        content.emotional_hook = _replace_placeholders(content.emotional_hook, merchant_name, max_discount, DEFAULT_OFFER_VALID_MINUTES)
+        content.emotional_hook = _replace_placeholders(
+            content.emotional_hook,
+            merchant_name,
+            max_discount,
+            DEFAULT_OFFER_VALID_MINUTES,
+        )
 
     # 4. Strip banned health claims
     for field_name in ["headline", "subtext", "emotional_hook"]:
@@ -79,11 +101,13 @@ def enforce_hard_rails(
 
     # 5. Compute expiry server-side
     now = datetime.now()
-    valid_window = state.merchant.active_coupon.valid_window_min or DEFAULT_OFFER_VALID_MINUTES
+    valid_window = (
+        state.merchant.active_coupon.valid_window_min or DEFAULT_OFFER_VALID_MINUTES
+    )
     expires_at = (now + timedelta(minutes=valid_window)).isoformat()
 
     # 6. Build audit info
-    audit = AuditInfo(
+    AuditInfo(
         rails_applied=True,
         discount_original_llm=0,  # LLM doesn't generate discount numbers
         discount_capped_to=max_discount,
@@ -111,7 +135,9 @@ def enforce_hard_rails(
     )
 
 
-def _replace_placeholders(text: str, merchant_name: str, discount: float, expiry_min: int) -> str:
+def _replace_placeholders(
+    text: str, merchant_name: str, discount: float, expiry_min: int
+) -> str:
     """Replace [MERCHANT_NAME], [DISCOUNT]%, [EXPIRY_MIN] with real values."""
     text = text.replace("[MERCHANT_NAME]", merchant_name)
     text = text.replace("[DISCOUNT]%", f"{int(discount)} %")

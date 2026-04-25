@@ -172,3 +172,77 @@ async def test_audit_dict_round_trip(base_args):
     assert isinstance(audit["violations"], list)
     assert audit["violations"][0]["rule_id"] == "session_offer_budget"
     assert audit["violations"][0]["severity"] == "hard"
+
+
+async def test_fairness_budget_blocks_when_category_dominates(base_args):
+    now = base_args["now_unix"]
+    history = [
+        RecentOffer(
+            offer_id=f"cafe-{i}",
+            merchant_id=f"MERCHANT_{i:03d}",
+            category="cafe",
+            status="SENT",
+            created_at_unix=now - i * 60,
+        )
+        for i in range(8)
+    ] + [
+        RecentOffer(
+            offer_id=f"pizza-{i}",
+            merchant_id=f"MERCHANT_P{i:03d}",
+            category="pizza",
+            status="SENT",
+            created_at_unix=now - (100 + i) * 60,
+        )
+        for i in range(2)
+    ]
+    repo = FakeRepository(available=True, recent=history)
+    svc = GraphValidationService(
+        repo=repo,
+        rules_config={
+            "merchant_fatigue_max_per_day": 100,
+            "same_merchant_cooldown_min": 0,
+            "session_offer_budget_per_day": 100,
+            "category_diversity_window": 2,
+            "fairness_window": 10,
+            "fairness_min_observations": 6,
+            "fairness_max_category_share": 0.7,
+        },
+    )
+
+    result = await svc.validate(**base_args)
+
+    assert result.accepted is False
+    assert result.hard_violations[0].rule_id == "fairness_budget"
+    assert result.metadata["fairness_total_observations"] == 10
+    assert result.metadata["fairness_share"] == 0.8
+
+
+async def test_fairness_budget_skips_when_insufficient_observations(base_args):
+    now = base_args["now_unix"]
+    history = [
+        RecentOffer(
+            offer_id=f"cafe-{i}",
+            merchant_id=f"MERCHANT_{i:03d}",
+            category="cafe",
+            status="SENT",
+            created_at_unix=now - i * 60,
+        )
+        for i in range(3)
+    ]
+    repo = FakeRepository(available=True, recent=history)
+    svc = GraphValidationService(
+        repo=repo,
+        rules_config={
+            "merchant_fatigue_max_per_day": 100,
+            "same_merchant_cooldown_min": 0,
+            "session_offer_budget_per_day": 100,
+            "fairness_window": 10,
+            "fairness_min_observations": 6,
+            "fairness_max_category_share": 0.6,
+        },
+    )
+
+    result = await svc.validate(**base_args)
+
+    assert result.accepted is True
+    assert not any(v.rule_id == "fairness_budget" for v in result.violations)

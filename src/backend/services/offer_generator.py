@@ -119,8 +119,8 @@ MERCHANT: [MERCHANT_NAME]
 {tone_line}
 
 FRAMING INSTRUCTION: {cr.recommendation} ({cr.framing_band})
-ALLOWED vocabulary for atmosphere: {', '.join(cr.allowed_vocabulary) if cr.allowed_vocabulary else 'any'}
-BANNED vocabulary (occupancy too low): {', '.join(cr.banned_vocabulary) if cr.banned_vocabulary else 'none'}
+ALLOWED vocabulary for atmosphere: {", ".join(cr.allowed_vocabulary) if cr.allowed_vocabulary else "any"}
+BANNED vocabulary (occupancy too low): {", ".join(cr.banned_vocabulary) if cr.banned_vocabulary else "none"}
 
 Generate the offer JSON now. German language. Informal Du-form."""
 
@@ -197,7 +197,9 @@ def _generate_smart_fallback(state: CompositeContextState) -> LLMOfferOutput:
         palette, mood = "electric_purple", "celebratory"
         headline = "Der Abend startet hier"
         subtext = "Komm vorbei — [DISCOUNT]% bei [MERCHANT_NAME]"
-        imagery = "warm bar interior, ambient lighting, people chatting, cocktail glasses"
+        imagery = (
+            "warm bar interior, ambient lighting, people chatting, cocktail glasses"
+        )
     else:
         palette, mood = "soft_cream", "calm"
         headline = "Dein ruhiger Moment"

@@ -52,7 +52,9 @@ class GraphRepository:
 
     # ── User session ─────────────────────────────────────────────────────────
 
-    async def ensure_session(self, session_id: str, *, now: Optional[float] = None) -> bool:
+    async def ensure_session(
+        self, session_id: str, *, now: Optional[float] = None
+    ) -> bool:
         if not session_id:
             return False
         ts = now if now is not None else time.time()
@@ -224,6 +226,7 @@ class GraphRepository:
         delta: float,
         base_weight: float = 0.5,
         source_type: str = "interaction",
+        decay_rate: float = 0.01,
         now: Optional[float] = None,
     ) -> Optional[float]:
         """Apply +/- delta to a (UserSession)-[:PREFERS]->(MerchantCategory) edge.
@@ -240,6 +243,7 @@ class GraphRepository:
                 delta=delta,
                 base_weight=base_weight,
                 source_type=source_type,
+                decay_rate=decay_rate,
                 now=ts,
             )
             row = await res.single()
@@ -295,7 +299,8 @@ class GraphRepository:
             )
 
         return await safe_execute(
-            _run, fallback=MerchantOfferStats(count=0, last_unix=None),
+            _run,
+            fallback=MerchantOfferStats(count=0, last_unix=None),
             op_name="merchant_offer_stats",
         )
 
@@ -318,9 +323,7 @@ class GraphRepository:
 
         return await safe_execute(_run, fallback=[], op_name="recent_offers")
 
-    async def session_offer_count(
-        self, *, session_id: str, since_unix: float
-    ) -> int:
+    async def session_offer_count(self, *, session_id: str, since_unix: float) -> int:
         async def _run(s: AsyncSession) -> int:
             res = await s.run(
                 Q.COUNT_SESSION_OFFERS,
@@ -341,6 +344,110 @@ class GraphRepository:
             return dict(row) if row else {}
 
         return await safe_execute(_run, fallback={}, op_name="stats")
+
+    async def cleanup_old_data(
+        self, *, retention_days: int, now_unix: Optional[float] = None
+    ) -> dict[str, int]:
+        cutoff_unix = (now_unix if now_unix is not None else time.time()) - (
+            retention_days * 24 * 3600
+        )
+
+        async def _run(s: AsyncSession) -> dict[str, int]:
+            offers_res = await s.run(Q.CLEANUP_OLD_OFFERS, cutoff_unix=cutoff_unix)
+            offers_row = await offers_res.single()
+            sessions_res = await s.run(
+                Q.CLEANUP_STALE_SESSIONS, cutoff_unix=cutoff_unix
+            )
+            sessions_row = await sessions_res.single()
+            pref_res = await s.run(
+                Q.CLEANUP_OLD_PREFERENCE_EDGES, cutoff_unix=cutoff_unix
+            )
+            pref_row = await pref_res.single()
+
+            return {
+                "retention_days": int(retention_days),
+                "offers_deleted": int(
+                    (offers_row and offers_row["offers_deleted"]) or 0
+                ),
+                "contexts_deleted": int(
+                    (offers_row and offers_row["contexts_deleted"]) or 0
+                ),
+                "redemptions_deleted": int(
+                    (offers_row and offers_row["redemptions_deleted"]) or 0
+                ),
+                "wallet_events_deleted": int(
+                    (offers_row and offers_row["wallet_events_deleted"]) or 0
+                ),
+                "sessions_deleted": int(
+                    (sessions_row and sessions_row["sessions_deleted"]) or 0
+                ),
+                "preference_edges_deleted": int(
+                    (pref_row and pref_row["preference_edges_deleted"]) or 0
+                ),
+            }
+
+        return await safe_execute(
+            _run,
+            fallback={
+                "retention_days": int(retention_days),
+                "offers_deleted": 0,
+                "contexts_deleted": 0,
+                "redemptions_deleted": 0,
+                "wallet_events_deleted": 0,
+                "sessions_deleted": 0,
+                "preference_edges_deleted": 0,
+            },
+            op_name="cleanup_old_data",
+        )
+
+    async def decay_stale_preferences(
+        self,
+        *,
+        stale_after_days: int,
+        default_decay_rate: float,
+        now_unix: Optional[float] = None,
+    ) -> dict[str, float]:
+        now_ts = now_unix if now_unix is not None else time.time()
+        stale_cutoff = now_ts - (stale_after_days * 24 * 3600)
+
+        async def _run(s: AsyncSession) -> dict[str, float]:
+            res = await s.run(
+                Q.DECAY_STALE_PREFERENCES,
+                stale_cutoff_unix=stale_cutoff,
+                now_unix=now_ts,
+                default_decay_rate=default_decay_rate,
+            )
+            row = await res.single()
+            return {
+                "stale_after_days": float(stale_after_days),
+                "default_decay_rate": float(default_decay_rate),
+                "edges_touched": float((row and row["edges_touched"]) or 0.0),
+            }
+
+        return await safe_execute(
+            _run,
+            fallback={
+                "stale_after_days": float(stale_after_days),
+                "default_decay_rate": float(default_decay_rate),
+                "edges_touched": 0.0,
+            },
+            op_name="decay_stale_preferences",
+        )
+
+    async def migration_status(self) -> list[dict[str, Any]]:
+        async def _run(s: AsyncSession) -> list[dict[str, Any]]:
+            res = await s.run(Q.GET_MIGRATION_STATUS)
+            rows = await res.data()
+            return [
+                {
+                    "id": r["id"],
+                    "description": r.get("description"),
+                    "applied_at_unix": r.get("applied_at_unix"),
+                }
+                for r in rows
+            ]
+
+        return await safe_execute(_run, fallback=[], op_name="migration_status")
 
     @staticmethod
     def is_available() -> bool:

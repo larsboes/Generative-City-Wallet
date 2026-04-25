@@ -92,8 +92,10 @@ async def init_graph(*, run_schema: bool = True) -> bool:
     if run_schema:
         # Lazy import to avoid circular dependency at module import time.
         from src.backend.graph.schema import ensure_schema
+        from src.backend.graph.migrations import apply_migrations
 
         await safe_execute(ensure_schema, fallback=None, op_name="ensure_schema")
+        await safe_execute(apply_migrations, fallback=None, op_name="apply_migrations")
 
     return True
 

@@ -6,7 +6,6 @@ Frozen from day 1. If you change a field, tell everyone.
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -229,6 +228,13 @@ class AuditInfo(BaseModel):
     composite_state_hash: str = ""
 
 
+class ExplainabilityReason(BaseModel):
+    code: str
+    reason: str
+    score: float = 0.0
+    metadata: dict = Field(default_factory=dict)
+
+
 class OfferObject(BaseModel):
     offer_id: str
     session_id: str
@@ -238,6 +244,7 @@ class OfferObject(BaseModel):
     genui: LLMGenUI
     expires_at: str
     qr_payload: Optional[str] = None
+    explainability: list[ExplainabilityReason] = Field(default_factory=list)
     _audit: Optional[AuditInfo] = None
 
 
@@ -260,7 +267,9 @@ class RedemptionValidationResponse(BaseModel):
     offer_id: Optional[str] = None
     discount_value: Optional[float] = None
     discount_type: Optional[str] = None
-    error: Optional[str] = None  # EXPIRED | ALREADY_REDEEMED | INVALID_TOKEN | WRONG_MERCHANT
+    error: Optional[str] = (
+        None  # EXPIRED | ALREADY_REDEEMED | INVALID_TOKEN | WRONG_MERCHANT
+    )
 
 
 # ── Cashback Credit ───────────────────────────────────────────────────────────
@@ -299,6 +308,7 @@ class ConflictResolveResponse(BaseModel):
 
 class DemoOverrides(BaseModel):
     """Optional overrides from the Context Slider demo panel."""
+
     temp_celsius: Optional[float] = None
     weather_condition: Optional[str] = None
     merchant_occupancy_pct: Optional[float] = None
@@ -308,6 +318,7 @@ class DemoOverrides(BaseModel):
 
 class GenerateOfferRequest(BaseModel):
     """Request accepted by the offer generation endpoint."""
+
     intent: IntentVector
     merchant_id: Optional[str] = None  # None = auto-select best merchant
     demo_overrides: Optional[DemoOverrides] = None

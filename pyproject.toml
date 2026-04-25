@@ -12,6 +12,7 @@ dependencies = [
     "google-genai>=1.0",
     "python-dotenv>=1.0",
     "neo4j>=5.20",
+    "strands-agents[gemini]>=0.1",
 ]
 
 [project.optional-dependencies]

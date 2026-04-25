@@ -38,10 +38,19 @@ FRAMING_VOCABULARY: dict[str, list[str]] = {
 }
 
 BANNED_IF_EMPTY: list[str] = [
-    "buzzing", "packed", "full house", "lively", "electric atmosphere",
-    "everyone's here", "the place to be tonight",
-    "voll", "ausgebucht", "brechend voll", "elektrisierend",
-    "alle sind hier", "der Ort des Abends",
+    "buzzing",
+    "packed",
+    "full house",
+    "lively",
+    "electric atmosphere",
+    "everyone's here",
+    "the place to be tonight",
+    "voll",
+    "ausgebucht",
+    "brechend voll",
+    "elektrisierend",
+    "alle sind hier",
+    "der Ort des Abends",
 ]
 
 
@@ -82,7 +91,11 @@ def resolve_conflict(
     if user_social_pref == "social":
         if predicted_occ_pct >= 60:
             band = "busy" if predicted_occ_pct >= 70 else "building_momentum"
-            coupon = None if predicted_occ_pct >= 70 else _select_coupon(active_coupon, "soft")
+            coupon = (
+                None
+                if predicted_occ_pct >= 70
+                else _select_coupon(active_coupon, "soft")
+            )
             return ConflictResolution(
                 recommendation="RECOMMEND",
                 framing_band=band,

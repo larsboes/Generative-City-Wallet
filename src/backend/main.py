@@ -8,10 +8,18 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.backend.config import DB_PATH
+from src.backend.config import (
+    DB_PATH,
+    GRAPH_PREF_DECAY_DEFAULT_RATE,
+    GRAPH_PREF_DECAY_ENABLED,
+    GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
+    GRAPH_RETENTION_DAYS,
+    GRAPH_RUN_CLEANUP_ON_STARTUP,
+)
 from src.backend.db.connection import init_database
 from src.backend.db.seed import seed_database
 from src.backend.graph import close_graph, get_metrics, init_graph, is_available
+from src.backend.graph.repository import get_repository
 from src.backend.graph.seed import sync_merchants_from_sqlite
 from src.backend.routers import context, graph, offers, payone, redemption
 
@@ -28,6 +36,14 @@ async def lifespan(app: FastAPI):
     connected = await init_graph()
     if connected:
         await sync_merchants_from_sqlite()
+        if GRAPH_RUN_CLEANUP_ON_STARTUP:
+            repo = get_repository()
+            await repo.cleanup_old_data(retention_days=GRAPH_RETENTION_DAYS)
+            if GRAPH_PREF_DECAY_ENABLED:
+                await repo.decay_stale_preferences(
+                    stale_after_days=GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
+                    default_decay_rate=GRAPH_PREF_DECAY_DEFAULT_RATE,
+                )
 
     try:
         yield
