@@ -1,7 +1,10 @@
-# 19 — Spark: Complete Product Overview
+# 19 — Spark: Product Overview
 
-> **Single-stop reference for UI design, feature scoping, and demo prep.**
-> Read this before opening Figma. Everything else in `/docs` is deep implementation detail — this is the map.
+> **This doc has been split into two focused files:**
+> - **`20-MERCHANT-DASHBOARD.md`** → David's file. Business dashboard screens, wireframes, components, Figma direction. Start here.
+> - **`21-CONSUMER-APP.md`** → Consumer screens, push notifications, lock screen, widgets, feature inventory.
+>
+> This file is kept as a combined reference and flow overview.
 
 ---
 

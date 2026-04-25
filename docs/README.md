@@ -6,10 +6,10 @@
 
 | You are... | Read first | Then |
 |---|---|---|
-| **Designer** | `19-PRODUCT-OVERVIEW.md` | `05-MERCHANT-PLATFORM.md` for merchant side detail |
+| **Designing merchant dashboard (David)** | `20-MERCHANT-DASHBOARD.md` | `05-MERCHANT-PLATFORM.md` for rule logic detail |
+| **Designing consumer app** | `21-CONSUMER-APP.md` | — |
 | **Building backend** | `17-BUILD-PLAN.md` | `15-FINN-BRIEFING.md` for Finn's data layer |
-| **Building mobile** | `17-BUILD-PLAN.md` → shared contracts section | `19-PRODUCT-OVERVIEW.md` for screen spec |
-| **Building merchant dashboard** | `19-PRODUCT-OVERVIEW.md` → Merchant screens | `05-MERCHANT-PLATFORM.md` |
+| **Building mobile** | `17-BUILD-PLAN.md` → shared contracts | `21-CONSUMER-APP.md` for screen spec |
 | **Preparing the pitch** | `18-DSV-GAP-ANALYSIS.md` | `07-DEMO-SCRIPT.md` |
 | **New to the project** | `BACKGROUND.md` (10 min) | This README → pick your lane |
 
@@ -20,9 +20,11 @@
 ### Design & Product
 | File | What it answers |
 |---|---|
-| **`19-PRODUCT-OVERVIEW.md`** ⭐ | All screens + ASCII wireframes, all flows, feature inventory, brand language |
-| `05-MERCHANT-PLATFORM.md` | Merchant dashboard and rule engine in detail |
-| `10-OFFER-SELECTION.md` | Why one offer at a time, the ranking algorithm, anti-spam rules |
+| **`20-MERCHANT-DASHBOARD.md`** ⭐ | **David's file** — all merchant screens, wireframes, component list, Figma direction |
+| **`21-CONSUMER-APP.md`** ⭐ | All consumer screens + notifications + lock screen + widgets + feature inventory |
+| `19-PRODUCT-OVERVIEW.md` | Combined overview + key user flows (references 20 + 21) |
+| `05-MERCHANT-PLATFORM.md` | Merchant platform deep spec (rule engine logic, analytics detail) |
+| `10-OFFER-SELECTION.md` | Why one offer at a time, ranking algorithm, anti-spam rules |
 | `14-STAKEHOLDER-CONFLICT-RESOLUTION.md` | Empty venue + social user conflict — framing rules, coupon mechanics |
 
 ### Technical Architecture
