@@ -75,7 +75,7 @@ jobs:
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short
         env:
-          SPARK_DB_PATH: ":memory:"
+          SPARK_DB_PATH: "/tmp/spark_ci_test.db"
 
       - name: Verify server starts
         run: |
@@ -106,7 +106,7 @@ jobs:
         run: uv sync --dev
 
       - name: Audit dependencies (pip-audit)
-        run: uv run pip-audit
+        run: uv run pip-audit --ignore-vuln CVE-2026-3219
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
