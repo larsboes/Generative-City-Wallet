@@ -409,3 +409,123 @@ Total: 4.5 hours. One dev. No exotic dependencies — just Python + SQLite.
 | FunctionGemma/Qwen3 on-device (Option A/B) | 2-4 hours | If time | High reward if you have time |
 
 **Bottom line:** Hard rails + audit log first (non-negotiable, 2h). KG next (4.5h, one dev, do it). On-device LLM: Option C for MVP with architecture story; upgrade if time allows after everything else is working.
+
+---
+
+## Part 4: Transaction History as KG Cold-Start Signal
+
+### The Idea (and the Hard Line)
+
+Sparkasse Girokonto transaction data is the richest possible cold-start signal for the KG — far better than wallet passes or IMU history. Someone who's paid at coffee shops 14 times in 3 weeks doesn't need to explicitly "teach" Spark they like coffee.
+
+**The hard line:** inferring *behavioral preferences* from purchase categories is clean and legally sound. Inferring *health states or life events* (pregnancy, illness, dietary restrictions tied to medical need) from purchase patterns is GDPR Article 9 — special category health data — regardless of how you got there. The Target pregnancy story (2012) is the canonical example of why this destroys trust. For a German savings bank audience, even mentioning this capability would end the pitch. It is permanently off the table.
+
+### What's In Scope: Behavioral Category Seeding
+
+| Transaction Pattern | KG Inference | Edge Type |
+|---|---|---|
+| Coffee shop 3×/week | PREFERS → MerchantCategory:Cafe (weight: 0.8) | Behavioral |
+| Organic supermarket regular | PREFERS → Attribute:Sustainable (weight: 0.6) | Behavioral |
+| Sports nutrition purchases | PREFERS → Attribute:HealthConscious (weight: 0.65) | Behavioral |
+| VVS/DB tickets 10×/month | movement_context → transit_commuter | Behavioral |
+| Restaurant spend > €25 avg | price_tier → premium | Behavioral |
+| Evening bar/pub spend | PREFERS → MerchantCategory:Bar, when:Evening (weight: 0.7) | Behavioral |
+| Aldi/Lidl primary grocery | price_tier → budget | Behavioral |
+| Pregnancy tests, prenatal vitamins | **DO NOT INFER. STOP.** | ❌ Article 9 |
+| Pharmacy regulars | **DO NOT INFER health state.** | ❌ Article 9 |
+
+The cut-off is simple: if the inference touches a health, medical, or reproductive category, skip it unconditionally.
+
+### Implementation
+
+All processing is **on-device only**. Raw transaction categories never reach the backend. The output is KG edge weights that feed into the intent vector — same boundary as everything else.
+
+```python
+# On-device — runs during KG initialization, never transmitted
+# Input: last 90 days of categorized transactions (fetched from Sparkasse local SDK)
+
+CATEGORY_TO_KG = {
+    # (transaction_category) → (kg_target_type, kg_target_id, relation, base_weight)
+    "cafe_coffee":        ("MerchantCategory", "Cafe",          "PREFERS", 0.75),
+    "restaurant":         ("MerchantCategory", "Restaurant",    "PREFERS", 0.65),
+    "bar_pub":            ("MerchantCategory", "Bar",           "PREFERS", 0.60),
+    "bakery":             ("MerchantCategory", "Bakery",        "PREFERS", 0.65),
+    "sports_nutrition":   ("Attribute",        "HealthConscious","PREFERS", 0.60),
+    "organic_grocery":    ("Attribute",        "Sustainable",   "PREFERS", 0.60),
+    "transit_ticket":     ("ContextCondition", "TransitUser",   "SEEKS",   0.70),
+    "fast_food":          ("MerchantCategory", "FastFood",      "PREFERS", 0.50),
+    "premium_restaurant": ("Attribute",        "Premium",       "PREFERS", 0.65),
+    # Add more as needed — but NEVER health/pharma/medical categories
+}
+
+# Categories to explicitly skip — never infer from these
+BLOCKED_CATEGORIES = {
+    "pharmacy", "medical", "hospital", "health_service",
+    "baby_children", "maternity", "mental_health",
+    # Conservative: if unsure, add to BLOCKED
+}
+
+def seed_kg_from_transaction_history(
+    transactions: list[dict],
+    min_occurrences: int = 3,
+    lookback_days: int = 90
+) -> list[dict]:
+    """
+    Derive KG preference edges from transaction category history.
+    On-device only. Never call this in a server context.
+    """
+    cutoff = datetime.now() - timedelta(days=lookback_days)
+    recent = [t for t in transactions if t["timestamp"] >= cutoff.isoformat()]
+
+    category_counts = Counter(t["category"] for t in recent)
+    edges = []
+
+    for category, count in category_counts.most_common():
+        # Hard skip for blocked categories — no inference, no logging
+        if category in BLOCKED_CATEGORIES:
+            continue
+
+        mapping = CATEGORY_TO_KG.get(category)
+        if not mapping or count < min_occurrences:
+            continue
+
+        target_type, target_id, relation, base_weight = mapping
+
+        # Scale weight logarithmically with frequency (caps at 0.90)
+        weight = min(0.90, base_weight + 0.05 * math.log(count / min_occurrences + 1))
+
+        edges.append({
+            "from_node": "user",
+            "to_node": f"{target_type}:{target_id}",
+            "relation": relation,
+            "weight": round(weight, 3),
+            "context_conditions": {},   # no context condition — general preference
+            "source_type": "transaction_history",
+            "decay_rate": 0.80,         # slower decay — behavioral patterns are stable
+            "created_at": int(datetime.now().timestamp()),
+        })
+
+    return edges
+```
+
+### Integration with Existing KG Build Plan
+
+Add one step to the 4.5-hour KG plan:
+
+| Step | What | Time |
+|------|------|------|
+| 0 | `seed_kg_from_transaction_history()` — runs once on KG init with mock tx data | 30 min |
+| 1 | Create SQLite schema (nodes + edges tables, indices) | 30 min |
+| 2 | Seed with realistic demo data (5 merchants, 10 attributes, user edges) | 30 min |
+| 3 | Implement `query_intent()` graph traversal | 1 hour |
+| 4 | Implement `update_on_accept()` and `update_on_decline()` weight updates | 1 hour |
+| 5 | Wire social mode toggle → temporary session edge | 30 min |
+| 6 | Hook `query_intent()` output into intent vector construction | 1 hour |
+
+Total: **5 hours**. The transaction seeding step uses pre-seeded mock transaction history for the demo — no need to connect a real Sparkasse SDK for the hackathon.
+
+### What to Say in the Pitch
+
+> "Spark's knowledge graph cold-starts from anonymized transaction category history — entirely on-device. If you've paid at coffee shops twelve times this month, we know you prefer cafés before you've ever interacted with Spark. Purchase patterns reveal preferences. We draw an explicit line: behavioral preferences are fair game. Health inferences are architecturally blocked. The category mapping has a `BLOCKED_CATEGORIES` set. It's not a policy document — it's a code constraint."
+
+That last sentence lands specifically with a GDPR-literate German audience.
