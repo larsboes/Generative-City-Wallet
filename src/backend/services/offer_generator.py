@@ -1,14 +1,22 @@
 """
-Gemini Flash offer generation.
-System prompt + dynamic user prompt → structured JSON offer.
+Offer copy + GenUI JSON: Gemini (default) or Ollama (dev).
+Hard rails apply after this module in the router — never trust raw discounts here.
 """
 
 import json
+import re
 
+import httpx
 from google import genai
 from google.genai import types
 
-from src.backend.config import GOOGLE_AI_API_KEY, GEMINI_MODEL
+from src.backend.config import (
+    GEMINI_MODEL,
+    GOOGLE_AI_API_KEY,
+    OFFER_LLM_PROVIDER,
+    OLLAMA_BASE_URL,
+    OLLAMA_MODEL,
+)
 from src.backend.models.contracts import CompositeContextState, LLMOfferOutput
 
 # ── System Prompt (from doc 17 — complete) ─────────────────────────────────────
@@ -146,11 +154,49 @@ FALLBACK_OFFER = LLMOfferOutput(
 )
 
 
+def _parse_llm_json_blob(text: str) -> dict:
+    """Best-effort JSON object from model output (handles stray whitespace / fences)."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    return json.loads(text)
+
+
+async def _generate_ollama(state: CompositeContextState) -> LLMOfferOutput:
+    """Ollama /api/chat with JSON format hint — same schema target as Gemini."""
+    user_prompt = build_user_prompt(state)
+    payload = {
+        "model": OLLAMA_MODEL,
+        "stream": False,
+        "format": "json",
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        "options": {"temperature": 0.75},
+    }
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        r = await client.post(f"{OLLAMA_BASE_URL}/api/chat", json=payload)
+        r.raise_for_status()
+        data = r.json()
+    content = (data.get("message") or {}).get("content") or ""
+    raw = _parse_llm_json_blob(content)
+    return LLMOfferOutput(**raw)
+
+
 async def generate_offer_llm(state: CompositeContextState) -> LLMOfferOutput:
     """
-    Call Gemini Flash. Returns raw LLM output before hard-rails enforcement.
-    Falls back to a static offer if no API key is configured.
+    Raw LLM offer JSON before hard-rails enforcement.
+    OFFER_LLM_PROVIDER: gemini (default) | ollama (local dev).
     """
+    if OFFER_LLM_PROVIDER == "ollama":
+        try:
+            return await _generate_ollama(state)
+        except Exception as e:
+            print(f"⚠️  Ollama error, using fallback: {e}")
+            return _generate_smart_fallback(state)
+
     if not GOOGLE_AI_API_KEY:
         return _generate_smart_fallback(state)
 

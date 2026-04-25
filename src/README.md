@@ -17,6 +17,13 @@ uv run uvicorn src.backend.main:app --reload --port 8000
 uv run python -m src.backend.db.seed
 ```
 
+**Smoke-test IntentVector → API** (backend running):
+
+```bash
+uv run python scripts/smoke_intent_vector.py
+SPARK_API_BASE=http://127.0.0.1:8000 uv run python scripts/smoke_intent_vector.py --generate
+```
+
 ## Environment Variables
 
 | Variable | Required | Default | Description |
@@ -24,6 +31,9 @@ uv run python -m src.backend.db.seed
 | `GOOGLE_AI_API_KEY` | No | _(fallback mode)_ | Gemini Flash API key |
 | `OPENWEATHER_API_KEY` | No | _(Stuttgart defaults)_ | OpenWeatherMap API key |
 | `GEMINI_MODEL` | No | see `config.py` | Gemini model string |
+| `OFFER_LLM_PROVIDER` | No | `gemini` | `gemini` or `ollama` (local offer JSON dev path) |
+| `OLLAMA_BASE_URL` | No | `http://127.0.0.1:11434` | Ollama server (when provider is `ollama`) |
+| `OLLAMA_MODEL` | No | `qwen2.5:3b` | Ollama model tag |
 | `SPARK_DB_PATH` | No | `data/spark.db` (from project root) | SQLite database path |
 | `AGENT_ENABLED` | No | `auto` | Strands OfferAgent: `auto` / `true` / `false` |
 | `NEO4J_*`, `GRAPH_*` | No | defaults in `config.py` | Optional user graph + rule thresholds — see docs |

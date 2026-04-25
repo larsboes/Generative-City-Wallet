@@ -28,6 +28,12 @@ OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 # ── Gemini Flash ───────────────────────────────────────────────────────────────
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
 
+# ── Offer LLM (server dev path; on-device Gemma lives in React Native native code)
+# gemini = default | ollama = local /api/chat for dev without Google API key
+OFFER_LLM_PROVIDER = os.getenv("OFFER_LLM_PROVIDER", "gemini").strip().lower()
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+
 # ── Strands Agent ──────────────────────────────────────────────────────────────
 AGENT_ENABLED = os.getenv("AGENT_ENABLED", "auto").lower()
 # "auto" = enabled when GOOGLE_AI_API_KEY is set, "true"/"false" for explicit override
