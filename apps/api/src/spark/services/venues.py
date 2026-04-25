@@ -2,9 +2,9 @@ import math
 import sqlite3
 from typing import Iterable
 
-from backend.app import db
-from backend.app.models import Venue
-from backend.app.services.signals import normalize_category
+from spark.db.connection import upsert_venues as db_upsert_venues
+from spark.models.contracts import Venue
+from spark.services.signals import normalize_category
 
 
 def row_to_venue(row: sqlite3.Row) -> Venue:
@@ -27,11 +27,9 @@ def row_to_venue(row: sqlite3.Row) -> Venue:
 
 def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     radius_m = 6_371_000
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
     delta_phi = math.radians(lat2 - lat1)
     delta_lambda = math.radians(lon2 - lon1)
-
     a = (
         math.sin(delta_phi / 2) ** 2
         + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
@@ -41,8 +39,7 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def get_venue(conn: sqlite3.Connection, merchant_id: str) -> Venue | None:
     row = conn.execute(
-        "SELECT * FROM venues WHERE merchant_id = ?",
-        (merchant_id,),
+        "SELECT * FROM venues WHERE merchant_id = ?", (merchant_id,)
     ).fetchone()
     return row_to_venue(row) if row else None
 
@@ -80,13 +77,9 @@ def list_venues(
     if lat is None or lon is None or radius_m is None:
         return venues
 
-    nearby = [
-        venue
-        for venue in venues
-        if haversine_m(lat, lon, venue.lat, venue.lon) <= radius_m
-    ]
+    nearby = [v for v in venues if haversine_m(lat, lon, v.lat, v.lon) <= radius_m]
     return nearby[:limit]
 
 
 def save_venues(db_path: str, venues: Iterable[dict]) -> int:
-    return db.upsert_venues(db_path, list(venues))
+    return db_upsert_venues(db_path, list(venues))

@@ -21,7 +21,7 @@ from spark.db.seed import seed_database
 from spark.graph import close_graph, get_metrics, init_graph, is_available
 from spark.graph.repository import get_repository
 from spark.graph.seed import sync_merchants_from_sqlite
-from spark.routers import context, graph, offers, payone, redemption
+from spark.routers import context, graph, occupancy, offers, payone, redemption, transactions, vendors
 
 
 @asynccontextmanager
@@ -73,6 +73,9 @@ app.include_router(context.router)
 app.include_router(offers.router)
 app.include_router(redemption.router)
 app.include_router(graph.router)
+app.include_router(occupancy.router)
+app.include_router(transactions.router)
+app.include_router(vendors.router)
 
 
 @app.get("/api/health")

@@ -1,5 +1,5 @@
-from backend.app import db
-from backend.app.services.venues import haversine_m, list_venues
+from spark.db.connection import get_connection, upsert_venues
+from spark.services.venues import haversine_m, list_venues
 
 
 def test_haversine_distance_for_nearby_points() -> None:
@@ -8,8 +8,8 @@ def test_haversine_distance_for_nearby_points() -> None:
 
 
 def test_list_venues_filters_category_city_and_radius(tmp_path) -> None:
-    db_path = tmp_path / "occupancy.db"
-    db.upsert_venues(
+    db_path = str(tmp_path / "occupancy.db")
+    upsert_venues(
         db_path,
         [
             {
@@ -35,7 +35,8 @@ def test_list_venues_filters_category_city_and_radius(tmp_path) -> None:
         ],
     )
 
-    with db.connect(db_path) as conn:
+    conn = get_connection(db_path)
+    try:
         venues = list_venues(
             conn,
             category="cafe",
@@ -44,5 +45,7 @@ def test_list_venues_filters_category_city_and_radius(tmp_path) -> None:
             lon=11.5762,
             radius_m=100,
         )
+    finally:
+        conn.close()
 
     assert [venue.merchant_id for venue in venues] == ["osm_node_1"]

@@ -1,13 +1,13 @@
 from datetime import datetime, timezone
 
-from backend.app import db
-from backend.app.services.signals import (
+from spark.db.connection import get_connection, insert_venue_transactions, upsert_venues
+from spark.services.signals import (
     classify_density,
     compute_demand_context,
     infer_occupancy_pct,
     normalize_category,
 )
-from backend.app.services.venues import get_venue
+from spark.services.venues import get_venue
 
 
 def test_normalize_category_aliases() -> None:
@@ -32,8 +32,8 @@ def test_infer_occupancy_clamps_to_range() -> None:
 
 
 def test_compute_demand_context_uses_transaction_logs(tmp_path) -> None:
-    db_path = tmp_path / "occupancy.db"
-    db.upsert_venues(
+    db_path = str(tmp_path / "occupancy.db")
+    upsert_venues(
         db_path,
         [
             {
@@ -49,38 +49,35 @@ def test_compute_demand_context_uses_transaction_logs(tmp_path) -> None:
         ],
     )
 
-    with db.connect(db_path) as conn:
+    conn = get_connection(db_path)
+    try:
         transactions = []
         for week, day in enumerate([10, 17]):
             for idx in range(20):
-                transactions.append(
-                    {
-                        "transaction_id": f"hist-{week}-{idx}",
-                        "merchant_id": "osm_node_1",
-                        "category": "bar",
-                        "timestamp": f"2026-04-{day}T20:{idx:02d}:00+00:00",
-                        "hour_of_day": 20,
-                        "day_of_week": 4,
-                        "hour_of_week": 116,
-                        "amount_eur": 10.0,
-                        "source": "test_history",
-                    }
-                )
-        for idx in range(6):
-            transactions.append(
-                {
-                    "transaction_id": f"current-{idx}",
+                transactions.append({
+                    "transaction_id": f"hist-{week}-{idx}",
                     "merchant_id": "osm_node_1",
                     "category": "bar",
-                    "timestamp": f"2026-04-24T20:{idx:02d}:00+00:00",
+                    "timestamp": f"2026-04-{day}T20:{idx:02d}:00+00:00",
                     "hour_of_day": 20,
                     "day_of_week": 4,
                     "hour_of_week": 116,
                     "amount_eur": 10.0,
-                    "source": "test_live",
-                }
-            )
-        db.insert_transactions(conn, transactions)
+                    "source": "test_history",
+                })
+        for idx in range(6):
+            transactions.append({
+                "transaction_id": f"current-{idx}",
+                "merchant_id": "osm_node_1",
+                "category": "bar",
+                "timestamp": f"2026-04-24T20:{idx:02d}:00+00:00",
+                "hour_of_day": 20,
+                "day_of_week": 4,
+                "hour_of_week": 116,
+                "amount_eur": 10.0,
+                "source": "test_live",
+            })
+        insert_venue_transactions(conn, transactions)
         conn.commit()
         venue = get_venue(conn, "osm_node_1")
         assert venue is not None
@@ -91,6 +88,8 @@ def test_compute_demand_context_uses_transaction_logs(tmp_path) -> None:
             datetime(2026, 4, 24, 21, tzinfo=timezone.utc),
             arrival_offset_minutes=10,
         )
+    finally:
+        conn.close()
 
     assert demand.signal == "FLASH"
     assert demand.offer_eligible is True

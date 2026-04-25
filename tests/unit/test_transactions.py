@@ -1,22 +1,22 @@
 from datetime import date, datetime, timezone
 
-from backend.app import db
-from backend.app.services.transaction_stats import (
+from spark.db.connection import get_connection, upsert_venues
+from spark.services.transaction_stats import (
     get_daily_transactions,
     get_fastest_slowest_hours,
     get_hourly_average_by_weekday,
     get_last_7_days_revenue,
 )
-from backend.app.services.transactions import (
+from spark.services.transactions import (
     expected_txn_rate,
     generate_last_hour_update,
     generate_transactions_for_hour,
 )
-from backend.app.services.venues import get_venue
+from spark.services.venues import get_venue
 
 
-def seed_venue(db_path) -> None:
-    db.upsert_venues(
+def seed_venue(db_path: str) -> None:
+    upsert_venues(
         db_path,
         [
             {
@@ -39,15 +39,17 @@ def test_expected_rate_uses_base_rates_and_day_multipliers() -> None:
 
 
 def test_hour_generation_is_deterministic(tmp_path) -> None:
-    db_path = tmp_path / "occupancy.db"
+    db_path = str(tmp_path / "occupancy.db")
     seed_venue(db_path)
-    with db.connect(db_path) as conn:
+    conn = get_connection(db_path)
+    try:
         venue = get_venue(conn, "osm_node_1")
         assert venue is not None
         hour = datetime(2026, 4, 20, 9, tzinfo=timezone.utc)
-
         first = generate_transactions_for_hour(venue, hour, "test", seed=42)
         second = generate_transactions_for_hour(venue, hour, "test", seed=42)
+    finally:
+        conn.close()
 
     assert first == second
     assert len(first) > 0
@@ -55,11 +57,12 @@ def test_hour_generation_is_deterministic(tmp_path) -> None:
 
 
 def test_live_update_and_stats_are_log_backed(tmp_path) -> None:
-    db_path = tmp_path / "occupancy.db"
+    db_path = str(tmp_path / "occupancy.db")
     seed_venue(db_path)
     timestamp = datetime(2026, 4, 20, 10, tzinfo=timezone.utc)
 
-    with db.connect(db_path) as conn:
+    conn = get_connection(db_path)
+    try:
         venue = get_venue(conn, "osm_node_1")
         assert venue is not None
 
@@ -68,6 +71,8 @@ def test_live_update_and_stats_are_log_backed(tmp_path) -> None:
         hourly_avg = get_hourly_average_by_weekday(conn, "osm_node_1", 0, 7, date(2026, 4, 21))
         revenue = get_last_7_days_revenue(conn, "osm_node_1", date(2026, 4, 20))
         rankings = get_fastest_slowest_hours(conn, "osm_node_1", 365)
+    finally:
+        conn.close()
 
     assert window_start == datetime(2026, 4, 20, 9, tzinfo=timezone.utc)
     assert window_end == timestamp

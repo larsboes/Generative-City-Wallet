@@ -8,12 +8,12 @@ from typing import Any
 
 import requests
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(ROOT / "apps" / "api" / "src"))
 
-from backend.app import db  # noqa: E402
-from backend.app.services.signals import normalize_category  # noqa: E402
+from spark.db.connection import upsert_venues  # noqa: E402
+from spark.services.signals import normalize_category  # noqa: E402
 
 
 DEFAULT_CATEGORIES = [
@@ -88,12 +88,10 @@ def normalize_element(element: dict[str, Any], city: str) -> dict[str, Any] | No
     coords = element_coordinates(element)
     if not coords:
         return None
-
     category = normalize_category(tags.get("amenity") or tags.get("shop"))
     name = tags.get("name")
     osm_type = element["type"]
     osm_id = str(element["id"])
-
     return {
         "merchant_id": f"osm_{osm_type}_{osm_id}",
         "osm_type": osm_type,
@@ -112,12 +110,7 @@ def normalize_element(element: dict[str, Any], city: str) -> dict[str, Any] | No
     }
 
 
-def fetch_venues(
-    city: str,
-    categories: list[str],
-    include_unnamed: bool,
-    timeout: int,
-) -> list[dict[str, Any]]:
+def fetch_venues(city: str, categories: list[str], include_unnamed: bool, timeout: int) -> list[dict[str, Any]]:
     query = build_query(city, categories, timeout)
     response = requests.post(
         OVERPASS_URL,
@@ -133,7 +126,6 @@ def fetch_venues(
             f"Overpass request failed with HTTP {response.status_code}: {message[:500]}"
         ) from exc
     payload = response.json()
-
     venues = []
     for element in payload.get("elements", []):
         tags = element.get("tags", {})
@@ -142,7 +134,6 @@ def fetch_venues(
         venue = normalize_element(element, overpass_city_name(city))
         if venue:
             venues.append(venue)
-
     venues.sort(key=lambda item: (item["name"].lower(), item["merchant_id"]))
     return venues
 
@@ -164,21 +155,8 @@ def write_json(path: Path, venues: list[dict[str, Any]]) -> None:
 
 def write_csv(path: Path, venues: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = [
-        "merchant_id",
-        "osm_type",
-        "osm_id",
-        "name",
-        "category",
-        "lat",
-        "lon",
-        "city",
-        "address",
-        "website",
-        "phone",
-        "opening_hours",
-        "source",
-    ]
+    fields = ["merchant_id", "osm_type", "osm_id", "name", "category", "lat", "lon",
+              "city", "address", "website", "phone", "opening_hours", "source"]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -187,20 +165,16 @@ def write_csv(path: Path, venues: list[dict[str, Any]]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch Munich or city-specific venues from OpenStreetMap.")
-    parser.add_argument("--city", default="München", help="Administrative city name. Defaults to München.")
-    parser.add_argument(
-        "--categories",
-        default=",".join(DEFAULT_CATEGORIES),
-        help="Comma-separated OSM amenity/shop categories.",
-    )
-    parser.add_argument("--limit", type=int, default=100, help="Maximum venue count. Use 0 for all.")
-    parser.add_argument("--seed", type=int, default=None, help="Deterministic sample seed when limiting.")
-    parser.add_argument("--output", default="data/munich_venues.json", help="Output path.")
-    parser.add_argument("--format", choices=["json", "csv"], default="json", help="Output format.")
-    parser.add_argument("--db-path", default=None, help="Optional SQLite DB path to import venues into.")
-    parser.add_argument("--include-unnamed", action="store_true", help="Include unnamed OSM venues.")
-    parser.add_argument("--timeout", type=int, default=60, help="Overpass timeout in seconds.")
+    parser = argparse.ArgumentParser(description="Fetch city venues from OpenStreetMap via Overpass.")
+    parser.add_argument("--city", default="München", help="Administrative city name.")
+    parser.add_argument("--categories", default=",".join(DEFAULT_CATEGORIES))
+    parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--output", default="resources/mock_venues_munich.json")
+    parser.add_argument("--format", choices=["json", "csv"], default="json")
+    parser.add_argument("--db-path", default=None)
+    parser.add_argument("--include-unnamed", action="store_true")
+    parser.add_argument("--timeout", type=int, default=60)
     return parser.parse_args()
 
 
@@ -217,7 +191,7 @@ def main() -> None:
         write_csv(output, limited)
 
     if args.db_path:
-        db.upsert_venues(args.db_path, limited)
+        upsert_venues(args.db_path, limited)
 
     print(f"Fetched {len(venues)} venues, wrote {len(limited)} to {output}")
     if args.db_path:

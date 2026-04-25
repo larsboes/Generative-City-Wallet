@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import sqlite3
 
-from backend.app.models import DemandContext, DemandSignal, Venue
+from spark.models.contracts import DemandContext, Venue
 
 
 BASE_HOURLY_RATES: dict[str, list[float]] = {
@@ -71,7 +71,9 @@ def fallback_historical_rate(category: str, dt: datetime) -> float:
     return round(base[dt.hour] * multipliers[dt.weekday()], 3)
 
 
-def classify_density(current_rate: float, historical_avg: float) -> tuple[float, float, DemandSignal, bool]:
+def classify_density(
+    current_rate: float, historical_avg: float
+) -> tuple[float, float, str, bool]:
     if historical_avg < 0.5:
         return 1.0, 0.0, "NORMALLY_CLOSED", False
 
@@ -100,11 +102,13 @@ def infer_occupancy_pct(category: str, current_txn_rate: float) -> float | None:
     return round(max(0.0, min(1.0, occupancy)), 3)
 
 
-def get_historical_rate(conn: sqlite3.Connection, merchant_id: str, category: str, dt: datetime) -> tuple[float, int]:
+def get_historical_rate(
+    conn: sqlite3.Connection, merchant_id: str, category: str, dt: datetime
+) -> tuple[float, int]:
     rows = conn.execute(
         """
         SELECT substr(timestamp, 1, 10) AS day, COUNT(*) AS transaction_count
-        FROM payone_transactions
+        FROM venue_transactions
         WHERE merchant_id = ?
           AND hour_of_week = ?
           AND timestamp < ?
@@ -119,14 +123,16 @@ def get_historical_rate(conn: sqlite3.Connection, merchant_id: str, category: st
     return fallback_historical_rate(category, dt), 0
 
 
-def get_current_rate(conn: sqlite3.Connection, merchant_id: str, historical_avg: float, dt: datetime) -> float:
+def get_current_rate(
+    conn: sqlite3.Connection, merchant_id: str, historical_avg: float, dt: datetime
+) -> float:
     del historical_avg
     end = ensure_utc(dt)
     start = end - timedelta(hours=1)
     row = conn.execute(
         """
         SELECT COUNT(*) AS transaction_count
-        FROM payone_transactions
+        FROM venue_transactions
         WHERE merchant_id = ? AND timestamp >= ? AND timestamp < ?
         """,
         (merchant_id, iso(start), iso(end)),
@@ -165,15 +171,9 @@ def compute_demand_context(
     current_rate = get_current_rate(conn, venue.merchant_id, historical_avg, dt)
     density_score, drop_pct, signal, eligible = classify_density(current_rate, historical_avg)
     current_occupancy = infer_occupancy_pct(venue.category, current_rate)
-    predicted_occupancy = predict_occupancy_pct(
-        conn,
-        venue,
-        current_occupancy,
-        dt,
-        arrival_offset_minutes,
-    )
-
+    predicted_occupancy = predict_occupancy_pct(conn, venue, current_occupancy, dt, arrival_offset_minutes)
     confidence = 0.35 if sample_count == 0 else min(1.0, sample_count / 4)
+
     return DemandContext(
         density_score=round(density_score, 3),
         drop_pct=round(drop_pct, 3),

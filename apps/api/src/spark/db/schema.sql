@@ -110,3 +110,71 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     credited_at     TEXT NOT NULL,
     FOREIGN KEY (offer_id) REFERENCES offer_audit_log(offer_id)
 );
+
+-- ── Venue Occupancy (Finn's transaction-based demand system) ──────────────────
+
+CREATE TABLE IF NOT EXISTS venues (
+    merchant_id     TEXT PRIMARY KEY,
+    osm_type        TEXT,
+    osm_id          TEXT,
+    name            TEXT NOT NULL,
+    category        TEXT NOT NULL,
+    lat             REAL NOT NULL,
+    lon             REAL NOT NULL,
+    city            TEXT,
+    address         TEXT,
+    website         TEXT,
+    phone           TEXT,
+    opening_hours   TEXT,
+    source          TEXT NOT NULL DEFAULT 'openstreetmap',
+    raw_tags_json   TEXT,
+    created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_venues_category ON venues(category);
+CREATE INDEX IF NOT EXISTS idx_venues_city ON venues(city);
+CREATE INDEX IF NOT EXISTS idx_venues_lat_lon ON venues(lat, lon);
+
+CREATE TABLE IF NOT EXISTS transaction_baselines (
+    merchant_id             TEXT NOT NULL,
+    hour_of_week            INTEGER NOT NULL CHECK(hour_of_week BETWEEN 0 AND 167),
+    historical_avg_txn_rate REAL NOT NULL CHECK(historical_avg_txn_rate >= 0),
+    sample_count            INTEGER NOT NULL DEFAULT 0,
+    source                  TEXT NOT NULL DEFAULT 'synthetic',
+    updated_at              TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (merchant_id, hour_of_week),
+    FOREIGN KEY (merchant_id) REFERENCES venues(merchant_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS current_signals (
+    merchant_id         TEXT PRIMARY KEY,
+    current_txn_rate    REAL NOT NULL CHECK(current_txn_rate >= 0),
+    observed_at         TEXT NOT NULL,
+    source              TEXT NOT NULL DEFAULT 'demo_override',
+    FOREIGN KEY (merchant_id) REFERENCES venues(merchant_id) ON DELETE CASCADE
+);
+
+-- Individual-transaction table (used by Finn's demand signal system).
+-- Kept separate from payone_transactions (aggregated hourly buckets for offer engine).
+CREATE TABLE IF NOT EXISTS venue_transactions (
+    transaction_id  TEXT PRIMARY KEY,
+    merchant_id     TEXT NOT NULL,
+    category        TEXT NOT NULL,
+    timestamp       TEXT NOT NULL,
+    hour_of_day     INTEGER NOT NULL CHECK(hour_of_day BETWEEN 0 AND 23),
+    day_of_week     INTEGER NOT NULL CHECK(day_of_week BETWEEN 0 AND 6),
+    hour_of_week    INTEGER NOT NULL CHECK(hour_of_week BETWEEN 0 AND 167),
+    amount_eur      REAL NOT NULL CHECK(amount_eur >= 0),
+    currency        TEXT NOT NULL DEFAULT 'EUR',
+    source          TEXT NOT NULL DEFAULT 'synthetic',
+    created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (merchant_id) REFERENCES venues(merchant_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_venue_txn_merchant_timestamp
+    ON venue_transactions(merchant_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_venue_txn_merchant_category_timestamp
+    ON venue_transactions(merchant_id, category, timestamp);
+CREATE INDEX IF NOT EXISTS idx_venue_txn_merchant_hour_of_week
+    ON venue_transactions(merchant_id, hour_of_week, timestamp);
