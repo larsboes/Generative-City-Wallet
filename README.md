@@ -33,108 +33,62 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 
 ## Documentation
 
-→ **[`docs/README.md`](docs/README.md)** — navigation guide: who reads what, quick start by role, topic index
-
-### Full file listing
-
-| File | Contents |
-|------|----------|
-| [`docs/00-VISION.md`](docs/00-VISION.md) | Product vision, target markets, business model, competitive moat |
-| [`docs/01-CHALLENGE-ANALYSIS.md`](docs/01-CHALLENGE-ANALYSIS.md) | Deep reading of the hackathon brief, what judges actually want |
-| [`docs/02-ARCHITECTURE.md`](docs/02-ARCHITECTURE.md) | Technical architecture: on-device, cloud, AI agents |
-| [`docs/03-CONTEXT-ENGINE.md`](docs/03-CONTEXT-ENGINE.md) | Composite context state machine, all signals, Stuttgart-specific |
-| [`docs/04-GENERATIVE-ENGINE.md`](docs/04-GENERATIVE-ENGINE.md) | GenUI, offer generation, ML intent model, preference learning |
-| [`docs/05-MERCHANT-PLATFORM.md`](docs/05-MERCHANT-PLATFORM.md) | Merchant dashboard, rule engine, inventory, analytics |
-| [`docs/06-MVP-SCOPE.md`](docs/06-MVP-SCOPE.md) | Hackathon scope: what to build, tech stack, timeline |
-| [`docs/07-DEMO-SCRIPT.md`](docs/07-DEMO-SCRIPT.md) | Demo narrative, Stuttgart scenario, killer moments |
-| [`docs/08-OPEN-QUESTIONS.md`](docs/08-OPEN-QUESTIONS.md) | Unresolved questions and decisions |
-| [`docs/09-CRITIQUE.md`](docs/09-CRITIQUE.md) | What was wrong with the original idea and how it was fixed |
-| [`docs/10-OFFER-SELECTION.md`](docs/10-OFFER-SELECTION.md) | Single-offer principle, scoring algorithm, anti-spam, anticipatory delivery |
-| [`docs/11-CONSUMER-UX.md`](docs/11-CONSUMER-UX.md) | All user-facing screens: consent, offer card, QR, cashback animation, wallet |
-| [`docs/12-SUBMISSION-README.md`](docs/12-SUBMISSION-README.md) | Template for the final hackathon GitHub README |
-| [`docs/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md`](docs/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md) | User KG (SQLite), on-device LLMs, Air Canada hard rails & audit trail |
-| [`docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md`](docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md) | Temporal conflict model, coupon mechanics, framing rules, decision tree |
-| [`docs/15-FINN-BRIEFING.md`](docs/15-FINN-BRIEFING.md) | Finn's complete implementation spec: Payone generator, density, occupancy, conflict engine, hard rails |
-| [`docs/16-ADVANCED-SIGNALS.md`](docs/16-ADVANCED-SIGNALS.md) | Exercise states, OCR transit scan, wallet pass KG seeds, Spark Wave social coordination |
-| [`docs/17-BUILD-PLAN.md`](docs/17-BUILD-PLAN.md) | **START HERE** — shared contracts, Gemini prompt, data engineering sequence, frontend phasing, team split |
-| [`docs/18-DSV-GAP-ANALYSIS.md`](docs/18-DSV-GAP-ANALYSIS.md) | **PITCH AMMO** — DSV's confirmed product gaps, TreueWelt shutdown, S-POS Cube, business case for adoption |
-| [`docs/19-PRODUCT-OVERVIEW.md`](docs/19-PRODUCT-OVERVIEW.md) | **START HERE FOR DESIGN** — all screens, all flows, feature inventory, brand language, what not to build |
+| Where | What |
+|-------|------|
+| **[`docs/README.md`](docs/README.md)** | **Current** docs index — implementation truth + Neo4j user graph |
+| **[`docs/MONOREPO-STRUCTURE.md`](docs/MONOREPO-STRUCTURE.md)** | npm workspaces, Turbo, folder map, root scripts |
+| **[`docs/REPOSITORY-OVERVIEW.md`](docs/REPOSITORY-OVERVIEW.md)** | Backend layout, hybrid pipeline, SQLite/Neo4j, CI, Docker, tests |
+| **[`docs/USER-KNOWLEDGE-GRAPH-NEO4J.md`](docs/USER-KNOWLEDGE-GRAPH-NEO4J.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
+| **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
 
 ---
 
 ## Tech Stack (MVP)
 
 - **Mobile:** Expo / React Native
-- **Merchant Dashboard:** Next.js
+- **Merchant Dashboard:** Vite + React (scaffold in `apps/web-dashboard`; planning docs still target Next.js)
 - **Backend:** FastAPI (Python)
 - **AI (server):** Gemini Flash (offer generation + GenUI — fast, structured JSON output)
 - **AI (on-device):** Gemma 3n via Google AI Edge (intent extraction — no PII leaves device)
 - **Context APIs:** OpenWeatherMap, Google Places, Luma, VVS (Stuttgart transit)
 - **Merchant Data:** Simulated Payone transaction feed (Python generator)
 - **Maps:** Mapbox (merchant heatmap)
+- **User knowledge graph (optional):** Neo4j — session preferences, offer lifecycle, deterministic guardrails, explainability on offers
 
 ---
 
-## Occupancy API
+## Graph Ops (Neo4j)
 
-The first backend component is a generic FastAPI data source for venue demand and occupancy signals. Munich is the default seed city, but the importer and API are city/category configurable.
+The backend can persist a **pseudonymous session graph** (preferences, offers, outcomes) when Neo4j is enabled. Configure connection and tuning via `.env` (see `apps/api/src/spark/config.py` for `NEO4J_*`, `GRAPH_*`, retention, and decay variables).
 
-Install dependencies:
+**What you get:** machine-readable **explainability** on generated offers; **idempotent** graph writes on retries; **preference decay** so old signals fade; **retention** for offers and stale preference edges; **migrations** tracked in the graph for schema evolution.
 
-```bash
-pip install -r requirements.txt
-```
-
-Fetch Munich venues from OpenStreetMap and import them into SQLite:
+With the API running on `http://localhost:8000`:
 
 ```bash
-python scripts/fetch_venues.py --city München --limit 100 --db-path data/occupancy.db
+# Health + driver metrics
+curl -s http://localhost:8000/api/graph/health | jq .
+
+# Node/edge counts
+curl -s http://localhost:8000/api/graph/stats | jq .
+
+# Applied migrations (GraphMigration nodes)
+curl -s http://localhost:8000/api/graph/migrations | jq .
+
+# Delete old offers/contexts/redemptions/wallet events + stale sessions + old PREFERS/AVOIDS edges
+curl -s -X POST 'http://localhost:8000/api/graph/cleanup?retention_days=30' | jq .
+
+# Linear decay on stale PREFERS edges (after N days without reinforcement)
+curl -s -X POST 'http://localhost:8000/api/graph/decay-preferences?stale_after_days=7&default_decay_rate=0.01' | jq .
 ```
 
-Start the API:
+**Scheduled maintenance (cron)** — from the repo root; uses the same `.env` as the app:
 
-```bash
-uvicorn backend.app.main:app --reload
+```cron
+0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python scripts/ops/run_graph_maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
 ```
 
-Prepare transaction history and a live Payone-style update:
-
-```bash
-curl -X POST "http://127.0.0.1:8000/api/transactions/generate/history" \
-  -H "Content-Type: application/json" \
-  -d "{\"city\":\"München\",\"category\":\"bar,cafe,restaurant\",\"limit\":10,\"days\":28,\"seed\":42}"
-
-curl -X POST "http://127.0.0.1:8000/api/transactions/generate/live-update" \
-  -H "Content-Type: application/json" \
-  -d "{\"city\":\"München\",\"category\":\"bar,cafe,restaurant\",\"limit\":10,\"seed\":43}"
-```
-
-Example calls:
-
-```bash
-curl "http://127.0.0.1:8000/health"
-curl "http://127.0.0.1:8000/api/venues?category=bar,cafe&city=M%C3%BCnchen&limit=10"
-curl "http://127.0.0.1:8000/api/occupancy/osm_node_12345"
-curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/transactions/daily"
-curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/transactions/averages?lookback_days=28"
-curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/revenue/last-7-days"
-curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/dashboard/today"
-curl "http://127.0.0.1:8000/api/vendors/osm_node_12345/transactions/hour-rankings?lookback_days=28"
-curl -X POST "http://127.0.0.1:8000/api/occupancy/query" \
-  -H "Content-Type: application/json" \
-  -d "{\"merchant_ids\":[\"osm_node_12345\"],\"arrival_offset_minutes\":10}"
-```
-
-When `München` is used in a URL query string, encode the umlaut as `M%C3%BCnchen`. Raw non-ASCII characters in the URL can make Uvicorn reject the request as invalid. JSON request bodies can keep `München` as-is.
-
-On PowerShell, use `curl.exe` if `curl` is aliased to `Invoke-WebRequest`. You can also let curl encode query params:
-
-```powershell
-curl.exe -G "http://127.0.0.1:8000/api/venues" `
-  --data-urlencode "category=bar,cafe,restaurant" `
-  --data-urlencode "city=München" `
-  --data-urlencode "limit=10"
-```
+Adjust `cd` and `uv` path to your machine. The script runs **cleanup** (artifact + preference-edge retention) then **decay** in one shot.
 
 ---
 
@@ -143,11 +97,3 @@ curl.exe -G "http://127.0.0.1:8000/api/venues" `
 **Spark** — a direct nod to *Sparkasse* (German Savings Banks). Suggests igniting the local economy. The "Spark cashback" animation (credit flying into wallet balance) closes the loop visually.
 
 Tagline: **"Make every minute local."**
-
-
-$venues = curl.exe "http://127.0.0.1:8000/api/venues?category=bar,pub,nightclub,biergarten&city=M%C3%BCnchen&limit=1" | ConvertFrom-Json
-$MID = $venues.venues[0].merchant_id
-
-curl.exe -X POST "http://127.0.0.1:8000/api/occupancy/query" `
-  -H "Content-Type: application/json" `
-  -d "{`"merchant_ids`":[`"$MID`"],`"arrival_offset_minutes`":10}"

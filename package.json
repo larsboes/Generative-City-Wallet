@@ -1,0 +1,26 @@
+{
+  "name": "generative-city-wallet",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:api": "sh -c 'export PYTHONPATH=apps/api/src && uv run uvicorn spark.main:app --reload --port 8000'",
+    "dev:mobile": "npm run start -w @spark/mobile",
+    "dev:dashboard": "npm run dev -w @spark/web-dashboard",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "typecheck:web": "turbo run typecheck --filter=@spark/web-dashboard",
+    "typecheck:mobile": "turbo run typecheck --filter=@spark/mobile",
+    "typecheck:shared": "turbo run typecheck --filter=@spark/shared",
+    "typecheck:js": "turbo run typecheck",
+    "lint": "npm run lint:api && npm run lint:js",
+    "lint:api": "uv run ruff check apps/api/src/spark tests scripts && uv run ruff format --check apps/api/src/spark tests scripts",
+    "lint:js": "turbo run lint",
+    "test": "npm run test:contracts && npm run test:api",
+    "test:api": "uv run pytest tests/ -v --tb=short",
+    "test:contracts": "uv run python scripts/dev/check_contract_symbols.py"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  }
+}
