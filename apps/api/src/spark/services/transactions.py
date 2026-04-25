@@ -7,7 +7,12 @@ from typing import Iterable
 
 from spark.db.connection import insert_venue_transactions
 from spark.models.contracts import Venue
-from spark.services.signals import BASE_HOURLY_RATES, DAY_MULTIPLIERS, hour_of_week, normalize_category
+from spark.services.signals import (
+    BASE_HOURLY_RATES,
+    DAY_MULTIPLIERS,
+    hour_of_week,
+    normalize_category,
+)
 from spark.services.venues import get_venue, list_venues
 
 
@@ -73,7 +78,9 @@ def sample_transaction_count(expected_rate: float, rng: random.Random) -> int:
     return max(0, int(round(rng.gauss(expected_rate, math.sqrt(expected_rate)))))
 
 
-def amount_for_category(category: str, dt: datetime, txn_rate: float, rng: random.Random) -> float:
+def amount_for_category(
+    category: str, dt: datetime, txn_rate: float, rng: random.Random
+) -> float:
     category = normalize_category(category)
     base_ticket = CATEGORY_AVG_TICKET_EUR.get(category, 12.00)
     base_rates = BASE_HOURLY_RATES.get(category, BASE_HOURLY_RATES["restaurant"])
@@ -83,7 +90,9 @@ def amount_for_category(category: str, dt: datetime, txn_rate: float, rng: rando
 
     demand_price_lift = 0.92 + 0.18 * demand_ratio
     evening_lift = (
-        1.08 if category in {"restaurant", "bar", "pub", "biergarten", "nightclub"} and dt.hour >= 18
+        1.08
+        if category in {"restaurant", "bar", "pub", "biergarten", "nightclub"}
+        and dt.hour >= 18
         else 1.0
     )
     weekend_lift = 1.05 if dt.weekday() >= 5 else 1.0
@@ -103,7 +112,9 @@ def build_transaction(
 ) -> dict:
     timestamp = ensure_utc(timestamp)
     transaction_id = sha256(
-        f"{source}|{seed}|{venue.merchant_id}|{timestamp.isoformat()}|{ordinal}".encode("utf-8")
+        f"{source}|{seed}|{venue.merchant_id}|{timestamp.isoformat()}|{ordinal}".encode(
+            "utf-8"
+        )
     ).hexdigest()
     return {
         "transaction_id": transaction_id,
@@ -134,7 +145,9 @@ def generate_transactions_for_hour(
         offset_seconds = rng.randint(0, 3599)
         timestamp = hour_start + timedelta(seconds=offset_seconds)
         amount = amount_for_category(venue.category, hour_start, txn_rate, rng)
-        transactions.append(build_transaction(venue, timestamp, amount, source, ordinal, seed))
+        transactions.append(
+            build_transaction(venue, timestamp, amount, source, ordinal, seed)
+        )
     return transactions
 
 
@@ -149,7 +162,11 @@ def generate_history_for_venues(
     for venue in venues:
         batch: list[dict] = []
         for hour_start in iter_hours(start, end):
-            batch.extend(generate_transactions_for_hour(venue, hour_start, "synthetic_history", seed))
+            batch.extend(
+                generate_transactions_for_hour(
+                    venue, hour_start, "synthetic_history", seed
+                )
+            )
             if len(batch) >= 1000:
                 inserted += insert_venue_transactions(conn, batch)
                 batch = []
@@ -168,7 +185,11 @@ def generate_last_hour_update(
     window_start = window_end - timedelta(hours=1)
     transactions: list[dict] = []
     for venue in venues:
-        transactions.extend(generate_transactions_for_hour(venue, window_start, "synthetic_live_update", seed))
+        transactions.extend(
+            generate_transactions_for_hour(
+                venue, window_start, "synthetic_live_update", seed
+            )
+        )
     inserted = insert_venue_transactions(conn, transactions)
     conn.commit()
     return inserted, window_start, window_end

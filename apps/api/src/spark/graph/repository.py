@@ -367,22 +367,22 @@ class GraphRepository:
             return {
                 "retention_days": int(retention_days),
                 "offers_deleted": int(
-                    (offers_row and offers_row["offers_deleted"]) or 0
+                    (offers_row and offers_row["offers_deleted"]) or 0  # type: ignore[reportArgumentType]
                 ),
                 "contexts_deleted": int(
-                    (offers_row and offers_row["contexts_deleted"]) or 0
+                    (offers_row and offers_row["contexts_deleted"]) or 0  # type: ignore[reportArgumentType]
                 ),
                 "redemptions_deleted": int(
-                    (offers_row and offers_row["redemptions_deleted"]) or 0
+                    (offers_row and offers_row["redemptions_deleted"]) or 0  # type: ignore[reportArgumentType]
                 ),
                 "wallet_events_deleted": int(
-                    (offers_row and offers_row["wallet_events_deleted"]) or 0
+                    (offers_row and offers_row["wallet_events_deleted"]) or 0  # type: ignore[reportArgumentType]
                 ),
                 "sessions_deleted": int(
-                    (sessions_row and sessions_row["sessions_deleted"]) or 0
+                    (sessions_row and sessions_row["sessions_deleted"]) or 0  # type: ignore[reportArgumentType]
                 ),
                 "preference_edges_deleted": int(
-                    (pref_row and pref_row["preference_edges_deleted"]) or 0
+                    (pref_row and pref_row["preference_edges_deleted"]) or 0  # type: ignore[reportArgumentType]
                 ),
             }
 
@@ -421,7 +421,7 @@ class GraphRepository:
             return {
                 "stale_after_days": float(stale_after_days),
                 "default_decay_rate": float(default_decay_rate),
-                "edges_touched": float((row and row["edges_touched"]) or 0.0),
+                "edges_touched": float((row and row["edges_touched"]) or 0.0),  # type: ignore[reportArgumentType]
             }
 
         return await safe_execute(

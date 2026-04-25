@@ -283,8 +283,8 @@ def generate_payone_history(
 
 def seed_database(db_path: str | None = None) -> None:
     """Initialize DB schema and seed all demo data."""
-    init_database(db_path)
     conn = get_connection(db_path)
+    init_database(conn=conn)
 
     # Clear old data
     conn.execute("DELETE FROM payone_transactions")

@@ -49,7 +49,7 @@ async def apply_migrations(s: AsyncSession) -> dict[str, int]:
             skipped += 1
             continue
 
-        await s.run(cypher)
+        await s.run(cypher)  # type: ignore[reportArgumentType]
         await s.run(
             """
             CREATE (m:GraphMigration {

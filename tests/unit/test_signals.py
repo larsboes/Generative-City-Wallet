@@ -54,29 +54,33 @@ def test_compute_demand_context_uses_transaction_logs(tmp_path) -> None:
         transactions = []
         for week, day in enumerate([10, 17]):
             for idx in range(20):
-                transactions.append({
-                    "transaction_id": f"hist-{week}-{idx}",
+                transactions.append(
+                    {
+                        "transaction_id": f"hist-{week}-{idx}",
+                        "merchant_id": "osm_node_1",
+                        "category": "bar",
+                        "timestamp": f"2026-04-{day}T20:{idx:02d}:00+00:00",
+                        "hour_of_day": 20,
+                        "day_of_week": 4,
+                        "hour_of_week": 116,
+                        "amount_eur": 10.0,
+                        "source": "test_history",
+                    }
+                )
+        for idx in range(6):
+            transactions.append(
+                {
+                    "transaction_id": f"current-{idx}",
                     "merchant_id": "osm_node_1",
                     "category": "bar",
-                    "timestamp": f"2026-04-{day}T20:{idx:02d}:00+00:00",
+                    "timestamp": f"2026-04-24T20:{idx:02d}:00+00:00",
                     "hour_of_day": 20,
                     "day_of_week": 4,
                     "hour_of_week": 116,
                     "amount_eur": 10.0,
-                    "source": "test_history",
-                })
-        for idx in range(6):
-            transactions.append({
-                "transaction_id": f"current-{idx}",
-                "merchant_id": "osm_node_1",
-                "category": "bar",
-                "timestamp": f"2026-04-24T20:{idx:02d}:00+00:00",
-                "hour_of_day": 20,
-                "day_of_week": 4,
-                "hour_of_week": 116,
-                "amount_eur": 10.0,
-                "source": "test_live",
-            })
+                    "source": "test_live",
+                }
+            )
         insert_venue_transactions(conn, transactions)
         conn.commit()
         venue = get_venue(conn, "osm_node_1")

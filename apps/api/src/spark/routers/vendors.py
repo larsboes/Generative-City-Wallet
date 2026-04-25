@@ -5,7 +5,9 @@ from fastapi import APIRouter, HTTPException, Query
 from spark.db.connection import get_connection
 from spark.models.contracts import (
     DailyTransactionsResponse,
+    DashboardHourlyBucket,
     HourRankingsResponse,
+    HourlyAverageBucket,
     RevenueLast7DaysResponse,
     TransactionAveragesResponse,
     VendorDashboardTodayResponse,
@@ -31,7 +33,9 @@ def _require_venue(conn, merchant_id: str):
     return venue
 
 
-@router.get("/{merchant_id}/transactions/daily", response_model=DailyTransactionsResponse)
+@router.get(
+    "/{merchant_id}/transactions/daily", response_model=DailyTransactionsResponse
+)
 def api_daily_transactions(
     merchant_id: str,
     day: date | None = Query(default=None, alias="date"),
@@ -46,7 +50,9 @@ def api_daily_transactions(
     return DailyTransactionsResponse(merchant_id=merchant_id, **data)
 
 
-@router.get("/{merchant_id}/transactions/averages", response_model=TransactionAveragesResponse)
+@router.get(
+    "/{merchant_id}/transactions/averages", response_model=TransactionAveragesResponse
+)
 def api_transaction_averages(
     merchant_id: str,
     lookback_days: int = Query(default=28, ge=1, le=365),
@@ -56,13 +62,21 @@ def api_transaction_averages(
     try:
         _require_venue(conn, merchant_id)
         daily = get_daily_average(conn, merchant_id, lookback_days, today)
-        hourly = get_hourly_average_by_weekday(conn, merchant_id, today.weekday(), lookback_days, today)
+        hourly = get_hourly_average_by_weekday(
+            conn, merchant_id, today.weekday(), lookback_days, today
+        )
     finally:
         conn.close()
-    return TransactionAveragesResponse(merchant_id=merchant_id, hourly=hourly, **daily)
+    return TransactionAveragesResponse(
+        merchant_id=merchant_id,
+        hourly=[HourlyAverageBucket(**b) for b in hourly],
+        **daily,
+    )
 
 
-@router.get("/{merchant_id}/revenue/last-7-days", response_model=RevenueLast7DaysResponse)
+@router.get(
+    "/{merchant_id}/revenue/last-7-days", response_model=RevenueLast7DaysResponse
+)
 def api_last_7_days_revenue(merchant_id: str) -> RevenueLast7DaysResponse:
     conn = get_connection()
     try:
@@ -73,7 +87,9 @@ def api_last_7_days_revenue(merchant_id: str) -> RevenueLast7DaysResponse:
     return RevenueLast7DaysResponse(**data)
 
 
-@router.get("/{merchant_id}/transactions/hour-rankings", response_model=HourRankingsResponse)
+@router.get(
+    "/{merchant_id}/transactions/hour-rankings", response_model=HourRankingsResponse
+)
 def api_hour_rankings(
     merchant_id: str,
     lookback_days: int = Query(default=28, ge=1, le=365),
@@ -87,7 +103,9 @@ def api_hour_rankings(
     return HourRankingsResponse(merchant_id=merchant_id, **data)
 
 
-@router.get("/{merchant_id}/dashboard/today", response_model=VendorDashboardTodayResponse)
+@router.get(
+    "/{merchant_id}/dashboard/today", response_model=VendorDashboardTodayResponse
+)
 def api_vendor_dashboard_today(
     merchant_id: str,
     timestamp: datetime | None = None,
@@ -99,8 +117,12 @@ def api_vendor_dashboard_today(
     try:
         venue = _require_venue(conn, merchant_id)
         daily = get_daily_transactions(conn, merchant_id, target_day)
-        comparison = get_hourly_average_by_weekday(conn, merchant_id, dt.weekday(), lookback_days, target_day)
-        demand = compute_demand_context(conn, venue, floor_hour(dt), arrival_offset_minutes=10)
+        comparison = get_hourly_average_by_weekday(
+            conn, merchant_id, dt.weekday(), lookback_days, target_day
+        )
+        demand = compute_demand_context(
+            conn, venue, floor_hour(dt), arrival_offset_minutes=10
+        )
         revenue = get_last_7_days_revenue(conn, merchant_id, target_day)
     finally:
         conn.close()
@@ -109,8 +131,12 @@ def api_vendor_dashboard_today(
     hourly = [
         {
             **bucket,
-            "comparison_avg_transaction_count": comparison_by_hour[bucket["hour"]]["avg_transaction_count"],
-            "comparison_avg_revenue_eur": comparison_by_hour[bucket["hour"]]["avg_revenue_eur"],
+            "comparison_avg_transaction_count": comparison_by_hour[bucket["hour"]][
+                "avg_transaction_count"
+            ],
+            "comparison_avg_revenue_eur": comparison_by_hour[bucket["hour"]][
+                "avg_revenue_eur"
+            ],
         }
         for bucket in daily["hourly"]
     ]
@@ -119,7 +145,7 @@ def api_vendor_dashboard_today(
         merchant_id=merchant_id,
         date=target_day,
         current_hour=dt.hour,
-        hourly=hourly,
+        hourly=[DashboardHourlyBucket(**b) for b in hourly],
         demand=demand,
         revenue_last_7_days=RevenueLast7DaysResponse(**revenue),
     )

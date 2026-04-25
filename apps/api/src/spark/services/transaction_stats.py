@@ -21,7 +21,9 @@ def _summary(count: int, revenue: float) -> dict:
     }
 
 
-def get_hourly_transactions(conn: sqlite3.Connection, merchant_id: str, day: date) -> list[dict]:
+def get_hourly_transactions(
+    conn: sqlite3.Connection, merchant_id: str, day: date
+) -> list[dict]:
     start, end = utc_day_bounds(day)
     rows = conn.execute(
         """
@@ -44,7 +46,9 @@ def get_hourly_transactions(conn: sqlite3.Connection, merchant_id: str, day: dat
     return buckets
 
 
-def get_daily_transactions(conn: sqlite3.Connection, merchant_id: str, day: date) -> dict:
+def get_daily_transactions(
+    conn: sqlite3.Connection, merchant_id: str, day: date
+) -> dict:
     hourly = get_hourly_transactions(conn, merchant_id, day)
     count = sum(b["transaction_count"] for b in hourly)
     revenue = sum(b["total_revenue_eur"] for b in hourly)
@@ -58,7 +62,9 @@ def get_daily_average(
     end_day: date | None = None,
 ) -> dict:
     end_day = end_day or datetime.now(timezone.utc).date()
-    start = datetime.combine(end_day - timedelta(days=lookback_days), time.min, tzinfo=timezone.utc)
+    start = datetime.combine(
+        end_day - timedelta(days=lookback_days), time.min, tzinfo=timezone.utc
+    )
     end = datetime.combine(end_day, time.min, tzinfo=timezone.utc)
     row = conn.execute(
         """
@@ -87,10 +93,13 @@ def get_hourly_average_by_weekday(
     end_day: date | None = None,
 ) -> list[dict]:
     end_day = end_day or datetime.now(timezone.utc).date()
-    start = datetime.combine(end_day - timedelta(days=lookback_days), time.min, tzinfo=timezone.utc)
+    start = datetime.combine(
+        end_day - timedelta(days=lookback_days), time.min, tzinfo=timezone.utc
+    )
     end = datetime.combine(end_day, time.min, tzinfo=timezone.utc)
     matching_days = sum(
-        1 for offset in range(lookback_days)
+        1
+        for offset in range(lookback_days)
         if (end_day - timedelta(days=offset + 1)).weekday() == weekday
     )
     rows = conn.execute(
@@ -111,11 +120,13 @@ def get_hourly_average_by_weekday(
         row = by_hour.get(hour)
         count = int(row["transaction_count"]) if row else 0
         revenue = float(row["total_revenue_eur"]) if row else 0.0
-        buckets.append({
-            "hour": hour,
-            "avg_transaction_count": round(count / divisor, 2),
-            "avg_revenue_eur": round(revenue / divisor, 2),
-        })
+        buckets.append(
+            {
+                "hour": hour,
+                "avg_transaction_count": round(count / divisor, 2),
+                "avg_revenue_eur": round(revenue / divisor, 2),
+            }
+        )
     return buckets
 
 
@@ -176,12 +187,16 @@ def get_fastest_slowest_hours(
         row = by_hour.get(hour)
         count = int(row["transaction_count"]) if row else 0
         revenue = float(row["total_revenue_eur"]) if row else 0.0
-        buckets.append({
-            "hour": hour,
-            "avg_transaction_count": round(count / divisor, 2),
-            "avg_revenue_eur": round(revenue / divisor, 2),
-        })
-    ranked = sorted(buckets, key=lambda b: (b["avg_transaction_count"], b["avg_revenue_eur"]))
+        buckets.append(
+            {
+                "hour": hour,
+                "avg_transaction_count": round(count / divisor, 2),
+                "avg_revenue_eur": round(revenue / divisor, 2),
+            }
+        )
+    ranked = sorted(
+        buckets, key=lambda b: (b["avg_transaction_count"], b["avg_revenue_eur"])
+    )
     return {
         "lookback_days": lookback_days,
         "slowest_hours": ranked[:5],

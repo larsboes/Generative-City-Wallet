@@ -5,14 +5,214 @@ from spark.models.contracts import DemandContext, Venue
 
 
 BASE_HOURLY_RATES: dict[str, list[float]] = {
-    "cafe": [0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 42, 44, 42, 36, 38, 40, 42, 46, 51, 50, 44, 37, 39, 35],
-    "bakery": [0, 0, 0, 0, 0, 0, 23, 37, 49, 51, 48, 43, 40, 32, 23, 22, 23, 19, 0, 0, 0, 0, 0, 0],
-    "restaurant": [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 13, 15, 8, 3, 4, 8, 16, 14, 6, 2, 1, 0],
-    "bar": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 2, 1, 1, 2, 3, 6, 10, 15, 18, 16, 10],
-    "pub": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 2, 1, 1, 2, 3, 6, 10, 15, 18, 16, 10],
-    "biergarten": [0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 20, 27, 32, 35, 37, 43, 54, 64, 72, 72, 59, 39, 26, 4],
-    "nightclub": [25, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 8, 14, 20, 24],
-    "fast_food": [0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 4, 7, 12, 12, 7, 4, 5, 8, 11, 9, 5, 3, 1, 0],
+    "cafe": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        39,
+        42,
+        44,
+        42,
+        36,
+        38,
+        40,
+        42,
+        46,
+        51,
+        50,
+        44,
+        37,
+        39,
+        35,
+    ],
+    "bakery": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        23,
+        37,
+        49,
+        51,
+        48,
+        43,
+        40,
+        32,
+        23,
+        22,
+        23,
+        19,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ],
+    "restaurant": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        3,
+        5,
+        13,
+        15,
+        8,
+        3,
+        4,
+        8,
+        16,
+        14,
+        6,
+        2,
+        1,
+        0,
+    ],
+    "bar": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        3,
+        2,
+        1,
+        1,
+        2,
+        3,
+        6,
+        10,
+        15,
+        18,
+        16,
+        10,
+    ],
+    "pub": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        3,
+        2,
+        1,
+        1,
+        2,
+        3,
+        6,
+        10,
+        15,
+        18,
+        16,
+        10,
+    ],
+    "biergarten": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        13,
+        20,
+        27,
+        32,
+        35,
+        37,
+        43,
+        54,
+        64,
+        72,
+        72,
+        59,
+        39,
+        26,
+        4,
+    ],
+    "nightclub": [
+        25,
+        20,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        3,
+        8,
+        14,
+        20,
+        24,
+    ],
+    "fast_food": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        3,
+        3,
+        4,
+        7,
+        12,
+        12,
+        7,
+        4,
+        5,
+        8,
+        11,
+        9,
+        5,
+        3,
+        1,
+        0,
+    ],
     "retail": [0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 6, 8, 10, 9, 7, 6, 5, 4, 0, 0, 0, 0, 0, 0],
 }
 
@@ -151,12 +351,17 @@ def predict_occupancy_pct(
         return None
 
     arrival_dt = dt + timedelta(minutes=arrival_offset_minutes)
-    arrival_avg, _ = get_historical_rate(conn, venue.merchant_id, venue.category, arrival_dt)
+    arrival_avg, _ = get_historical_rate(
+        conn, venue.merchant_id, venue.category, arrival_dt
+    )
     historical_arrival_occ = infer_occupancy_pct(venue.category, arrival_avg)
     if historical_arrival_occ is None:
         return current_occupancy_pct
 
-    return round(max(0.0, min(1.0, 0.6 * historical_arrival_occ + 0.4 * current_occupancy_pct)), 3)
+    return round(
+        max(0.0, min(1.0, 0.6 * historical_arrival_occ + 0.4 * current_occupancy_pct)),
+        3,
+    )
 
 
 def compute_demand_context(
@@ -167,11 +372,17 @@ def compute_demand_context(
 ) -> DemandContext:
     dt = ensure_utc(timestamp or datetime.now(timezone.utc))
     rate_window_dt = dt - timedelta(hours=1)
-    historical_avg, sample_count = get_historical_rate(conn, venue.merchant_id, venue.category, rate_window_dt)
+    historical_avg, sample_count = get_historical_rate(
+        conn, venue.merchant_id, venue.category, rate_window_dt
+    )
     current_rate = get_current_rate(conn, venue.merchant_id, historical_avg, dt)
-    density_score, drop_pct, signal, eligible = classify_density(current_rate, historical_avg)
+    density_score, drop_pct, signal, eligible = classify_density(
+        current_rate, historical_avg
+    )
     current_occupancy = infer_occupancy_pct(venue.category, current_rate)
-    predicted_occupancy = predict_occupancy_pct(conn, venue, current_occupancy, dt, arrival_offset_minutes)
+    predicted_occupancy = predict_occupancy_pct(
+        conn, venue, current_occupancy, dt, arrival_offset_minutes
+    )
     confidence = 0.35 if sample_count == 0 else min(1.0, sample_count / 4)
 
     return DemandContext(

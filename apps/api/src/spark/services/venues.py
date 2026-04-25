@@ -57,7 +57,9 @@ def list_venues(
     params: list[object] = []
 
     if category:
-        categories = [normalize_category(part) for part in category.split(",") if part.strip()]
+        categories = [
+            normalize_category(part) for part in category.split(",") if part.strip()
+        ]
         placeholders = ",".join("?" for _ in categories)
         clauses.append(f"category IN ({placeholders})")
         params.extend(categories)
@@ -67,7 +69,9 @@ def list_venues(
         params.append(city)
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-    query_limit = 5000 if lat is not None and lon is not None and radius_m is not None else limit
+    query_limit = (
+        5000 if lat is not None and lon is not None and radius_m is not None else limit
+    )
     rows = conn.execute(
         f"SELECT * FROM venues {where} ORDER BY name LIMIT ?",
         (*params, max(1, min(query_limit, 5000))),

@@ -66,9 +66,13 @@ def test_live_update_and_stats_are_log_backed(tmp_path) -> None:
         venue = get_venue(conn, "osm_node_1")
         assert venue is not None
 
-        inserted, window_start, window_end = generate_last_hour_update(conn, [venue], timestamp, seed=7)
+        inserted, window_start, window_end = generate_last_hour_update(
+            conn, [venue], timestamp, seed=7
+        )
         daily = get_daily_transactions(conn, "osm_node_1", date(2026, 4, 20))
-        hourly_avg = get_hourly_average_by_weekday(conn, "osm_node_1", 0, 7, date(2026, 4, 21))
+        hourly_avg = get_hourly_average_by_weekday(
+            conn, "osm_node_1", 0, 7, date(2026, 4, 21)
+        )
         revenue = get_last_7_days_revenue(conn, "osm_node_1", date(2026, 4, 20))
         rankings = get_fastest_slowest_hours(conn, "osm_node_1", 365)
     finally:

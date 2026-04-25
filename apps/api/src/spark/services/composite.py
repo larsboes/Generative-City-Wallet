@@ -279,7 +279,7 @@ async def build_composite_state(
             demand=MerchantDemand(
                 density_score=density["density_score"],
                 drop_pct=density["drop_pct"],
-                signal=density["signal"],
+                signal=density["signal"],  # type: ignore[reportArgumentType]
                 offer_eligible=density["offer_eligible"],
                 current_occupancy_pct=density.get("current_occupancy_pct"),
                 predicted_occupancy_pct=density.get("predicted_occupancy_pct"),
@@ -295,7 +295,7 @@ async def build_composite_state(
             vibe_signal=weather["vibe_signal"],
         ),
         conflict_resolution=ConflictResolutionContext(
-            recommendation=conflict.recommendation,
+            recommendation=conflict.recommendation,  # type: ignore[reportArgumentType]
             framing_band=conflict.framing_band,
             allowed_vocabulary=conflict.allowed_vocabulary,
             banned_vocabulary=conflict.banned_vocabulary,

@@ -21,7 +21,16 @@ from spark.db.seed import seed_database
 from spark.graph import close_graph, get_metrics, init_graph, is_available
 from spark.graph.repository import get_repository
 from spark.graph.seed import sync_merchants_from_sqlite
-from spark.routers import context, graph, occupancy, offers, payone, redemption, transactions, vendors
+from spark.routers import (
+    context,
+    graph,
+    occupancy,
+    offers,
+    payone,
+    redemption,
+    transactions,
+    vendors,
+)
 
 
 @asynccontextmanager

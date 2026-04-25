@@ -19,7 +19,9 @@ router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
 
 @router.post("/generate/history", response_model=TransactionGenerationResponse)
-def api_generate_history(request: TransactionGenerationRequest) -> TransactionGenerationResponse:
+def api_generate_history(
+    request: TransactionGenerationRequest,
+) -> TransactionGenerationResponse:
     end = ensure_utc(request.end or datetime.now(timezone.utc))
     start = ensure_utc(request.start or (end - timedelta(days=request.days)))
     if start >= end:
@@ -27,7 +29,9 @@ def api_generate_history(request: TransactionGenerationRequest) -> TransactionGe
 
     conn = get_connection()
     try:
-        venues = resolve_venues(conn, request.merchant_ids, request.category, request.city, request.limit)
+        venues = resolve_venues(
+            conn, request.merchant_ids, request.category, request.city, request.limit
+        )
         if not venues:
             raise HTTPException(status_code=404, detail="No venues matched the request")
         inserted = generate_history_for_venues(conn, venues, start, end, request.seed)
@@ -44,14 +48,20 @@ def api_generate_history(request: TransactionGenerationRequest) -> TransactionGe
 
 
 @router.post("/generate/live-update", response_model=TransactionGenerationResponse)
-def api_generate_live_update(request: LiveUpdateRequest) -> TransactionGenerationResponse:
+def api_generate_live_update(
+    request: LiveUpdateRequest,
+) -> TransactionGenerationResponse:
     timestamp = ensure_utc(request.timestamp or datetime.now(timezone.utc))
     conn = get_connection()
     try:
-        venues = resolve_venues(conn, request.merchant_ids, request.category, request.city, request.limit)
+        venues = resolve_venues(
+            conn, request.merchant_ids, request.category, request.city, request.limit
+        )
         if not venues:
             raise HTTPException(status_code=404, detail="No venues matched the request")
-        inserted, window_start, window_end = generate_last_hour_update(conn, venues, timestamp, request.seed)
+        inserted, window_start, window_end = generate_last_hour_update(
+            conn, venues, timestamp, request.seed
+        )
     finally:
         conn.close()
 

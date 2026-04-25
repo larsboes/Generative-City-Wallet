@@ -38,7 +38,9 @@ OVERPASS_HEADERS = {
 
 
 def parse_categories(raw: str) -> list[str]:
-    return [normalize_category(category) for category in raw.split(",") if category.strip()]
+    return [
+        normalize_category(category) for category in raw.split(",") if category.strip()
+    ]
 
 
 def overpass_city_name(city: str) -> str:
@@ -110,7 +112,9 @@ def normalize_element(element: dict[str, Any], city: str) -> dict[str, Any] | No
     }
 
 
-def fetch_venues(city: str, categories: list[str], include_unnamed: bool, timeout: int) -> list[dict[str, Any]]:
+def fetch_venues(
+    city: str, categories: list[str], include_unnamed: bool, timeout: int
+) -> list[dict[str, Any]]:
     query = build_query(city, categories, timeout)
     response = requests.post(
         OVERPASS_URL,
@@ -138,7 +142,9 @@ def fetch_venues(city: str, categories: list[str], include_unnamed: bool, timeou
     return venues
 
 
-def limit_venues(venues: list[dict[str, Any]], limit: int | None, seed: int | None) -> list[dict[str, Any]]:
+def limit_venues(
+    venues: list[dict[str, Any]], limit: int | None, seed: int | None
+) -> list[dict[str, Any]]:
     if not limit or limit >= len(venues):
         return venues
     if seed is None:
@@ -155,8 +161,21 @@ def write_json(path: Path, venues: list[dict[str, Any]]) -> None:
 
 def write_csv(path: Path, venues: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["merchant_id", "osm_type", "osm_id", "name", "category", "lat", "lon",
-              "city", "address", "website", "phone", "opening_hours", "source"]
+    fields = [
+        "merchant_id",
+        "osm_type",
+        "osm_id",
+        "name",
+        "category",
+        "lat",
+        "lon",
+        "city",
+        "address",
+        "website",
+        "phone",
+        "opening_hours",
+        "source",
+    ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -165,7 +184,9 @@ def write_csv(path: Path, venues: list[dict[str, Any]]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch city venues from OpenStreetMap via Overpass.")
+    parser = argparse.ArgumentParser(
+        description="Fetch city venues from OpenStreetMap via Overpass."
+    )
     parser.add_argument("--city", default="München", help="Administrative city name.")
     parser.add_argument("--categories", default=",".join(DEFAULT_CATEGORIES))
     parser.add_argument("--limit", type=int, default=100)

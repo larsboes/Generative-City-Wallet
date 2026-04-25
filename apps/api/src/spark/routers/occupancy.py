@@ -18,7 +18,9 @@ router = APIRouter(prefix="/api", tags=["occupancy"])
 
 @router.get("/venues", response_model=VenueListResponse)
 def api_list_venues(
-    category: str | None = Query(default=None, description="Comma-separated category filter."),
+    category: str | None = Query(
+        default=None, description="Comma-separated category filter."
+    ),
     city: str | None = None,
     lat: float | None = None,
     lon: float | None = None,
@@ -80,15 +82,19 @@ def api_query_occupancy(request: OccupancyQueryRequest) -> OccupancyQueryRespons
             venue = get_venue(conn, merchant_id)
             if not venue:
                 continue
-            demand = compute_demand_context(conn, venue, dt, request.arrival_offset_minutes)
-            results.append(OccupancyResponse(
-                merchant_id=venue.merchant_id,
-                name=venue.name,
-                category=venue.category,
-                city=venue.city,
-                timestamp=dt,
-                demand=demand,
-            ))
+            demand = compute_demand_context(
+                conn, venue, dt, request.arrival_offset_minutes
+            )
+            results.append(
+                OccupancyResponse(
+                    merchant_id=venue.merchant_id,
+                    name=venue.name,
+                    category=venue.category,
+                    city=venue.city,
+                    timestamp=dt,
+                    demand=demand,
+                )
+            )
     finally:
         conn.close()
     return OccupancyQueryResponse(results=results, count=len(results))

@@ -136,13 +136,13 @@ Generate the offer JSON now. German language. Informal Du-form."""
 # ── Fallback offer (when no API key or API fails) ─────────────────────────────
 
 FALLBACK_OFFER = LLMOfferOutput(
-    content={
+    content={  # type: ignore[reportArgumentType]
         "headline": "Wärm dich kurz auf",
         "subtext": "Flat White + Croissant — nur [DISCOUNT]% bei [MERCHANT_NAME]",
         "cta_text": "Jetzt sichern",
         "emotional_hook": "Draußen ist es kalt. Hier wartet dein Moment.",
     },
-    genui={
+    genui={  # type: ignore[reportArgumentType]
         "color_palette": "warm_amber",
         "typography_weight": "medium",
         "background_style": "gradient",
@@ -214,7 +214,7 @@ async def generate_offer_llm(state: CompositeContextState) -> LLMOfferOutput:
                 max_output_tokens=512,
             ),
         )
-        raw = json.loads(response.text)
+        raw = json.loads(response.text)  # type: ignore[reportArgumentType]
         return LLMOfferOutput(**raw)
 
     except Exception as e:
@@ -258,13 +258,13 @@ def _generate_smart_fallback(state: CompositeContextState) -> LLMOfferOutput:
         imagery = "fresh croissants on a wooden board, golden crust, bakery warmth, morning light"
 
     return LLMOfferOutput(
-        content={
+        content={  # type: ignore[reportArgumentType]
             "headline": headline,
             "subtext": subtext,
             "cta_text": "Jetzt sichern",
             "emotional_hook": "Genau der richtige Moment.",
         },
-        genui={
+        genui={  # type: ignore[reportArgumentType]
             "color_palette": palette,
             "typography_weight": "medium",
             "background_style": "gradient",

@@ -20,15 +20,19 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 _db_path_raw = os.getenv("SPARK_DB_PATH", "data/spark.db")
-# Resolve relative paths against project root
-DB_PATH = (
-    str(PROJECT_ROOT / _db_path_raw)
-    if not os.path.isabs(_db_path_raw)
-    else _db_path_raw
-)
+# Preserve SQLite in-memory DSN verbatim; otherwise resolve relative paths.
+if _db_path_raw == ":memory:":
+    DB_PATH = _db_path_raw
+else:
+    DB_PATH = (
+        str(PROJECT_ROOT / _db_path_raw)
+        if not os.path.isabs(_db_path_raw)
+        else _db_path_raw
+    )
 
 # Ensure data directory exists
-Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+if DB_PATH != ":memory:":
+    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
 
 # ── API Keys ───────────────────────────────────────────────────────────────────
 GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY", "")

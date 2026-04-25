@@ -50,4 +50,4 @@ CONSTRAINTS_AND_INDEXES: list[str] = [
 
 async def ensure_schema(s: AsyncSession) -> None:
     for stmt in CONSTRAINTS_AND_INDEXES:
-        await s.run(stmt)
+        await s.run(stmt)  # type: ignore[reportArgumentType]

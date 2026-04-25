@@ -183,7 +183,7 @@ Use your tools to gather real-time data, then select a merchant and generate the
         )
 
         # Extracted validated Pydantic model
-        decision: AgentDecision = result.structured_output
+        decision: AgentDecision = result.structured_output  # type: ignore[reportArgumentType]
 
         logger.info(
             "offer_agent_done",
@@ -202,10 +202,10 @@ Use your tools to gather real-time data, then select a merchant and generate the
 
         if not parsed.get("merchant_id") or not parsed.get("content"):
             logger.warning("offer_agent_incomplete_response")
-            return None
+            return None  # type: ignore[reportArgumentType]
 
         return parsed
 
     except Exception as e:
         logger.warning("offer_agent_failed: %s", e)
-        return None
+        return None  # type: ignore[reportArgumentType]

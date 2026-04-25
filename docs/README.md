@@ -12,6 +12,7 @@ Long-form product, pitch, and hackathon planning material lives under **[`planni
 | **[`MONOREPO-STRUCTURE.md`](MONOREPO-STRUCTURE.md)** | Engineers + agents | **Workspaces, folders, npm/turbo commands**, scripts layout, contract guardrails |
 | **[`REPOSITORY-OVERVIEW.md`](REPOSITORY-OVERVIEW.md)** | Engineers new to the repo | **Whole backend layout** — routers, services, SQLite vs Neo4j, hybrid offer pipeline, CI, Docker, tests |
 | **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)** | Backend, mobile, ops | **Server-side user knowledge graph (Neo4j)** — what it does today, APIs, model, env vars, limits |
+| **[`TECH-DEBT.md`](TECH-DEBT.md)** | Maintainers | Active technical debt backlog (currently Pyright typing debt baseline) |
 | **[`../README.md`](../README.md)** | Everyone | Product one-pager, **Graph Ops** (`curl` + cron for maintenance scripts) |
 
 **Diagrams:** Mermaid + ASCII (architecture, fail-soft, graph topology, rule gate, startup/maintenance) live in [`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md).

@@ -13,21 +13,36 @@ from spark.config import DB_PATH
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
 
+def _normalize_sqlite_target(db_path: str) -> tuple[str, bool]:
+    """Return (target, uri) for sqlite3.connect."""
+    if db_path == ":memory:":
+        # Use shared in-memory URI so schema/seed/data survive across connections
+        # in a single process (tests call init + seed via separate connections).
+        return ("file:spark_memdb?mode=memory&cache=shared", True)
+    return (db_path, False)
+
+
 def get_connection(db_path: str | None = None) -> sqlite3.Connection:
     """Return a new SQLite connection with WAL mode and row factory."""
-    conn = sqlite3.connect(db_path or DB_PATH)
+    target, use_uri = _normalize_sqlite_target(db_path or DB_PATH)
+    conn = sqlite3.connect(target, uri=use_uri)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
 
-def init_database(db_path: str | None = None) -> None:
+def init_database(
+    db_path: str | None = None, conn: sqlite3.Connection | None = None
+) -> None:
     """Create all tables from schema.sql if they don't exist."""
-    conn = get_connection(db_path)
+    owns_connection = conn is None
+    if conn is None:
+        conn = get_connection(db_path)
     schema = _SCHEMA_PATH.read_text()
     conn.executescript(schema)
-    conn.close()
+    if owns_connection:
+        conn.close()
 
 
 def row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -91,7 +106,9 @@ def upsert_venues(db_path: str | Path | None, venues: list[dict[str, Any]]) -> i
     return len(venues)
 
 
-def insert_venue_transactions(conn: sqlite3.Connection, transactions: list[dict[str, Any]]) -> int:
+def insert_venue_transactions(
+    conn: sqlite3.Connection, transactions: list[dict[str, Any]]
+) -> int:
     if not transactions:
         return 0
     before = conn.total_changes
