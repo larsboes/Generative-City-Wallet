@@ -45,7 +45,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 ## Tech Stack (MVP)
 
 - **Mobile:** Expo / React Native
-- **Merchant Dashboard:** Next.js
+- **Merchant Dashboard:** Vite + React (scaffold in `apps/web-dashboard`; planning docs still target Next.js)
 - **Backend:** FastAPI (Python)
 - **AI (server):** Gemini Flash (offer generation + GenUI — fast, structured JSON output)
 - **AI (on-device):** Gemma 3n via Google AI Edge (intent extraction — no PII leaves device)
@@ -58,7 +58,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 
 ## Graph Ops (Neo4j)
 
-The backend can persist a **pseudonymous session graph** (preferences, offers, outcomes) when Neo4j is enabled. Configure connection and tuning via `.env` (see `src/backend/config.py` for `NEO4J_*`, `GRAPH_*`, retention, and decay variables).
+The backend can persist a **pseudonymous session graph** (preferences, offers, outcomes) when Neo4j is enabled. Configure connection and tuning via `.env` (see `apps/api/src/spark/config.py` for `NEO4J_*`, `GRAPH_*`, retention, and decay variables).
 
 **What you get:** machine-readable **explainability** on generated offers; **idempotent** graph writes on retries; **preference decay** so old signals fade; **retention** for offers and stale preference edges; **migrations** tracked in the graph for schema evolution.
 

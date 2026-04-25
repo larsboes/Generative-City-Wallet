@@ -30,13 +30,13 @@ jobs:
         run: uv sync --dev
 
       - name: Lint (ruff)
-        run: uv run ruff check src/
+        run: uv run ruff check apps/api/src/spark tests scripts
 
       - name: Format check (ruff)
-        run: uv run ruff format --check src/
+        run: uv run ruff format --check apps/api/src/spark tests scripts
 
       - name: Type check (pyright)
-        run: uv run pyright src/backend/
+        run: uv run pyright apps/api/src/spark/
 
   test:
     name: Test
@@ -64,7 +64,7 @@ jobs:
 
       - name: Verify server starts
         run: |
-          uv run uvicorn src.backend.main:app --port 8000 &
+          PYTHONPATH=apps/api/src uv run uvicorn spark.main:app --port 8000 &
           sleep 3
           curl -sf http://localhost:8000/api/health
           kill %1

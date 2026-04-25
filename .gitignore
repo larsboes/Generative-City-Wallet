@@ -24,3 +24,9 @@ Thumbs.db
 
 # uv
 uv.lock
+
+# JS monorepo (npm workspaces + Turbo)
+node_modules/
+.turbo/
+apps/*/node_modules/
+packages/*/node_modules/

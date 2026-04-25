@@ -1,0 +1,16 @@
+{
+  "name": "generative-city-wallet",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:api": "sh -c 'export PYTHONPATH=apps/api/src && uv run uvicorn spark.main:app --reload --port 8000'",
+    "dev:mobile": "npm run start -w @spark/mobile",
+    "dev:dashboard": "npm run dev -w @spark/web-dashboard",
+    "build": "turbo run build",
+    "lint:js": "turbo run build --filter=@spark/shared"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  }
+}

@@ -122,7 +122,7 @@ flowchart LR
 - `(UserSession)-[:RECEIVED_OFFER]->(Offer)` — delivery (idempotent on `offer_id`)
 - `(Offer)-[:AT_MERCHANT]->(Merchant)`, `(Offer)-[:GENERATED_IN]->(ContextSnapshot)`
 - `(UserSession)-[:PREFERS]->(MerchantCategory)` — weighted preference; optional `AVOIDS` in cleanup queries
-- Outcomes / redemption: `HAD_OUTCOME`, `FOR_OFFER`, `CREDIT_FOR` as implemented in Cypher under `src/backend/graph/queries.py`
+- Outcomes / redemption: `HAD_OUTCOME`, `FOR_OFFER`, `CREDIT_FOR` as implemented in Cypher under `apps/api/src/spark/graph/queries.py`
 
 Exact Cypher is centralized there; avoid duplicating it in product docs.
 
@@ -220,7 +220,7 @@ Offer generation and redemption also touch the graph from **`/api/offers/*`** an
 
 ## Environment variables
 
-Defined in **`src/backend/config.py`** (load via project-root `.env`).
+Defined in **`apps/api/src/spark/config.py`** (load via project-root `.env`).
 
 **Neo4j connection**
 
@@ -252,22 +252,22 @@ Defined in **`src/backend/config.py`** (load via project-root `.env`).
 
 | Path | Role |
 |------|------|
-| `src/backend/graph/client.py` | Driver lifecycle, `safe_execute`, metrics |
-| `src/backend/graph/schema.py` | Constraints / indexes |
-| `src/backend/graph/migrations.py` | Versioned data migrations |
-| `src/backend/graph/queries.py` | All Cypher strings |
-| `src/backend/graph/repository.py` | `GraphRepository` — reads/writes/cleanup/decay |
-| `src/backend/graph/seed.py` | Merchant sync from SQLite |
-| `src/backend/services/graph_rules.py` | Rule gate |
-| `src/backend/services/composite.py` | Preference read path |
-| `src/backend/routers/offers.py` | Rules + LLM + `explainability` + graph write |
-| `src/backend/routers/redemption.py` | Redemption + outcome projection |
-| `src/backend/routers/graph.py` | Admin graph routes |
-| `src/backend/main.py` | Lifespan: init graph, seed merchants, cleanup/decay |
+| `apps/api/src/spark/graph/client.py` | Driver lifecycle, `safe_execute`, metrics |
+| `apps/api/src/spark/graph/schema.py` | Constraints / indexes |
+| `apps/api/src/spark/graph/migrations.py` | Versioned data migrations |
+| `apps/api/src/spark/graph/queries.py` | All Cypher strings |
+| `apps/api/src/spark/graph/repository.py` | `GraphRepository` — reads/writes/cleanup/decay |
+| `apps/api/src/spark/graph/seed.py` | Merchant sync from SQLite |
+| `apps/api/src/spark/services/graph_rules.py` | Rule gate |
+| `apps/api/src/spark/services/composite.py` | Preference read path |
+| `apps/api/src/spark/routers/offers.py` | Rules + LLM + `explainability` + graph write |
+| `apps/api/src/spark/routers/redemption.py` | Redemption + outcome projection |
+| `apps/api/src/spark/routers/graph.py` | Admin graph routes |
+| `apps/api/src/spark/main.py` | Lifespan: init graph, seed merchants, cleanup/decay |
 | `scripts/run_graph_maintenance.py` | Cron-friendly cleanup + decay |
 | `scripts/benchmark_offer_latency.py` | p95 compare Neo4j on vs off |
 
-**Contracts:** `src/backend/models/contracts.py` and `src/shared/contracts.ts` (`explainability` on `OfferObject`).
+**Contracts:** `apps/api/src/spark/models/contracts.py` and `packages/shared/src/contracts.ts` (`explainability` on `OfferObject`).
 
 ---
 

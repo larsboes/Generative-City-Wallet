@@ -1,6 +1,6 @@
 # Repository overview — what lives here today
 
-This repo is a **hackathon-scale Spark backend**: FastAPI + SQLite (source of truth for merchants, synthetic Payone transactions, offer audit, wallet) plus an **optional Neo4j** user/session knowledge graph. There is **no mobile or Next.js app** in this tree; contracts in `src/shared/` exist for consumers elsewhere.
+This repo is a **Spark monorepo**: **FastAPI** (`apps/api/src/spark`) + SQLite (merchants, synthetic Payone, offer audit, wallet) plus an **optional Neo4j** user/session graph; **Expo mobile** (`apps/mobile`); **Vite + React merchant dashboard** scaffold (`apps/web-dashboard`); **shared TS contracts** (`packages/shared`). Root **`package.json`** wires npm workspaces + Turbo; Python stays **`uv`** + root **`pyproject.toml`**.
 
 For **Neo4j-only** depth (model, rules, ops, diagrams), see **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. For product and pitch material, see **[`planning/README.md`](planning/README.md)**.
 
@@ -10,8 +10,11 @@ For **Neo4j-only** depth (model, rules, ops, diagrams), see **[`USER-KNOWLEDGE-G
 
 ```
 Generative-City-Wallet/
-├── src/backend/          # FastAPI app, services, SQLite, Neo4j graph layer
-├── src/shared/           # TypeScript mirrors of Pydantic contracts (mobile/dashboard)
+├── apps/
+│   ├── api/src/spark/    # FastAPI app, services, SQLite, Neo4j graph layer
+│   ├── mobile/           # Expo consumer app (@spark/mobile)
+│   └── web-dashboard/    # Vite + React merchant UI scaffold (@spark/web-dashboard)
+├── packages/shared/      # @spark/shared — TS contracts (mirror spark.models.contracts)
 ├── tests/                # pytest: smoke, graph rules, repository fallbacks, integration
 ├── scripts/              # benchmark_offer_latency, run_graph_maintenance
 ├── docs/                 # Current implementation docs (this file, Neo4j doc, README index)
@@ -25,8 +28,8 @@ Generative-City-Wallet/
 ```mermaid
 flowchart TB
   subgraph Repo["This repository"]
-    BE[src/backend]
-    SH[src/shared]
+    BE[apps/api/src/spark]
+    SH[packages_shared]
     T[tests]
     SC[scripts]
     DC[docs]
@@ -47,13 +50,13 @@ flowchart TB
 
 ## Backend application
 
-**Entry:** `src/backend/main.py` — FastAPI app, CORS, router mounts, lifespan:
+**Entry:** `apps/api/src/spark/main.py` — FastAPI app, CORS, router mounts, lifespan:
 
 1. SQLite: create DB from `schema.sql` on first run or `init_database()`.
 2. Neo4j: `init_graph()` → schema + migrations; if connected → merchant sync from SQLite, optional cleanup + preference decay.
 3. Shutdown: `close_graph()`.
 
-**Routers** (`src/backend/routers/`):
+**Routers** (`apps/api/src/spark/routers/`):
 
 | Prefix / routes | Responsibility |
 |-----------------|----------------|
@@ -63,7 +66,7 @@ flowchart TB
 | `/api/redemption/*`, `/api/wallet/*`, `/api/conflict/*`, `/api/offers/{id}/outcome` | QR validate/confirm, wallet, conflict helper, **non-redemption outcomes** for the graph |
 | `/api/graph/*` | Health, stats, session debug, cleanup, decay, migrations |
 
-**Core services** (`src/backend/services/`):
+**Core services** (`apps/api/src/spark/services/`):
 
 | Module | Role |
 |--------|------|
@@ -76,7 +79,7 @@ flowchart TB
 | `graph_rules.py` | Pre-LLM deterministic gate (budget, fatigue, cooldown, diversity, fairness) |
 | `weather.py` | Stuttgart weather (OpenWeather optional) |
 
-**Agents** (`src/backend/agents/`): optional **Strands** “OfferAgent” (`run_offer_agent`) with tools (`tools.py`) for merchant survey, preferences, weather, conflict. Controlled by **`AGENT_ENABLED`** in `src/backend/config.py` (`auto` when `GOOGLE_AI_API_KEY` is set). On success it can pick a merchant and sometimes supply content; **graph rules and hard rails still apply**.
+**Agents** (`apps/api/src/spark/agents/`): optional **Strands** “OfferAgent” (`run_offer_agent`) with tools (`tools.py`) for merchant survey, preferences, weather, conflict. Controlled by **`AGENT_ENABLED`** in `apps/api/src/spark/config.py` (`auto` when `GOOGLE_AI_API_KEY` is set). On success it can pick a merchant and sometimes supply content; **graph rules and hard rails still apply**.
 
 ---
 
@@ -123,7 +126,7 @@ flowchart TD
 
 ### SQLite (`data/spark.db` by default)
 
-Defined in **`src/backend/db/schema.sql`**. Populated by **`src/backend/db/seed.py`** (~28 days of hourly synthetic `payone_transactions` for five demo merchants + coupons + audit tables).
+Defined in **`apps/api/src/spark/db/schema.sql`**. Populated by **`apps/api/src/spark/db/seed.py`** (~28 days of hourly synthetic `payone_transactions` for five demo merchants + coupons + audit tables).
 
 Notable tables:
 
@@ -139,8 +142,8 @@ See **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. Mercha
 
 ## Shared contracts
 
-- **Python:** `src/backend/models/contracts.py` (Pydantic) — intent, composite state, offer object, redemption types, **`explainability`** on offers.
-- **TypeScript:** `src/shared/contracts.ts` — keep in sync for Expo / Next.js consumers.
+- **Python:** `apps/api/src/spark/models/contracts.py` (Pydantic) — intent, composite state, offer object, redemption types, **`explainability`** on offers.
+- **TypeScript:** `packages/shared/src/contracts.ts` — keep in sync for Expo / web-dashboard consumers.
 
 ---
 
@@ -155,8 +158,8 @@ See **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. Mercha
 
 ## CI / quality (`.github/workflows/ci.yml`)
 
-- **Lint:** `ruff check` + `ruff format --check` on `src/`
-- **Types:** `pyright src/backend/`
+- **Lint:** `ruff check` + `ruff format --check` on `apps/api/src/spark`, `tests`, `scripts`
+- **Types:** `pyright apps/api/src/spark/`
 - **Tests:** `pytest tests/` with `SPARK_DB_PATH=:memory:`
 - **Smoke:** uvicorn boot + `GET /api/health`
 - **Security:** `pip-audit`, SBOM + Grype (non-blocking), Docker build + Trivy scan
@@ -165,7 +168,7 @@ See **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. Mercha
 
 ## Docker
 
-- **`Dockerfile`:** Python 3.12 slim, `uv sync --frozen`, copies `src/`, runs uvicorn on `8000`.
+- **`Dockerfile`:** Python 3.12 slim, `uv sync --frozen`, copies `apps/api/src/spark`, sets `PYTHONPATH`, runs uvicorn `spark.main:app` on `8000`.
 - **`docker-compose.yml`:** single `backend` service, `.env`, mounts `./data` → `/app/data` (SQLite + optional Neo4j host data).
 
 Neo4j is **not** defined in compose in-repo; run it separately or extend compose (see root **`README.md`** Graph Ops).
@@ -194,7 +197,7 @@ Neo4j is **not** defined in compose in-repo; run it separately or extend compose
 
 ## Configuration reference
 
-Authoritative defaults and env vars: **`src/backend/config.py`**. Highlights:
+Authoritative defaults and env vars: **`apps/api/src/spark/config.py`**. Highlights:
 
 - `SPARK_DB_PATH`, `GOOGLE_AI_API_KEY`, `OPENWEATHER_API_KEY`, `GEMINI_MODEL`, `SPARK_HMAC_SECRET`
 - `AGENT_ENABLED` (`auto` / `true` / `false`)
@@ -208,5 +211,5 @@ Authoritative defaults and env vars: **`src/backend/config.py`**. Highlights:
 |-----|----------|
 | [`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md) | Graph model, APIs, env, diagrams, ops |
 | [`../README.md`](../README.md) | Product pitch + Graph Ops `curl` / cron |
-| [`../src/README.md`](../src/README.md) | Short backend quick start (may be narrower than this file) |
+| [`../apps/api/README.md`](../apps/api/README.md) | Short backend quick start (may be narrower than this file) |
 | [`planning/README.md`](planning/README.md) | Design and planning archive |
