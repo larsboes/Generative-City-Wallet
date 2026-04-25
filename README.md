@@ -31,7 +31,11 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 
 ---
 
-## Documentation Index
+## Documentation
+
+→ **[`docs/README.md`](docs/README.md)** — navigation guide: who reads what, quick start by role, topic index
+
+### Full file listing
 
 | File | Contents |
 |------|----------|
@@ -54,6 +58,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | [`docs/16-ADVANCED-SIGNALS.md`](docs/16-ADVANCED-SIGNALS.md) | Exercise states, OCR transit scan, wallet pass KG seeds, Spark Wave social coordination |
 | [`docs/17-BUILD-PLAN.md`](docs/17-BUILD-PLAN.md) | **START HERE** — shared contracts, Gemini prompt, data engineering sequence, frontend phasing, team split |
 | [`docs/18-DSV-GAP-ANALYSIS.md`](docs/18-DSV-GAP-ANALYSIS.md) | **PITCH AMMO** — DSV's confirmed product gaps, TreueWelt shutdown, S-POS Cube, business case for adoption |
+| [`docs/19-PRODUCT-OVERVIEW.md`](docs/19-PRODUCT-OVERVIEW.md) | **START HERE FOR DESIGN** — all screens, all flows, feature inventory, brand language, what not to build |
 
 ---
 
