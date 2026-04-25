@@ -120,7 +120,7 @@ The original brainstorming had no failure mode analysis. For a demo, every API c
 
 **Critical failure mitigations (added in docs):**
 - Cache last good API responses; demo works offline with stale cache
-- Pre-generate 3 offer scenarios for Claude API fallback
+- Pre-generate 3 offer scenarios for Gemini API fallback
 - Screen recording of the full flow as backup
 - "Validate" button on merchant dashboard doesn't require phone camera
 - Run backend locally on laptop to bypass venue WiFi issues

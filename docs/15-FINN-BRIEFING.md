@@ -794,7 +794,7 @@ The conflict resolver returns `recheck_in_minutes`. The backend needs a queue or
 □ 3. Implement POST /conflict/resolve — rule engine, pure Python
 □ 4. Implement POST /offer/validate-qr — token validation + log update
 □ 5. Implement POST /offer/redemption-confirm — cashback trigger
-□ 6. Wire enforce_hard_rails() into the offer generation pipeline (after Claude API call)
+□ 6. Wire enforce_hard_rails() into the offer generation pipeline (after Gemini Flash API call)
 □ 7. Verify the demo trace: social user 140m from Bar Unter at 21:00
      → density: PRIORITY, occupancy 22%, predicted 58%, milestone active
      → resolve_conflict → RECOMMEND_WITH_FRAMING, band: building_momentum

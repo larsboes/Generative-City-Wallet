@@ -30,7 +30,7 @@
 │                              ▼                                   │
 │          ┌────────────────────────────────┐                      │
 │          │   AI Offer Generation Agent    │                      │
-│          │   (Claude API with tools)      │                      │
+│          │   (Gemini Flash — JSON mode)   │                      │
 │          │   - generates offer content    │                      │
 │          │   - generates GenUI parameters │                      │
 │          │   - validates GDPR compliance  │                      │
@@ -204,7 +204,7 @@ tools = [
     get_merchant_details(merchant_id),                 # Full merchant info
     get_user_preferences(session_id),                  # From intent vector
     check_merchant_rules(merchant_id),                 # Discount limits, blackout periods
-    generate_offer_object(context, preferences, rules), # Claude API call
+    generate_offer_object(context, preferences, rules), # Gemini Flash API call
     validate_gdpr_compliance(offer),                   # No PII in offer
     generate_genui_spec(offer, context),               # Visual parameters
     push_to_user(session_id, offer),                   # Delivery
@@ -275,7 +275,7 @@ The "TooGoodToGo Pro Max" panel:
 [AI agent: calls generate_offer_object with merchant rules (max 20% off)]
          │
          ▼
-[Claude API: generates offer + GenUI spec]
+[Gemini Flash: generates offer + GenUI spec]
          │
          ▼
 [Offer pushed to user device]

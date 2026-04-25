@@ -52,7 +52,8 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | [`docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md`](docs/14-STAKEHOLDER-CONFLICT-RESOLUTION.md) | Temporal conflict model, coupon mechanics, framing rules, decision tree |
 | [`docs/15-FINN-BRIEFING.md`](docs/15-FINN-BRIEFING.md) | Finn's complete implementation spec: Payone generator, density, occupancy, conflict engine, hard rails |
 | [`docs/16-ADVANCED-SIGNALS.md`](docs/16-ADVANCED-SIGNALS.md) | Exercise states, OCR transit scan, wallet pass KG seeds, Spark Wave social coordination |
-| [`docs/17-BUILD-PLAN.md`](docs/17-BUILD-PLAN.md) | **START HERE** — shared contracts, Claude prompt, data engineering sequence, frontend phasing, team split |
+| [`docs/17-BUILD-PLAN.md`](docs/17-BUILD-PLAN.md) | **START HERE** — shared contracts, Gemini prompt, data engineering sequence, frontend phasing, team split |
+| [`docs/18-DSV-GAP-ANALYSIS.md`](docs/18-DSV-GAP-ANALYSIS.md) | **PITCH AMMO** — DSV's confirmed product gaps, TreueWelt shutdown, S-POS Cube, business case for adoption |
 
 ---
 
@@ -61,7 +62,8 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 - **Mobile:** Expo / React Native
 - **Merchant Dashboard:** Next.js
 - **Backend:** FastAPI (Python)
-- **AI:** Claude API (offer generation + GenUI), Transformers.js (on-device intent, simulated)
+- **AI (server):** Gemini Flash (offer generation + GenUI — fast, structured JSON output)
+- **AI (on-device):** Gemma 3n via Google AI Edge (intent extraction — no PII leaves device)
 - **Context APIs:** OpenWeatherMap, Google Places, Luma, VVS (Stuttgart transit)
 - **Merchant Data:** Simulated Payone transaction feed (Python generator)
 - **Maps:** Mapbox (merchant heatmap)

@@ -17,7 +17,7 @@ Those three things are the first work. Everything else is parallelizable after t
 Every build decision filters through one question: **does this help close the demo loop?**
 
 ```
-[Phone]                    [Backend]              [Claude API]        [Merchant Dashboard]
+[Phone]                    [Backend]              [Gemini Flash]      [Merchant Dashboard]
   │                            │                       │                      │
   │── intent_vector ──────────►│                       │                      │
   │                            │── composite_state ───►│                      │
@@ -61,7 +61,7 @@ export interface IntentVector {
   session_id: string;          // anon UUID, no linkage to user identity
 }
 
-// ─── Backend → Claude API ────────────────────────────────────────────────────
+// ─── Backend → Gemini Flash API ──────────────────────────────────────────────
 
 export interface CompositeContextState {
   timestamp: string;           // ISO 8601
@@ -117,7 +117,7 @@ export interface CompositeContextState {
   };
 }
 
-// ─── Claude API → Backend (raw LLM output, before hard rails) ────────────────
+// ─── Gemini Flash → Backend (raw LLM output, before hard rails) ─────────────
 
 export interface LLMOfferOutput {
   content: {
@@ -336,6 +336,51 @@ Generate the offer JSON now. German language unless user locale is otherwise. In
 
 **That `build_user_prompt()` function is the most important function in the backend.** Get this right and the AI output is consistently good. Get it wrong and you're fighting the model all night.
 
+### Gemini API Call (drop-in for offer generation)
+
+```python
+import google.generativeai as genai
+import json, os
+
+genai.configure(api_key=os.environ["GOOGLE_AI_API_KEY"])
+
+MODEL_ID = "gemini-3.1-flash-lite-preview"  # confirmed
+
+_model = genai.GenerativeModel(
+    model_name=MODEL_ID,
+    system_instruction=SYSTEM_PROMPT,
+    generation_config=genai.GenerationConfig(
+        response_mime_type="application/json",  # Forces JSON output — no markdown wrapping
+        temperature=0.75,    # Some creativity for copy; lower if output gets weird
+        max_output_tokens=512,  # Offer JSON is small; cap tokens = lower latency + cost
+    ),
+)
+
+async def generate_offer_llm(state: CompositeContextState) -> LLMOfferOutput:
+    """
+    Call Gemini Flash. Returns raw LLM output before hard-rails enforcement.
+    Hard rails run AFTER this — do not trust discount/merchant values from here.
+    """
+    prompt = build_user_prompt(state)
+    
+    response = await _model.generate_content_async(prompt)
+    
+    raw = json.loads(response.text)  # response_mime_type=json means this is always parseable
+    
+    return LLMOfferOutput(**raw)
+```
+
+**One environment variable:** `GOOGLE_AI_API_KEY` from Google AI Studio (same account as Google Places if using that). No separate Anthropic key needed. Simpler secrets management.
+
+**Gemma on-device (the same Google ecosystem):**
+```python
+# On-device: Gemma 3n via Google AI Edge / MediaPipe LLM Inference API
+# No API key needed — model runs locally
+# See doc 13 for full integration guide
+```
+
+**The pitch angle:** "Gemini Flash server-side for offer generation — fast, cost-efficient, structured JSON output. Gemma on-device for private intent extraction. One AI ecosystem, two deployment targets, zero PII crossing the boundary between them."
+
 ---
 
 ## Data Engineering Layer: Build Sequence
@@ -396,7 +441,7 @@ POST /api/offers/generate      → OfferObject (calls Claude, enforces hard rail
 `/api/offers/generate` is:
 1. Build `CompositeContextState`
 2. Build `build_user_prompt(state)`
-3. Call Claude API with `SYSTEM_PROMPT` + user prompt
+3. Call Gemini Flash API with `SYSTEM_PROMPT` + user prompt (JSON mode enabled)
 4. Parse JSON response → `LLMOfferOutput`
 5. `enforce_hard_rails(llm_output, merchant_rules, state)` → `OfferObject`
 6. `log_offer(offer)` → audit log

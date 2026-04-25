@@ -199,7 +199,7 @@ Qwen3-1.7B (~2B actual params, Apache 2.0) is the strongest open-license option:
 For a hackathon where you need to move fast: Qwen3-1.7B via `transformers.js` or `llama.cpp` WebAssembly binding is faster to set up than Google AI Edge.
 
 **Qwen3-35B-A3B (MoE) for the server:**
-35B total parameters, but Mixture-of-Experts means only 3B parameters are active per token. Server-side cost similar to a 3B dense model but quality closer to a much larger model. Could replace Claude for the server-side offer generation if API costs are a concern. Still needs proper GPU server though.
+35B total parameters, but Mixture-of-Experts means only 3B parameters are active per token. Server-side cost similar to a 3B dense model but quality closer to a much larger model. Alternative to Gemini Flash if self-hosting is preferred, but requires a GPU server — overkill for the hackathon.
 
 ### Recommended Architecture for Spark
 
@@ -211,7 +211,7 @@ ON-DEVICE:
 └── Intent Vector — output (no PII)
 
 SERVER-SIDE:
-├── Claude API (claude-sonnet-4-6) — offer generation + GenUI
+├── Gemini Flash (JSON mode) — offer generation + GenUI
 │   └── OR Qwen3-35B-A3B if self-hosted (open license)
 ├── Context aggregation (weather, Payone, places, events)
 └── Offer ranking + anti-spam enforcement
@@ -369,7 +369,7 @@ The user never sees an offer that the merchant has since rejected. No walking 20
 
 ## How All Three Connect: The Architecture Statement
 
-> Spark's on-device layer runs a lightweight intent model (FunctionGemma / Qwen3) that queries a local user knowledge graph to derive conditional preferences — all without any personal data leaving the device. The intent vector that reaches our servers is abstract and non-linkable. Server-side, Claude generates the offer framing and GenUI parameters, but all business-critical values (discount, merchant, expiry) are sourced from our verified merchant rules database and injected post-generation. Every offer is logged with a complete audit trail. This is a system designed to be trusted — by users, by merchants, by regulators, and by courts.
+> Spark's on-device layer runs Gemma 3n — a lightweight Google model — that queries a local user knowledge graph to derive conditional preferences, all without any personal data leaving the device. The intent vector that reaches our servers is abstract and non-linkable. Server-side, Gemini Flash generates the offer framing and GenUI parameters with native JSON output, but all business-critical values (discount, merchant name, expiry) are sourced from our verified merchant rules database and injected post-generation. Every offer is logged with a complete audit trail. One Google AI ecosystem, two deployment targets, zero PII crossing the boundary between them.
 
 That's the sentence you say at the end of the technical section of your pitch. No other team in this hackathon will have thought at this depth about what it means to deploy AI offers in a financial services context.
 

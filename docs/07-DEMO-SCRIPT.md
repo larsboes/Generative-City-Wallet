@@ -181,7 +181,7 @@ Use these to make the demo feel local and real:
 | Risk | Mitigation |
 |------|-----------|
 | API rate limit during demo | Cache last good response; demo works offline with cached state |
-| Claude API slow | Pre-generate 3 offer examples for fallback; can swap in instantly |
+| Gemini API slow | Pre-generate 3 offer examples for fallback; can swap in instantly |
 | Mobile app crash | Prepare screen recording of the full flow as backup on laptop |
 | QR scan fails | "Validate" button on merchant dashboard works without phone camera |
 | WiFi at venue bad | Run backend locally on laptop; all APIs pre-cached |
