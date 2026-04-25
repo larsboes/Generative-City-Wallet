@@ -104,11 +104,14 @@ Generate: one compelling offer for this user at Café Römer.
 Output: complete offer JSON matching schema.
 ```
 
-### Why Claude API specifically:
-- Structured JSON output is reliable
-- Follows system prompt constraints consistently
-- Handles the GenUI visual parameters intelligently
-- Can incorporate preference signals into emotional framing
+### Why Gemini Flash specifically:
+- `response_mime_type: "application/json"` enforces valid JSON output natively — no markdown stripping, no parse errors
+- Fast: Flash models are optimized for low latency, which matters when the offer card needs to appear in under 2 seconds
+- Cheap: ideal for a hackathon with high demo call volume during the presentation
+- Same Google ecosystem as Gemma on-device — one API key, one platform, consistent tooling
+- `system_instruction` is a first-class parameter — cleaner constraint enforcement than concatenation
+- **Model string:** confirm in Google AI Studio. Expected: `"gemini-2.5-flash-preview-05-20"` or `"gemini-2.0-flash-lite"`. Lars has this.
+- **On-device counterpart:** Gemma 3n (E2B/E4B) via Google AI Edge for intent extraction. See doc 13.
 
 ---
 

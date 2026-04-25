@@ -34,9 +34,9 @@ If a feature doesn't directly contribute to closing this loop, it's post-hackath
 - Endpoint: `POST /api/context/composite` (input: intent_vector, output: composite_state)
 - Time to build: ~3 hours
 
-**4. Offer Generation (Claude API)**
+**4. Offer Generation (Gemini Flash)**
 - System prompt + dynamic user prompt built from composite state
-- Structured JSON output: offer content + GenUI parameters
+- Structured JSON output via `response_mime_type: "application/json"`: offer content + GenUI parameters
 - Endpoint: `POST /api/offers/generate` (input: composite_state, merchant_id)
 - Time to build: ~2 hours
 
@@ -168,10 +168,12 @@ If a feature doesn't directly contribute to closing this loop, it's post-hackath
 - Mapbox for merchant map (optional — can skip for MVP)
 - Deployed: Vercel (instant)
 
-### AI: Claude API (claude-sonnet-4-6)
-- Offer generation with structured JSON output
-- Fast, reliable, handles the prompt complexity well
-- Anthropic SDK for Python
+### AI: Gemini Flash (server) + Gemma 3n (on-device)
+- Offer generation via `google-generativeai` Python SDK
+- `response_mime_type: "application/json"` — native JSON enforcement, no parsing gymnastics
+- Fast, cheap, same Google ecosystem as Places API
+- Model string: confirm in Google AI Studio (Lars has this)
+- On-device: Gemma 3n via Google AI Edge / MediaPipe for intent extraction
 
 ### External APIs
 - OpenWeatherMap (free tier: sufficient)

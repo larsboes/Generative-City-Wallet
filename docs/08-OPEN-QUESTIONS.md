@@ -142,4 +142,4 @@ What to say in the pitch: "Our MVP uses a Bayesian intent model seeded with beha
 3. Who handles mobile (Expo)? Who handles backend (FastAPI)? Who handles dashboard (Next.js)?
 4. Which Stuttgart cafés/bars do we know personally that we can pre-seed as demo merchants?
 5. Should we run the Apify scraper tonight to pre-seed merchant data?
-6. Can we get a Claude API key for the hackathon? (check Anthropic's hackathon program — they often provide credits)
+6. Confirm exact Gemini Flash model string in Google AI Studio — Lars has the account. (Decision: Gemini Flash, done.)

@@ -21,7 +21,7 @@ Our architecture has three modules, as required:
 
 **Context Sensing Layer** — We aggregate a composite context state from four signal categories: real-time weather (OpenWeatherMap, Stuttgart), simulated Payone transaction density per nearby merchant, on-device IMU movement classification (browsing vs. commuting), and live local events (Luma, Stuttgart). Critically, sensitive data — GPS, motion history, calendar — never leaves the device. Only an abstract intent vector (grid cell, movement mode, inferred preferences) is sent upstream.
 
-**Generative Offer Engine** — We use Claude (claude-sonnet-4-6) with a structured output schema to generate both the offer content *and* the visual parameters of the offer card (color palette, typography, imagery prompt, urgency style). This is Generative UI: the interface element is generated at runtime, not selected from a template library. A Context Slider in our demo panel proves this — dragging weather from cold to sunny transforms the card's entire visual DNA in real time.
+**Generative Offer Engine** — We use Gemini Flash with native JSON output mode to generate both the offer content *and* the visual parameters of the offer card (color palette, typography, imagery prompt, urgency style). On-device, Gemma 3n runs privately via Google AI Edge for intent extraction — no PII leaves the device. This is Generative UI: the interface element is generated at runtime, not selected from a template library. A Context Slider in our demo panel proves this — dragging weather from cold to sunny transforms the card's entire visual DNA in real time.
 
 **Seamless Checkout & Redemption** — On offer acceptance, a QR token is generated and stored locally (works offline at the counter). The merchant dashboard validates the QR, triggering a cashback credit to the user's Spark wallet. A "Spark" animation closes the transaction loop emotionally — and visually connects to Sparkasse branding.
 
@@ -71,7 +71,7 @@ The Payone transaction density signal is the heart of the system. We generate a 
   + Google Places API
   + Luma Events API
   → Composite Context State
-  → Claude API (offer + GenUI generation)
+  → Gemini Flash API (offer + GenUI generation, JSON mode)
   → Push to device
 
 [Merchant Dashboard — Next.js]
@@ -98,7 +98,8 @@ The Payone transaction density signal is the heart of the system. We generate a 
 | Mobile (consumer) | Expo / React Native |
 | Merchant dashboard | Next.js + Tailwind + Recharts |
 | Backend | FastAPI (Python) |
-| AI / Offer generation | Claude API (claude-sonnet-4-6) |
+| AI / Offer generation (server) | Gemini Flash (structured JSON output) |
+| AI / Intent extraction (on-device) | Gemma 3n via Google AI Edge |
 | Context signals | OpenWeatherMap, Google Places, Luma |
 | Payone simulation | Custom Python generator |
 | Maps | Mapbox |
@@ -128,10 +129,10 @@ npx expo start
 ### Environment Variables
 
 ```env
-ANTHROPIC_API_KEY=your_key
+GOOGLE_AI_API_KEY=your_key       # Gemini Flash — from Google AI Studio
 OPENWEATHERMAP_API_KEY=your_key
-GOOGLE_PLACES_API_KEY=your_key
-LUMA_API_KEY=your_key  # if available
+GOOGLE_PLACES_API_KEY=your_key   # Can share billing account with GOOGLE_AI_API_KEY
+LUMA_API_KEY=your_key            # if available
 ```
 
 ---
@@ -142,7 +143,7 @@ LUMA_API_KEY=your_key  # if available
 |-------------|--------|-------|
 | Context Sensing Layer | ✅ | Weather + Payone + IMU + Events |
 | ≥2 real context signals visible to user | ✅ | Weather + Payone density shown on card |
-| Generative Offer Engine | ✅ | Claude API + structured GenUI output |
+| Generative Offer Engine | ✅ | Gemini Flash + structured JSON GenUI output |
 | Offer generated dynamically (not DB) | ✅ | Context Slider proves this live |
 | Merchant rule interface | ✅ | Full rule engine in dashboard |
 | End-to-end flow demonstrated | ✅ | Merchant pulse → offer → QR → cashback |
