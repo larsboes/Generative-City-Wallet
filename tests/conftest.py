@@ -1,4 +1,5 @@
 """Test configuration — DB seed; `spark` is on PYTHONPATH (see pyproject.toml)."""
+
 import sys
 from pathlib import Path
 

@@ -2,7 +2,7 @@
 
 This repo is a **Spark monorepo**: **FastAPI** (`apps/api/src/spark`) + SQLite (merchants, synthetic Payone, offer audit, wallet) plus an **optional Neo4j** user/session graph; **Expo mobile** (`apps/mobile`); **Vite + React merchant dashboard** scaffold (`apps/web-dashboard`); **shared TS contracts** (`packages/shared`). Root **`package.json`** wires npm workspaces + Turbo; Python stays **`uv`** + root **`pyproject.toml`**.
 
-For **Neo4j-only** depth (model, rules, ops, diagrams), see **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. For product and pitch material, see **[`planning/README.md`](planning/README.md)**.
+For **Neo4j-only** depth (model, rules, ops, diagrams), see **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. For **workspaces and root scripts**, see **[`MONOREPO-STRUCTURE.md`](MONOREPO-STRUCTURE.md)**. For product and pitch material, see **[`planning/README.md`](planning/README.md)**.
 
 ---
 
@@ -151,8 +151,10 @@ See **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. Mercha
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/benchmark_offer_latency.py` | Spawns API twice (Neo4j on/off), measures p95 for `/api/offers/generate` |
-| `scripts/run_graph_maintenance.py` | One-shot cleanup + preference decay (cron-friendly) |
+| `scripts/ops/benchmark_offer_latency.py` | Spawns API twice (Neo4j on/off), measures p95 for `/api/offers/generate` |
+| `scripts/ops/run_graph_maintenance.py` | One-shot cleanup + preference decay (cron-friendly) |
+| `scripts/dev/smoke_intent_vector.py` | POST sample intent to a running API |
+| `scripts/dev/check_contract_symbols.py` | CI guard: shared TS vs Python contract names |
 
 ---
 
@@ -160,6 +162,7 @@ See **[`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md)**. Mercha
 
 - **Lint:** `ruff check` + `ruff format --check` on `apps/api/src/spark`, `tests`, `scripts`
 - **Types:** `pyright apps/api/src/spark/`
+- **JS:** `npm ci` + `npm run typecheck` + `npm run test:contracts`
 - **Tests:** `pytest tests/` with `SPARK_DB_PATH=:memory:`
 - **Smoke:** uvicorn boot + `GET /api/health`
 - **Security:** `pip-audit`, SBOM + Grype (non-blocking), Docker build + Trivy scan
@@ -179,10 +182,11 @@ Neo4j is **not** defined in compose in-repo; run it separately or extend compose
 
 | File | Focus |
 |------|--------|
-| `test_smoke.py` | Health, merchants, density, offer generate, conflict |
-| `test_graph_rules.py` | `GraphValidationService` with fake repository |
-| `test_graph_repository_fallback.py` | Fail-soft when graph unavailable |
-| `test_composite_graph_integration.py` | Composite + offer path with stubs |
+| `integration/test_smoke.py` | Health, merchants, density, offer generate, conflict |
+| `unit/test_graph_rules.py` | `GraphValidationService` with fake repository |
+| `integration/test_graph_repository_fallback.py` | Fail-soft when graph unavailable |
+| `integration/test_composite_graph_integration.py` | Composite + offer path with stubs |
+| `unit/test_offer_generator_json_blob.py` | Offer generator JSON blob behavior |
 
 ---
 
@@ -211,5 +215,6 @@ Authoritative defaults and env vars: **`apps/api/src/spark/config.py`**. Highlig
 |-----|----------|
 | [`USER-KNOWLEDGE-GRAPH-NEO4J.md`](USER-KNOWLEDGE-GRAPH-NEO4J.md) | Graph model, APIs, env, diagrams, ops |
 | [`../README.md`](../README.md) | Product pitch + Graph Ops `curl` / cron |
+| [`MONOREPO-STRUCTURE.md`](MONOREPO-STRUCTURE.md) | Workspaces, Turbo, npm scripts, `scripts/` layout |
 | [`../apps/api/README.md`](../apps/api/README.md) | Short backend quick start (may be narrower than this file) |
 | [`planning/README.md`](planning/README.md) | Design and planning archive |

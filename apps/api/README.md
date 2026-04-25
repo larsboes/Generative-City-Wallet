@@ -18,8 +18,8 @@ PYTHONPATH=apps/api/src uv run python -m spark.db.seed
 **Smoke-test IntentVector → API:**
 
 ```bash
-uv run python scripts/smoke_intent_vector.py
-SPARK_API_BASE=http://127.0.0.1:8000 uv run python scripts/smoke_intent_vector.py --generate
+uv run python scripts/dev/smoke_intent_vector.py
+SPARK_API_BASE=http://127.0.0.1:8000 uv run python scripts/dev/smoke_intent_vector.py --generate
 ```
 
 ---

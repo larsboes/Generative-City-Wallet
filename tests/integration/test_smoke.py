@@ -64,8 +64,13 @@ def test_offer_generation(client):
         assert "explainability" in data
         assert isinstance(data["explainability"], list)
         assert data["genui"]["color_palette"] in [
-            "warm_amber", "cool_blue", "deep_green",
-            "electric_purple", "soft_cream", "dark_contrast", "sunset_orange",
+            "warm_amber",
+            "cool_blue",
+            "deep_green",
+            "electric_purple",
+            "soft_cream",
+            "dark_contrast",
+            "sunset_orange",
         ]
         assert data["qr_payload"].startswith("spark://redeem/")
 
@@ -123,5 +128,9 @@ def test_conflict_resolution(client):
     resp = client.post("/api/conflict/resolve", json=payload)
     assert resp.status_code == 200
     data = resp.json()
-    assert data["recommendation"] in ["RECOMMEND", "RECOMMEND_WITH_FRAMING", "DO_NOT_RECOMMEND"]
+    assert data["recommendation"] in [
+        "RECOMMEND",
+        "RECOMMEND_WITH_FRAMING",
+        "DO_NOT_RECOMMEND",
+    ]
     assert "reason" in data

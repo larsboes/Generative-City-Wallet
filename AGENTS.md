@@ -9,4 +9,4 @@
 
 - **Neo4j** local database files live under **`data/neo4j/`**; graph integration code is under **`apps/api/src/spark/graph/`** with HTTP surface in **`apps/api/src/spark/routers/graph.py`**.
 - Offer and context composition center on **`apps/api/src/spark/services/offer_generator.py`** and **`apps/api/src/spark/services/composite.py`**, alongside routers in **`apps/api/src/spark/routers/`** (offers, redemption, payone, etc.).
-- Graph operations scripting includes **`scripts/run_graph_maintenance.py`** (cleanup, decay, migrations) and **`scripts/benchmark_offer_latency.py`** for comparing offer latency with Neo4j enabled vs disabled.
+- Graph operations scripting includes **`scripts/ops/run_graph_maintenance.py`** (cleanup, decay, migrations) and **`scripts/ops/benchmark_offer_latency.py`** for comparing offer latency with Neo4j enabled vs disabled.

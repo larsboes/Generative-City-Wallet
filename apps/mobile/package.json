@@ -7,7 +7,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "echo \"Use EAS / expo prebuild for release builds\""
+    "build": "echo \"Use EAS / expo prebuild for release builds\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck"
   },
   "dependencies": {
     "@spark/shared": "*",
@@ -20,12 +22,5 @@
     "@types/react": "~19.1.0",
     "typescript": "~5.9.2"
   },
-  "private": true,
-  "turbo": {
-    "tasks": {
-      "build": {
-        "outputs": []
-      }
-    }
-  }
+  "private": true
 }

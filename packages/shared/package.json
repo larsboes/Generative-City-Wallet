@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo \"add eslint when needed\""
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck"
   },
   "devDependencies": {
     "typescript": "~5.9.2"

@@ -38,6 +38,21 @@ jobs:
       - name: Type check (pyright)
         run: uv run pyright apps/api/src/spark/
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Typecheck (JS workspaces)
+        run: npm run typecheck
+
+      - name: Contract symbol guard (TS ↔ Python)
+        run: npm run test:contracts
+
   test:
     name: Test
     runs-on: ubuntu-latest

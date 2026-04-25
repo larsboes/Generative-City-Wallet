@@ -88,7 +88,9 @@ async def test_clean_session_is_accepted(base_args):
 
 async def test_session_offer_budget_blocks(base_args):
     repo = FakeRepository(available=True, session_offers_24h=10)
-    svc = GraphValidationService(repo=repo, rules_config={"session_offer_budget_per_day": 8})
+    svc = GraphValidationService(
+        repo=repo, rules_config={"session_offer_budget_per_day": 8}
+    )
 
     result = await svc.validate(**base_args)
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+
 # ── Load .env from repository root (walk up for pyproject.toml) ───────────────
 def _repo_root() -> Path:
     here = Path(__file__).resolve()

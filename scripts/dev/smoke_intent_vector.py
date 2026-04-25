@@ -2,8 +2,8 @@
 """
 POST a sample IntentVector to the Spark API (composite + optional generate).
 Usage:
-  uv run python scripts/smoke_intent_vector.py
-  SPARK_API_BASE=http://127.0.0.1:8000 uv run python scripts/smoke_intent_vector.py --generate
+  uv run python scripts/dev/smoke_intent_vector.py
+  SPARK_API_BASE=http://127.0.0.1:8000 uv run python scripts/dev/smoke_intent_vector.py --generate
 """
 
 from __future__ import annotations
@@ -51,12 +51,23 @@ def main() -> int:
             print(r.text[:2000])
             return 1
         data = r.json()
-        print(json.dumps({"timestamp": data.get("timestamp"), "merchant": data.get("merchant", {}).get("id")}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "timestamp": data.get("timestamp"),
+                    "merchant": data.get("merchant", {}).get("id"),
+                },
+                indent=2,
+            )
+        )
 
         if args.generate:
             merchant_id = (data.get("merchant") or {}).get("id")
             if not merchant_id:
-                print("No merchant in composite response; cannot --generate", file=sys.stderr)
+                print(
+                    "No merchant in composite response; cannot --generate",
+                    file=sys.stderr,
+                )
                 return 1
             body = {"intent": SAMPLE_INTENT, "merchant_id": merchant_id}
             r2 = client.post(f"{base}/api/offers/generate", json=body)
@@ -65,7 +76,15 @@ def main() -> int:
                 print(r2.text[:2000])
                 return 1
             offer = r2.json()
-            print(json.dumps({"offer_id": offer.get("offer_id"), "merchant": offer.get("merchant")}, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "offer_id": offer.get("offer_id"),
+                        "merchant": offer.get("merchant"),
+                    },
+                    indent=2,
+                )
+            )
 
     return 0
 

@@ -170,7 +170,7 @@ flowchart TB
 | **Write path** | On generate: merge `Offer` + `ContextSnapshot` + `RECEIVED_OFFER`. On redemption / outcome: redemption, wallet, outcome edges + category reinforcement deltas. |
 | **Idempotency** | Offer and snapshot keyed by `offer_id`; `MERGE` + relationship merge avoids duplicate subgraphs on retries. |
 | **Explainability** | `OfferObject.explainability`: up to 3 structured reasons (e.g. top preferences, soft rule hint, rules passed). |
-| **Decay** | Stale `PREFERS` edges can be linearly decayed by age (config + endpoint + optional startup + `scripts/run_graph_maintenance.py`). |
+| **Decay** | Stale `PREFERS` edges can be linearly decayed by age (config + endpoint + optional startup + `scripts/ops/run_graph_maintenance.py`). |
 | **Retention** | Deletes old offers (and related nodes), stale sessions without offers, and old `PREFERS`/`AVOIDS` edges past preference-edge retention. |
 | **Migrations** | `GraphMigration` nodes; applied after schema bootstrap on connect; list via `GET /api/graph/migrations`. |
 | **Observability** | `/api/graph/health`, `/api/graph/stats`, per-session preferences and recent offers; `/api/health` includes graph metrics. |
@@ -264,8 +264,8 @@ Defined in **`apps/api/src/spark/config.py`** (load via project-root `.env`).
 | `apps/api/src/spark/routers/redemption.py` | Redemption + outcome projection |
 | `apps/api/src/spark/routers/graph.py` | Admin graph routes |
 | `apps/api/src/spark/main.py` | Lifespan: init graph, seed merchants, cleanup/decay |
-| `scripts/run_graph_maintenance.py` | Cron-friendly cleanup + decay |
-| `scripts/benchmark_offer_latency.py` | p95 compare Neo4j on vs off |
+| `scripts/ops/run_graph_maintenance.py` | Cron-friendly cleanup + decay |
+| `scripts/ops/benchmark_offer_latency.py` | p95 compare Neo4j on vs off |
 
 **Contracts:** `apps/api/src/spark/models/contracts.py` and `packages/shared/src/contracts.ts` (`explainability` on `OfferObject`).
 
@@ -274,8 +274,8 @@ Defined in **`apps/api/src/spark/config.py`** (load via project-root `.env`).
 ## Operational notes
 
 - **Persistence:** Docker Neo4j typically mounts host `data/neo4j` (see root `README` Graph Ops section).
-- **Benchmarks:** use `scripts/benchmark_offer_latency.py` to compare latency with `NEO4J_ENABLED` true vs false.
-- **Cron:** prefer `scripts/run_graph_maintenance.py` over ad-hoc `curl` if you want one job for cleanup + decay.
+- **Benchmarks:** use `scripts/ops/benchmark_offer_latency.py` to compare latency with `NEO4J_ENABLED` true vs false.
+- **Cron:** prefer `scripts/ops/run_graph_maintenance.py` over ad-hoc `curl` if you want one job for cleanup + decay.
 
 **App startup vs scheduled job:**
 
@@ -300,7 +300,7 @@ sequenceDiagram
 **ASCII — maintenance script (`run_graph_maintenance.py`):**
 
 ```
-  uv run python scripts/run_graph_maintenance.py
+  uv run python scripts/ops/run_graph_maintenance.py
         |
         +-- cleanup_old_data(retention_days)
         |         +-- offers + snapshots + redemptions + wallet events

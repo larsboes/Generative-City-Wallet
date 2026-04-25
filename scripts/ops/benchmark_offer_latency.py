@@ -120,7 +120,9 @@ def _run_pass(
             "ok": ok,
             "failed": failed,
             "avg_ms": round(statistics.mean(latencies_ms), 2) if latencies_ms else 0.0,
-            "p50_ms": round(statistics.median(latencies_ms), 2) if latencies_ms else 0.0,
+            "p50_ms": round(statistics.median(latencies_ms), 2)
+            if latencies_ms
+            else 0.0,
             "p95_ms": round(_p95(latencies_ms), 2),
             "max_ms": round(max(latencies_ms), 2) if latencies_ms else 0.0,
         }
@@ -133,7 +135,9 @@ def _run_pass(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Benchmark offer endpoint p95 latency.")
+    parser = argparse.ArgumentParser(
+        description="Benchmark offer endpoint p95 latency."
+    )
     parser.add_argument(
         "--requests",
         type=int,

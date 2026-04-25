@@ -60,39 +60,46 @@ async def test_merchant_offer_stats_returns_empty():
 
 async def test_write_methods_return_false():
     repo = GraphRepository()
-    assert await repo.write_offer(
-        offer_id="off-1",
-        session_id="sess-1",
-        merchant_id="m-1",
-        merchant_name="Test",
-        merchant_category="cafe",
-        framing_band=None,
-        density_signal="QUIET",
-        drop_pct=0.5,
-        distance_m=80,
-        coupon_type=None,
-        discount_pct=0,
-        timestamp="2026-04-25T12:00:00",
-        grid_cell="STR-MITTE-047",
-        movement_mode="browsing",
-        time_bucket="tuesday_lunch",
-        weather_need="warmth_seeking",
-        vibe_signal="cozy",
-        temp_c=10.0,
-        social_preference="quiet",
-        occupancy_pct=None,
-        predicted_occupancy_pct=None,
-    ) is False
-    assert await repo.write_redemption(
-        session_id="sess-1",
-        offer_id="off-1",
-        discount_value=15.0,
-        discount_type="percentage",
-    ) is False
+    assert (
+        await repo.write_offer(
+            offer_id="off-1",
+            session_id="sess-1",
+            merchant_id="m-1",
+            merchant_name="Test",
+            merchant_category="cafe",
+            framing_band=None,
+            density_signal="QUIET",
+            drop_pct=0.5,
+            distance_m=80,
+            coupon_type=None,
+            discount_pct=0,
+            timestamp="2026-04-25T12:00:00",
+            grid_cell="STR-MITTE-047",
+            movement_mode="browsing",
+            time_bucket="tuesday_lunch",
+            weather_need="warmth_seeking",
+            vibe_signal="cozy",
+            temp_c=10.0,
+            social_preference="quiet",
+            occupancy_pct=None,
+            predicted_occupancy_pct=None,
+        )
+        is False
+    )
+    assert (
+        await repo.write_redemption(
+            session_id="sess-1",
+            offer_id="off-1",
+            discount_value=15.0,
+            discount_type="percentage",
+        )
+        is False
+    )
     assert await repo.write_wallet_event(offer_id="off-1", amount_eur=0.68) is False
-    assert await repo.reinforce_category(
-        session_id="sess-1", category="cafe", delta=0.1
-    ) is None
+    assert (
+        await repo.reinforce_category(session_id="sess-1", category="cafe", delta=0.1)
+        is None
+    )
 
 
 async def test_init_graph_unreachable_does_not_raise(monkeypatch):

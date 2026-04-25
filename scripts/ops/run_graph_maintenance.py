@@ -35,7 +35,9 @@ async def _run(retention_days: int, stale_after_days: int, decay_rate: float) ->
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run graph cleanup + preference decay.")
+    parser = argparse.ArgumentParser(
+        description="Run graph cleanup + preference decay."
+    )
     parser.add_argument(
         "--retention-days",
         type=int,

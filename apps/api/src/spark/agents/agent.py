@@ -12,9 +12,10 @@ What the agent CANNOT do:
   • Bypass hard rails (merchant name, banned copy patterns)
 """
 
-import json
 import logging
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 from spark.agents.tools import OFFER_TOOLS
 from spark.config import GEMINI_MODEL, GOOGLE_AI_API_KEY
@@ -72,29 +73,41 @@ Return ONLY valid JSON. No markdown, no explanation. Schema:
 """
 
 
-from pydantic import BaseModel, Field
-
 class ContentDecision(BaseModel):
     headline: str = Field(description="≤6 words, emotional, German, Du-form")
     subtext: str = Field(description="≤12 words, ties offer to moment")
     cta_text: str = Field(description="≤4 words, active verb")
-    emotional_hook: str | None = Field(default=None, description="Optional emotional closer")
+    emotional_hook: str | None = Field(
+        default=None, description="Optional emotional closer"
+    )
+
 
 class GenUIDecision(BaseModel):
-    color_palette: str = Field(description="warm_amber|cool_blue|deep_green|electric_purple|soft_cream|dark_contrast|sunset_orange")
+    color_palette: str = Field(
+        description="warm_amber|cool_blue|deep_green|electric_purple|soft_cream|dark_contrast|sunset_orange"
+    )
     typography_weight: str = Field(description="light|medium|bold")
     background_style: str = Field(description="gradient|solid|blur|texture")
-    imagery_prompt: str = Field(description="Descriptive image prompt for card background")
+    imagery_prompt: str = Field(
+        description="Descriptive image prompt for card background"
+    )
     urgency_style: str = Field(description="gentle_pulse|countdown|static|glow")
     card_mood: str = Field(description="cozy|energetic|refreshing|celebratory|calm")
+
 
 class AgentDecision(BaseModel):
     skip: bool = Field(default=False, description="True if no suitable merchant found")
     reason: str | None = Field(default=None, description="Reason if skip is true")
     merchant_id: str | None = Field(default=None, description="MERCHANT_XXX")
-    reasoning: str | None = Field(default=None, description="Brief explanation of why this merchant was selected")
-    content: ContentDecision | None = Field(default=None, description="Generated offer content")
-    genui: GenUIDecision | None = Field(default=None, description="Visual design configuration")
+    reasoning: str | None = Field(
+        default=None, description="Brief explanation of why this merchant was selected"
+    )
+    content: ContentDecision | None = Field(
+        default=None, description="Generated offer content"
+    )
+    genui: GenUIDecision | None = Field(
+        default=None, description="Visual design configuration"
+    )
 
 
 def _build_model():
@@ -155,7 +168,7 @@ SOCIAL PREFERENCE: {social_preference}
 PRICE TIER: {price_tier}
 WEATHER NEED: {weather_need}
 TIME BUCKET: {time_bucket}
-RECENT CATEGORIES: {', '.join(recent_categories) if recent_categories else 'none'}
+RECENT CATEGORIES: {", ".join(recent_categories) if recent_categories else "none"}
 {merchant_hint}
 
 Use your tools to gather real-time data, then select a merchant and generate the offer."""
@@ -166,10 +179,9 @@ Use your tools to gather real-time data, then select a merchant and generate the
 
         # Native Strands SDK async invocation with Pydantic structured output
         result = await agent.invoke_async(
-            user_prompt,
-            structured_output_model=AgentDecision
+            user_prompt, structured_output_model=AgentDecision
         )
-        
+
         # Extracted validated Pydantic model
         decision: AgentDecision = result.structured_output
 

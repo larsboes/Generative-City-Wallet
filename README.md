@@ -36,6 +36,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | Where | What |
 |-------|------|
 | **[`docs/README.md`](docs/README.md)** | **Current** docs index — implementation truth + Neo4j user graph |
+| **[`docs/MONOREPO-STRUCTURE.md`](docs/MONOREPO-STRUCTURE.md)** | npm workspaces, Turbo, folder map, root scripts |
 | **[`docs/REPOSITORY-OVERVIEW.md`](docs/REPOSITORY-OVERVIEW.md)** | Backend layout, hybrid pipeline, SQLite/Neo4j, CI, Docker, tests |
 | **[`docs/USER-KNOWLEDGE-GRAPH-NEO4J.md`](docs/USER-KNOWLEDGE-GRAPH-NEO4J.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
 | **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
@@ -84,7 +85,7 @@ curl -s -X POST 'http://localhost:8000/api/graph/decay-preferences?stale_after_d
 **Scheduled maintenance (cron)** — from the repo root; uses the same `.env` as the app:
 
 ```cron
-0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python scripts/run_graph_maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
+0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python scripts/ops/run_graph_maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
 ```
 
 Adjust `cd` and `uv` path to your machine. The script runs **cleanup** (artifact + preference-edge retention) then **decay** in one shot.
