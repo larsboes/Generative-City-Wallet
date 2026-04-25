@@ -88,6 +88,7 @@
 | Gemini Flash prompt + JSON schema | 17 | 04 |
 | Hard rails / Air Canada liability | 13 | 17 |
 | User knowledge graph | 13 | 17 |
+| **Server Neo4j graph (implemented)** | [`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md) | [`../REPOSITORY-OVERVIEW.md`](../REPOSITORY-OVERVIEW.md) |
 | Transaction history KG seeding | 13 (Part 4) | — |
 | Conflict resolution (empty venue + social user) | 14 | 15 |
 | Coupon mechanics (milestone coupon) | 14 | 15 |

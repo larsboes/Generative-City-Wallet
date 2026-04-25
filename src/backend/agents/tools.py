@@ -46,7 +46,7 @@ def get_merchant_density(merchant_id: str) -> str:
 
 
 @tool
-def get_user_preferences(session_id: str) -> str:
+async def get_user_preferences(session_id: str) -> str:
     """Get the user's category preference scores from the knowledge graph.
 
     Args:
@@ -55,27 +55,10 @@ def get_user_preferences(session_id: str) -> str:
     Returns JSON array of {category, weight} sorted by preference strength.
     Falls back to heuristic defaults when graph is unavailable.
     """
-    import asyncio
-
     from src.backend.graph.repository import get_repository
 
     repo = get_repository()
-
-    # Strands tools are sync — bridge to async
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        import concurrent.futures
-
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            scores = pool.submit(
-                asyncio.run, repo.get_preference_scores(session_id, limit=10)
-            ).result()
-    else:
-        scores = asyncio.run(repo.get_preference_scores(session_id, limit=10))
+    scores = await repo.get_preference_scores(session_id, limit=10)
 
     if not scores:
         # Cold-start fallback
@@ -93,30 +76,16 @@ def get_user_preferences(session_id: str) -> str:
 
 
 @tool
-def get_weather_context() -> str:
+async def get_weather_context() -> str:
     """Get current Stuttgart weather conditions.
 
     Returns temperature, feels_like, weather_condition, weather_need
     (warmth_seeking/refreshment_seeking/shelter_seeking/neutral),
     and vibe_signal (cozy/energetic/refreshing/neutral).
     """
-    import asyncio
-
     from src.backend.services.weather import get_stuttgart_weather
 
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        import concurrent.futures
-
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            weather = pool.submit(asyncio.run, get_stuttgart_weather()).result()
-    else:
-        weather = asyncio.run(get_stuttgart_weather())
-
+    weather = await get_stuttgart_weather()
     return json.dumps(weather, default=str, ensure_ascii=False)
 
 

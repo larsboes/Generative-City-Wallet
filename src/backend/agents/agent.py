@@ -72,6 +72,31 @@ Return ONLY valid JSON. No markdown, no explanation. Schema:
 """
 
 
+from pydantic import BaseModel, Field
+
+class ContentDecision(BaseModel):
+    headline: str = Field(description="≤6 words, emotional, German, Du-form")
+    subtext: str = Field(description="≤12 words, ties offer to moment")
+    cta_text: str = Field(description="≤4 words, active verb")
+    emotional_hook: str | None = Field(default=None, description="Optional emotional closer")
+
+class GenUIDecision(BaseModel):
+    color_palette: str = Field(description="warm_amber|cool_blue|deep_green|electric_purple|soft_cream|dark_contrast|sunset_orange")
+    typography_weight: str = Field(description="light|medium|bold")
+    background_style: str = Field(description="gradient|solid|blur|texture")
+    imagery_prompt: str = Field(description="Descriptive image prompt for card background")
+    urgency_style: str = Field(description="gentle_pulse|countdown|static|glow")
+    card_mood: str = Field(description="cozy|energetic|refreshing|celebratory|calm")
+
+class AgentDecision(BaseModel):
+    skip: bool = Field(default=False, description="True if no suitable merchant found")
+    reason: str | None = Field(default=None, description="Reason if skip is true")
+    merchant_id: str | None = Field(default=None, description="MERCHANT_XXX")
+    reasoning: str | None = Field(default=None, description="Brief explanation of why this merchant was selected")
+    content: ContentDecision | None = Field(default=None, description="Generated offer content")
+    genui: GenUIDecision | None = Field(default=None, description="Visual design configuration")
+
+
 def _build_model():
     """Build GeminiModel for Strands."""
     from strands.models.gemini import GeminiModel
@@ -110,7 +135,7 @@ async def run_offer_agent(
     """
     Run the OfferAgent and return structured offer decision.
 
-    Returns parsed JSON dict with merchant_id, content, genui.
+    Returns parsed dict with merchant_id, content, genui.
     Falls back to None on any failure (caller uses deterministic pipeline).
     """
     # Build the user context prompt for the agent
@@ -130,7 +155,7 @@ SOCIAL PREFERENCE: {social_preference}
 PRICE TIER: {price_tier}
 WEATHER NEED: {weather_need}
 TIME BUCKET: {time_bucket}
-RECENT CATEGORIES: {", ".join(recent_categories) if recent_categories else "none"}
+RECENT CATEGORIES: {', '.join(recent_categories) if recent_categories else 'none'}
 {merchant_hint}
 
 Use your tools to gather real-time data, then select a merchant and generate the offer."""
@@ -139,30 +164,21 @@ Use your tools to gather real-time data, then select a merchant and generate the
         agent = create_offer_agent()
         logger.info("offer_agent_start", extra={"session_id": session_id})
 
-        # Strands Agent.__call__ is synchronous — run in thread to not block
-        import asyncio
-        import concurrent.futures
+        # Native Strands SDK async invocation with Pydantic structured output
+        result = await agent.invoke_async(
+            user_prompt,
+            structured_output_model=AgentDecision
+        )
+        
+        # Extracted validated Pydantic model
+        decision: AgentDecision = result.structured_output
 
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            result = await loop.run_in_executor(pool, agent, user_prompt)
-
-        response_text = str(result)
         logger.info(
             "offer_agent_done",
-            extra={"session_id": session_id, "response_length": len(response_text)},
+            extra={"session_id": session_id},
         )
 
-        # Parse the JSON from agent response
-        # Agent may wrap JSON in markdown code blocks — strip those
-        cleaned = response_text.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[1]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[: cleaned.rfind("```")]
-            cleaned = cleaned.strip()
-
-        parsed = json.loads(cleaned)
+        parsed = decision.model_dump()
 
         # Validate minimum required fields
         if parsed.get("skip"):
@@ -178,9 +194,6 @@ Use your tools to gather real-time data, then select a merchant and generate the
 
         return parsed
 
-    except json.JSONDecodeError as e:
-        logger.warning("offer_agent_json_error: %s", e)
-        return None
     except Exception as e:
         logger.warning("offer_agent_failed: %s", e)
         return None

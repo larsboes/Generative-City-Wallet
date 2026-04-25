@@ -36,6 +36,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | Where | What |
 |-------|------|
 | **[`docs/README.md`](docs/README.md)** | **Current** docs index — implementation truth + Neo4j user graph |
+| **[`docs/REPOSITORY-OVERVIEW.md`](docs/REPOSITORY-OVERVIEW.md)** | Backend layout, hybrid pipeline, SQLite/Neo4j, CI, Docker, tests |
 | **[`docs/USER-KNOWLEDGE-GRAPH-NEO4J.md`](docs/USER-KNOWLEDGE-GRAPH-NEO4J.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
 | **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
 

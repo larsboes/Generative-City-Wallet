@@ -1,6 +1,6 @@
 # Server-side user knowledge graph (Neo4j)
 
-This document describes **what the FastAPI backend does today** with Neo4j: personalization signals, guardrails, lifecycle writes, explainability, and housekeeping. It is the authoritative reference for **runtime behavior**; product vision and older “on-device KG” notes live under [`planning/`](planning/README.md).
+This document describes **what the FastAPI backend does today** with Neo4j: personalization signals, guardrails, lifecycle writes, explainability, and housekeeping. It is the authoritative reference for **runtime behavior**; product vision and older “on-device KG” notes live under [`planning/`](planning/README.md). For **everything else in the repo** (routers, SQLite, Strands agent hybrid, CI, Docker), see **[`REPOSITORY-OVERVIEW.md`](REPOSITORY-OVERVIEW.md)**.
 
 ---
 
@@ -324,5 +324,6 @@ sequenceDiagram
 
 ## See also
 
+- **[`REPOSITORY-OVERVIEW.md`](REPOSITORY-OVERVIEW.md)** — full backend layout, hybrid offer agent path, CI/Docker, and how this graph fits the rest of the repo.
 - **[`planning/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md`](planning/13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md)** — original KG + on-device framing (complements this server graph).
 - **[`../README.md`](../README.md#graph-ops-neo4j)** — quick `curl` and cron examples.
