@@ -47,11 +47,11 @@ flowchart LR
     subgraph Device ["📱 User's Device (Privacy Boundary)"]
         direction TB
         raw1[Raw GPS Stream] --> quant[Quantizer]
-        raw2[IMU / Pedometer] --> class[Motion Classifier]
-        raw3[Local History DB] --> class
+        raw2[IMU / Pedometer] --> classifier[Motion Classifier]
+        raw3[Local History DB] --> classifier
         
         quant -->|Grid Cell| intent[Local Intent Engine]
-        class -->|Motion Mode| intent
+        classifier -->|Motion Mode| intent
         intent -->|Extracts| vector[Abstract Intent Vector]
         
         note1[Nothing raw leaves this boundary!]
