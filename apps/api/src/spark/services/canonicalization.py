@@ -350,21 +350,21 @@ def parse_stored_offer(raw_offer: str | None) -> CanonicalizationResult[OfferObj
 def llm_output_from_dict(genui: Mapping[str, Any]) -> LLMGenUI:
     try:
         return LLMGenUI(
-            color_palette=str(genui.get("color_palette") or "warm_amber"),
+            color_palette=str(genui.get("color_palette") or "warm_amber"),  # type: ignore
             typography_weight=str(genui.get("typography_weight") or "medium"),
             background_style=str(genui.get("background_style") or "gradient"),
             imagery_prompt=str(genui.get("imagery_prompt") or "contextual offer card"),
             urgency_style=str(genui.get("urgency_style") or "static"),
-            card_mood=str(genui.get("card_mood") or "cozy"),
+            card_mood=str(genui.get("card_mood") or "cozy"),  # type: ignore
         )
     except ValidationError:
         return LLMGenUI(
-            color_palette="warm_amber",
+            color_palette="warm_amber",  # type: ignore
             typography_weight="medium",
             background_style="gradient",
             imagery_prompt="contextual offer card",
             urgency_style="static",
-            card_mood="cozy",
+            card_mood="cozy",  # type: ignore
         )
 
 

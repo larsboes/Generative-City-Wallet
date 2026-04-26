@@ -353,7 +353,7 @@ async def project_offer_outcome_to_graph(
                     source_event_id=source_event_id,
                     delta=PREFERENCE_DELTA_DECLINE,
                 )
-                return
+                return True
             before_weight = await _get_current_category_weight(
                 repo=repo, session_id=session_id, category=merchant_category
             )
@@ -392,7 +392,7 @@ async def project_offer_outcome_to_graph(
                     source_event_id=source_event_id,
                     delta=PREFERENCE_DELTA_EXPIRE,
                 )
-                return
+                return True
             before_weight = await _get_current_category_weight(
                 repo=repo, session_id=session_id, category=merchant_category
             )

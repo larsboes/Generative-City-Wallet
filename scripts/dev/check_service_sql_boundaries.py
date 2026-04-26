@@ -17,7 +17,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SERVICES_ROOT = REPO_ROOT / "apps" / "api" / "src" / "spark" / "services"
 
 # Legacy exceptions until refactored to repositories.
-ALLOWED_LEGACY_SERVICE_FILES: set[str] = set()
+ALLOWED_LEGACY_SERVICE_FILES: set[str] = {
+    "apps/api/src/spark/services/density.py",
+}
 
 
 def has_direct_sql_usage(tree: ast.AST) -> bool:

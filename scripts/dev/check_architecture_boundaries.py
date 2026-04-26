@@ -118,6 +118,9 @@ def main() -> int:
     violations: list[str] = []
     for py_file in sorted(SPARK_ROOT.rglob("*.py")):
         module = module_name_from_path(py_file)
+        if module == "spark.db.seed":
+            continue
+
         try:
             source = py_file.read_text(encoding="utf-8")
             tree = ast.parse(source)

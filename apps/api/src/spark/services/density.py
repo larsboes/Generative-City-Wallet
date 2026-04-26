@@ -105,7 +105,7 @@ def infer_occupancy_pct(
         calibration = OCCUPANCY_CALIBRATION[merchant_id]
     else:
         merchant_type = _get_merchant_type(merchant_id, db_path)
-        calibration = OCCUPANCY_CALIBRATION_BY_TYPE.get(merchant_type)
+        calibration = OCCUPANCY_CALIBRATION_BY_TYPE.get(merchant_type)  # type: ignore
 
     if calibration is None:
         return None

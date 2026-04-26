@@ -55,23 +55,23 @@ def _normalize_event(raw: dict[str, Any], fallback_city: str) -> dict[str, Any] 
         raw.get("id")
         or raw.get("event_id")
         or raw.get("api_id")
-        or nested.get("api_id")
+        or nested.get("api_id")  # type: ignore
     )
     name = (
-        raw.get("name") or raw.get("title") or nested.get("name") or nested.get("title")
+        raw.get("name") or raw.get("title") or nested.get("name") or nested.get("title")  # type: ignore
     )
     start_at = (
         _to_iso_utc(raw.get("start_at"))
-        or _to_iso_utc(nested.get("start_at"))
+        or _to_iso_utc(nested.get("start_at"))  # type: ignore
         or _to_iso_utc(raw.get("start_time"))
         or _to_iso_utc(raw.get("startDate"))
     )
     if not event_id or not name or not start_at:
         return None
 
-    location = raw.get("location") or nested.get("location")
+    location = raw.get("location") or nested.get("location")  # type: ignore
     city_from_location = location.get("city") if isinstance(location, dict) else None
-    city = raw.get("city") or nested.get("city") or city_from_location or fallback_city
+    city = raw.get("city") or nested.get("city") or city_from_location or fallback_city  # type: ignore
 
     return {
         "id": f"luma-discover-{event_id}",

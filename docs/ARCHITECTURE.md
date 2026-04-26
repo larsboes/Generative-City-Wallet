@@ -25,6 +25,8 @@ For planning rationale, see [`planning/README.md`](./planning/README.md).
 
 Everything that feeds `composite.py` before the deterministic offer gate runs. See [Offer Pipeline](#offer-pipeline) for what happens next.
 
+- TODO: fix backlash n
+
 ```mermaid
 flowchart TB
     subgraph Device["📱 On-Device (Privacy Boundary)"]

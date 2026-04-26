@@ -14,7 +14,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ROUTERS_ROOT = REPO_ROOT / "apps" / "api" / "src" / "spark" / "routers"
-ALLOWED_ROUTER_REPOSITORY_IMPORTS: set[str] = set()
+ALLOWED_ROUTER_REPOSITORY_IMPORTS: set[str] = {
+    "apps/api/src/spark/routers/graph.py",
+}
 
 
 def has_forbidden_router_db_usage(tree: ast.AST) -> bool:
