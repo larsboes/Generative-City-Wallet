@@ -13,6 +13,9 @@ export const DEFAULT_INTENT_VECTOR: IntentVector = {
   dwell_signal: false,
   battery_low: false,
   session_id: "local-llm-session",
+  activity_signal: "none",
+  activity_source: "movement_inferred",
+  activity_confidence: 0.0,
 };
 
 /**

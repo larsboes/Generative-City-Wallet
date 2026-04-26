@@ -135,3 +135,14 @@ def test_conflict_resolution(client):
         "DO_NOT_RECOMMEND",
     ]
     assert "reason" in data
+
+
+def test_context_provider_status(client):
+    resp = client.get("/api/context/provider-status")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["grid_cell"] == "STR-MITTE-047"
+    assert "weather" in data
+    assert "external" in data
+    assert "place" in data["external"]
+    assert "events" in data["external"]

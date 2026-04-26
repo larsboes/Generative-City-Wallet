@@ -42,6 +42,25 @@ def test_hybrid_parser_extracts_line_station_and_confidence():
     assert result.payload.confidence >= 0.8
 
 
+def test_model_assisted_parser_handles_approximate_delay_language():
+    request = OCRTransitParseRequest(
+        raw_text="S8 at Ostbahnhof approximately 22 minutes late return by 19:15",
+        city_hint="Berlin",
+        district_hint="Friedrichshain",
+        parser_provider="model_assisted",
+    )
+    result, attempts = asyncio.run(parse_ocr_transit_with_policy(request))
+    assert attempts >= 1
+    assert result.parsed is True
+    assert result.payload is not None
+    assert result.payload.transit_delay_minutes == 22
+    assert result.payload.line == "S8"
+    assert result.payload.station == "Ostbahnhof"
+    assert result.payload.must_return_by is not None
+    assert result.payload.must_return_by.endswith("Z")
+    assert result.payload.confidence >= 0.78
+
+
 def test_rule_based_parser_returns_reason_when_delay_missing():
     request = OCRTransitParseRequest(
         raw_text="Berlin transit board says delayed but no minutes shown",
@@ -50,6 +69,17 @@ def test_rule_based_parser_returns_reason_when_delay_missing():
     assert attempts == 3
     assert result.parsed is False
     assert result.reason == "delay_not_found"
+
+
+def test_model_assisted_parser_out_of_range_delay_is_rejected():
+    request = OCRTransitParseRequest(
+        raw_text="delay is approximately 240 minutes",
+        parser_provider="model_assisted",
+    )
+    result, attempts = asyncio.run(parse_ocr_transit_with_policy(request))
+    assert attempts == 3
+    assert result.parsed is False
+    assert result.reason == "delay_out_of_range"
 
 
 def test_parser_timeout_retries_and_returns_timeout_reason(monkeypatch):

@@ -38,6 +38,8 @@ class WalletSeedResponse(BaseModel):
     duplicates: int = 0
     suppressed_by_guardrail: int = 0
     avg_quality_multiplier: float = 0.0
+    normalized_source_types: list[str] = Field(default_factory=list)
+    governance_confidence_caps: dict[str, float] = Field(default_factory=dict)
 
 
 class ContinuityResetRequest(BaseModel):

@@ -28,6 +28,8 @@ CYCLING_RECOVERY_CATEGORIES = {"juice_bar", "smoothie_bar", "healthy_cafe", "caf
 CYCLING_SUPPRESSED_CATEGORIES = {"club", "nightclub"}
 TRANSIT_WAITING_FAST_CATEGORIES = {"cafe", "bakery", "juice_bar"}
 TRANSIT_WAITING_SUPPRESSED_CATEGORIES = {"club", "nightclub", "restaurant"}
+COMMUTING_FAST_CATEGORIES = {"cafe", "bakery", "juice_bar", "healthy_cafe"}
+COMMUTING_SUPPRESSED_CATEGORIES = {"restaurant", "bar", "club", "nightclub"}
 
 
 def decide_offer(
@@ -40,6 +42,11 @@ def decide_offer(
     preference_scores: dict[str, float],
     transit_delay_minutes: int | None = None,
     must_return_by: str | None = None,
+    activity_signal: str = "none",
+    activity_source: str = "none",
+    activity_confidence: float = 0.0,
+    event_pressure: float = 0.0,
+    place_busyness: float | None = None,
     db_path: str | None = None,
     now: datetime | None = None,
 ) -> OfferDecisionResult:
@@ -92,6 +99,11 @@ def decide_offer(
             social_preference=social_preference,
             weather_need=weather_need,
             preference_scores=preference_scores,
+            activity_signal=activity_signal,
+            activity_source=activity_source,
+            activity_confidence=activity_confidence,
+            event_pressure=event_pressure,
+            place_busyness=place_busyness,
             current_dt=current_dt,
             db_path=db_path,
         )
@@ -239,6 +251,11 @@ def _score_merchant_candidate(
     social_preference: str,
     weather_need: str,
     preference_scores: dict[str, float],
+    activity_signal: str,
+    activity_source: str,
+    activity_confidence: float,
+    event_pressure: float,
+    place_busyness: float | None,
     current_dt: datetime,
     db_path: str | None,
 ) -> MerchantDecision | None:
@@ -335,6 +352,58 @@ def _score_merchant_candidate(
             )
         )
 
+    activity_points = _activity_alignment_points(
+        activity_signal=activity_signal,
+        activity_source=activity_source,
+        activity_confidence=activity_confidence,
+        merchant_category=merchant_category,
+    )
+    if activity_points != 0.0:
+        score += activity_points
+        trace.append(
+            DecisionTraceStep(
+                code="activity_alignment",
+                reason="Abstracted activity signal contribution.",
+                score=round(activity_points, 3),
+                metadata={
+                    "activity_signal": activity_signal,
+                    "activity_source": activity_source,
+                    "activity_confidence": round(max(0.0, min(1.0, activity_confidence)), 3),
+                },
+            )
+        )
+
+    if place_busyness is not None:
+        busyness = max(0.0, min(1.0, float(place_busyness)))
+        busyness_points = (0.5 - busyness) * 6.0
+        score += busyness_points
+        trace.append(
+            DecisionTraceStep(
+                code="place_busyness",
+                reason="Nearby place busyness proxy contribution.",
+                score=round(busyness_points, 3),
+                metadata={"avg_busyness": round(busyness, 3)},
+            )
+        )
+
+    if event_pressure > 0:
+        pressure = max(0.0, min(1.0, float(event_pressure) / 5.0))
+        nightlife_categories = {"bar", "club", "nightclub"}
+        event_points = (4.0 * pressure) if merchant_category in nightlife_categories else 0.0
+        if event_points:
+            score += event_points
+            trace.append(
+                DecisionTraceStep(
+                    code="event_pressure",
+                    reason="Local events pressure adjusted nightlife relevance.",
+                    score=round(event_points, 3),
+                    metadata={
+                        "events_tonight_count": int(event_pressure),
+                        "pressure_normalized": round(pressure, 3),
+                    },
+                )
+            )
+
     trace.append(
         DecisionTraceStep(
             code="conflict_resolution",
@@ -399,6 +468,13 @@ def _movement_category_adjustment(
             return -10.0, "Transit-waiting long-visit category suppression applied."
         return 0.0, "Transit-waiting neutral category."
 
+    if movement_mode == "commuting":
+        if merchant_category in COMMUTING_FAST_CATEGORIES:
+            return 6.0, "Commuting quick-stop category boost applied."
+        if merchant_category in COMMUTING_SUPPRESSED_CATEGORIES:
+            return -12.0, "Commuting long-visit category suppression applied."
+        return 0.0, "Commuting neutral category."
+
     return 0.0, "No movement-specific category adjustment."
 
 
@@ -414,4 +490,26 @@ def _movement_recheck_minutes(*, movement_mode: str, default_minutes: int) -> in
         return max(7, min(default_minutes, 15))
     if movement_mode == "transit_waiting":
         return max(3, min(default_minutes, 8))
+    if movement_mode == "commuting":
+        return max(4, min(default_minutes, 9))
     return default_minutes
+
+
+def _activity_alignment_points(
+    *,
+    activity_signal: str,
+    activity_source: str,
+    activity_confidence: float,
+    merchant_category: str,
+) -> float:
+    confidence = max(0.0, min(1.0, activity_confidence))
+    recovery_categories = {"healthy_cafe", "juice_bar", "smoothie_bar", "cafe", "bakery"}
+    if activity_signal in {"active_recently", "post_workout"}:
+        if merchant_category in recovery_categories:
+            return round(6.0 * confidence, 3)
+        if merchant_category in {"bar", "club", "nightclub"}:
+            return round(-4.0 * confidence, 3)
+    if activity_signal == "resting" and activity_source in {"strava", "native_health", "hybrid"}:
+        if merchant_category in {"cafe", "bakery"}:
+            return round(2.0 * confidence, 3)
+    return 0.0

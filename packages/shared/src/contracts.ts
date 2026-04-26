@@ -36,6 +36,15 @@ export interface IntentVector {
   battery_low: boolean;
   session_id: string;
   continuity_hint?: string;
+  activity_signal?: "none" | "active_recently" | "post_workout" | "resting";
+  activity_source?:
+    | "none"
+    | "strava"
+    | "native_health"
+    | "hybrid"
+    | "movement_inferred";
+  activity_confidence?: number;
+  location_grid_accuracy_m?: number;
 }
 
 export type IntentTrustPolicy =
@@ -154,6 +163,33 @@ export interface EnvironmentContext {
   feels_like_celsius: number;
   weather_need: string;
   vibe_signal: string;
+  source?: string;
+  provider_available?: boolean;
+  cache_hit?: boolean;
+}
+
+export interface PlaceContext {
+  source: string;
+  provider_available: boolean;
+  nearby_place_count: number;
+  avg_rating?: number;
+  avg_busyness?: number;
+  popular_place_name?: string;
+}
+
+export interface EventContext {
+  source: string;
+  provider_available: boolean;
+  events_tonight_count: number;
+  nearest_event_name?: string;
+  cache_hit: boolean;
+  error_reason?: string;
+  http_status?: number;
+}
+
+export interface ExternalContext {
+  place: PlaceContext;
+  events: EventContext;
 }
 
 export interface ConflictResolutionContext {
@@ -185,6 +221,7 @@ export interface CompositeContextState {
   user: UserContext;
   merchant: MerchantContext;
   environment: EnvironmentContext;
+  external?: ExternalContext;
   conflict_resolution: ConflictResolutionContext;
   decision_trace?: OfferDecisionTrace;
 }
@@ -366,6 +403,8 @@ export interface WalletSeedResponse {
   duplicates: number;
   suppressed_by_guardrail: number;
   avg_quality_multiplier: number;
+  normalized_source_types: string[];
+  governance_confidence_caps: Record<string, number>;
 }
 
 // ── Spark Wave ────────────────────────────────────────────────────────────────
@@ -421,7 +460,7 @@ export interface OCRTransitParseRequest {
   raw_text: string;
   city_hint?: string;
   district_hint?: string;
-  parser_provider?: "rule_based" | "hybrid_rule_based";
+  parser_provider?: "rule_based" | "hybrid_rule_based" | "model_assisted";
 }
 
 export interface OCRTransitParseResponse {

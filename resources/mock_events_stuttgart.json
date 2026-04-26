@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "id": "seed-str-001",
+      "name": "Feierabend Rooftop Session",
+      "city": "Stuttgart",
+      "start_at": "2026-04-26T18:30:00Z"
+    },
+    {
+      "id": "seed-str-002",
+      "name": "AI Builders Stuttgart Meetup",
+      "city": "Stuttgart",
+      "start_at": "2026-04-26T19:15:00Z"
+    },
+    {
+      "id": "seed-str-003",
+      "name": "Sunday Jazz & Drinks",
+      "city": "Stuttgart",
+      "start_at": "2026-04-26T20:00:00Z"
+    },
+    {
+      "id": "seed-muc-001",
+      "name": "Munich Product Circle",
+      "city": "Munich",
+      "start_at": "2026-04-26T18:00:00Z"
+    }
+  ]
+}

@@ -161,6 +161,9 @@ For `POST /api/offers/generate`, the backend applies a field-level trust policy 
 
 - `time_bucket` is **authoritative** server-side and recomputed from request time.
 - `weather_need` is **advisory** and is validated against server weather context.
+- `activity_signal` and `activity_confidence` are **advisory** and normalized with source/signal consistency:
+  - `activity_source=none` forces `activity_signal=none` and `activity_confidence=0`
+  - source-specific confidence caps are enforced (`movement_inferred` lower cap than health-linked sources)
 - provenance is emitted in decision trace metadata under `intent_trust_normalization`.
 
 Audit intent: every accepted/overridden value is recorded with source + reason so offer eligibility can be explained and replayed.
@@ -200,6 +203,24 @@ Runtime OCR path is now explicitly two-stage:
    - applies deterministic confidence threshold before hard-gating transit window logic
 
 Design intent: parsing reliability concerns live in the OCR adapter layer, while offer eligibility remains deterministic in the offer pipeline.
+
+---
+
+## Spark Wave Runtime Semantics
+
+Spark Wave is now integrated into both abuse control and economics surfaces:
+
+- **Join anti-abuse gating**
+  - per-session and per-wave burst limits remain enforced.
+  - denied join attempts are now logged as explicit audit events (`wave_join_denied`) with categorized reasons.
+  - a deterministic session risk score is computed from recent join attempts/denials/successes.
+  - high-risk sessions are blocked from new joins (`wave_not_joinable`) until risk pressure decays over time windows.
+- **Economics propagation**
+  - wave catalyst bonus continues to apply at redemption (`confirm_redemption` cashback uplift).
+  - offer pipeline now also applies session-scoped catalyst uplift when the session participates in an active/completed non-expired wave for the same merchant.
+  - explainability includes `spark_wave_catalyst_bonus` with `catalyst_bonus_pct` metadata so uplift remains auditable.
+
+Design intent: Spark Wave remains anonymous and deterministic while providing measurable social lift without bypassing baseline offer safety and rule gates.
 
 ---
 
@@ -257,6 +278,9 @@ Rule of thumb: transport shapes live in `models`, policy lives in `services`, SQ
 ### Backend-side data sources
 
 - merchant and transaction-density signals (Payone/synthetic feed)
+- weather context (OpenWeatherMap with fail-soft defaults + cache metadata)
+- nearby place context (Google Places, fail-soft/cache-backed)
+- local event context (Luma API, fail-soft/cache-backed)
 - offer lifecycle, audit trail, wallet credits in SQLite
 - optional graph projection in Neo4j (best-effort, fail-soft)
 - optional LLM framing generation (no authority over entitlement values)
@@ -304,4 +328,5 @@ When behavior is unexpected, check in this order:
 4. Graph health and session preference state (`/api/graph/health`, `/api/graph/sessions/{id}/preferences`)
 5. Movement rollout traces in decision metadata (`movement_hard_block`, `movement_category_adjustment`, movement-aware `recheck_in_minutes`)
 6. OCR transit ingest payload (`POST /api/ocr/transit`) and `ocr_transit_input` explainability metadata
-7. Spark Wave join semantics (`POST /api/waves/{id}/join`) including `join_applied`
+7. Spark Wave join semantics (`POST /api/waves/{id}/join`) including `join_applied`, denial reason patterns, and risk-gated rejections
+8. Spark Wave bonus propagation in offer explainability (`spark_wave_catalyst_bonus`) and redemption bonus fields

@@ -62,6 +62,20 @@ export const INTENT_TOOL_SCHEMA: ToolDefinition = {
       },
       dwell_signal: { type: "boolean" },
       battery_low: { type: "boolean" },
+      activity_signal: {
+        type: "string",
+        enum: ["none", "active_recently", "post_workout", "resting"],
+      },
+      activity_source: {
+        type: "string",
+        enum: ["none", "strava", "native_health", "hybrid", "movement_inferred"],
+      },
+      activity_confidence: { type: "number", minimum: 0, maximum: 1 },
+      location_grid_accuracy_m: {
+        type: "integer",
+        minimum: 10,
+        maximum: 500,
+      },
       session_id: { type: "string" },
     },
   },

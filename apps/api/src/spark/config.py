@@ -37,6 +37,10 @@ if DB_PATH != ":memory:":
 # ── API Keys ───────────────────────────────────────────────────────────────────
 GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY", "")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+LUMA_API_KEY = os.getenv("LUMA_API_KEY", "")
+LUMA_BASE_URL = os.getenv("LUMA_BASE_URL", "https://api.lu.ma").rstrip("/")
+LUMA_SEED_EVENTS_PATH = os.getenv("LUMA_SEED_EVENTS_PATH", "resources/mock_events_stuttgart.json")
 
 # ── Gemini Flash ───────────────────────────────────────────────────────────────
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
@@ -61,6 +65,11 @@ else:
 # ── OpenWeatherMap ─────────────────────────────────────────────────────────────
 STUTTGART_CITY_ID = "2825297"
 WEATHER_CACHE_TTL_SECONDS = 300  # 5 min
+CONTEXT_PROVIDER_TIMEOUT_SECONDS = float(
+    os.getenv("CONTEXT_PROVIDER_TIMEOUT_SECONDS", "4.0")
+)
+PLACES_CACHE_TTL_SECONDS = int(os.getenv("PLACES_CACHE_TTL_SECONDS", "300"))
+LUMA_CACHE_TTL_SECONDS = int(os.getenv("LUMA_CACHE_TTL_SECONDS", "300"))
 
 # ── Offer defaults ─────────────────────────────────────────────────────────────
 DEFAULT_OFFER_VALID_MINUTES = 20

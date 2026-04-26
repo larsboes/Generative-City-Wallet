@@ -15,11 +15,14 @@ from spark.models.context import (
     DecisionTraceItem,
     DemoOverrides,
     EnvironmentContext,
+    EventContext,
+    ExternalContext,
     IntentFieldProvenance,
     IntentVector,
     MerchantContext,
     MerchantDemand,
     OfferDecisionTrace,
+    PlaceContext,
     UserContext,
 )
 from spark.services.composite_helpers import (
@@ -34,9 +37,11 @@ from spark.services.composite_helpers import (
 from spark.services.conflict import resolve_conflict
 from spark.services.density import compute_density_signal
 from spark.services.distance import estimate_distance_m
+from spark.services.events import get_luma_event_context
 from spark.services.offer_decision import decide_offer
 from spark.services.intent_trust import normalize_intent_vector, provenance_metadata
 from spark.services.identity_continuity import resolve_continuity_identity
+from spark.services.places import get_places_context
 from spark.services.weather import get_stuttgart_weather
 
 DEFAULT_PREFERENCE_SCORES = HELPER_DEFAULT_PREFERENCE_SCORES
@@ -104,6 +109,8 @@ async def build_composite_state(
 
     # ── Preference scores from the user knowledge graph ─────────────────────
     preference_scores = await load_preference_scores(intent.session_id, repo)
+    places_context = await get_places_context(intent.grid_cell)
+    event_context = await get_luma_event_context(intent.grid_cell)
 
     # Auto-select merchant through deterministic decision pipeline.
     decision = decide_offer(
@@ -115,6 +122,11 @@ async def build_composite_state(
         preference_scores=preference_scores,
         transit_delay_minutes=effective_transit_delay,
         must_return_by=effective_must_return_by,
+        activity_signal=intent.activity_signal,
+        activity_source=intent.activity_source,
+        activity_confidence=float(intent.activity_confidence),
+        event_pressure=float(event_context.get("events_tonight_count", 0)),
+        place_busyness=places_context.get("avg_busyness"),
         db_path=db_path,
         now=now,
     )
@@ -216,6 +228,13 @@ async def build_composite_state(
             feels_like_celsius=weather["feels_like_celsius"],
             weather_need=weather["weather_need"],
             vibe_signal=weather["vibe_signal"],
+            source=weather.get("source"),
+            provider_available=weather.get("provider_available"),
+            cache_hit=weather.get("cache_hit"),
+        ),
+        external=ExternalContext(
+            place=PlaceContext(**places_context),
+            events=EventContext(**event_context),
         ),
         conflict_resolution=ConflictResolutionContext(
             recommendation=recommendation,  # type: ignore[reportArgumentType]
@@ -236,6 +255,17 @@ async def build_composite_state(
                     score=1.0,
                     metadata={"fields": provenance_metadata(normalized.provenance)},
                 ),
+                DecisionTraceItem(
+                    code="external_context_signals",
+                    reason="Server enrichment providers added place/event context signals.",
+                    score=1.0,
+                    metadata={
+                        "place_source": places_context.get("source"),
+                        "place_count": places_context.get("nearby_place_count"),
+                        "events_source": event_context.get("source"),
+                        "events_tonight_count": event_context.get("events_tonight_count"),
+                    },
+                ),
                 *[
                     DecisionTraceItem(
                         code=step.code,
@@ -247,4 +277,25 @@ async def build_composite_state(
                 ],
             ],
         ),
+    )
+
+
+def build_provider_probe_intent(grid_cell: str) -> IntentVector:
+    """
+    Build a deterministic synthetic intent for provider-status diagnostics.
+    Kept in services layer so routers remain transport-thin.
+    """
+    return IntentVector.model_validate(
+        {
+            "grid_cell": grid_cell,
+            "movement_mode": "browsing",
+            "time_bucket": "unknown",
+            "weather_need": "neutral",
+            "social_preference": "neutral",
+            "price_tier": "mid",
+            "recent_categories": [],
+            "dwell_signal": False,
+            "battery_low": False,
+            "session_id": "provider-status-check",
+        }
     )

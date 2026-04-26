@@ -27,6 +27,12 @@ class IntentVector(BaseModel):
     battery_low: bool = False
     session_id: str
     continuity_hint: str | None = None
+    activity_signal: Literal["none", "active_recently", "post_workout", "resting"] = "none"
+    activity_source: Literal[
+        "none", "strava", "native_health", "hybrid", "movement_inferred"
+    ] = "none"
+    activity_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    location_grid_accuracy_m: Optional[int] = Field(default=None, ge=10, le=500)
 
 
 class IntentFieldProvenance(BaseModel):
@@ -98,6 +104,33 @@ class EnvironmentContext(BaseModel):
     feels_like_celsius: float
     weather_need: str
     vibe_signal: str
+    source: Optional[str] = None
+    provider_available: Optional[bool] = None
+    cache_hit: Optional[bool] = None
+
+
+class PlaceContext(BaseModel):
+    source: str
+    provider_available: bool = False
+    nearby_place_count: int = 0
+    avg_rating: Optional[float] = None
+    avg_busyness: Optional[float] = None
+    popular_place_name: Optional[str] = None
+
+
+class EventContext(BaseModel):
+    source: str
+    provider_available: bool = False
+    events_tonight_count: int = 0
+    nearest_event_name: Optional[str] = None
+    cache_hit: bool = False
+    error_reason: Optional[str] = None
+    http_status: Optional[int] = None
+
+
+class ExternalContext(BaseModel):
+    place: PlaceContext
+    events: EventContext
 
 
 class ConflictResolutionContext(BaseModel):
@@ -129,6 +162,7 @@ class CompositeContextState(BaseModel):
     user: UserContext
     merchant: MerchantContext
     environment: EnvironmentContext
+    external: Optional[ExternalContext] = None
     conflict_resolution: ConflictResolutionContext
     decision_trace: Optional[OfferDecisionTrace] = None
 
