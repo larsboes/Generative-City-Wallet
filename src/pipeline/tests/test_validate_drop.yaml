@@ -1,0 +1,25 @@
+service:
+  flush: 1
+  daemon: off
+
+pipeline:
+  inputs:
+    - name: stdin
+      tag: test
+      format: json
+
+  filters:
+    - name: lua
+      match: test
+      script: /fluent-bit/scripts/validate.lua
+      call: cb_filter
+
+    - name: expect
+      match: test
+      key_not_exists: hour_of_week
+      action: exit
+
+  outputs:
+    - name: stdout
+      match: test
+      format: json_lines

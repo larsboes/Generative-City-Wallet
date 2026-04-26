@@ -1,0 +1,6 @@
+{"merchant_id":"MERCHANT_001","amount":4.50,"currency":"EUR","category":"cafe","grid_cell":"STR-MITTE-047","method":"contactless"}
+{"merchant_id":"MERCHANT_003","amount":8.90,"currency":"EUR","category":"bar","grid_cell":"STR-MITTE-047","method":"chip"}
+{"merchant_id":"MERCHANT_002","amount":3.10,"currency":"EUR","category":"bakery","grid_cell":"STR-MITTE-047","method":"apple_pay"}
+{"merchant_id":"","amount":5.00,"currency":"EUR","category":"cafe","grid_cell":"STR-MITTE-047","method":"contactless"}
+{"amount":4.50,"currency":"EUR","category":"cafe","grid_cell":"STR-MITTE-047","method":"contactless"}
+{"merchant_id":"MERCHANT_004","currency":"EUR","category":"restaurant","grid_cell":"STR-MITTE-047","method":"chip"}
