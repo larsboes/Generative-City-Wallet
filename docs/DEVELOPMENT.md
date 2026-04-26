@@ -17,6 +17,19 @@ For architecture and data flows, see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 1. **Mobile and dashboard** must take boundary types from **`@spark/shared`**, not by copying shapes into each app.
 2. **Python** must not import `packages/shared`; parity is enforced by **review** + **`scripts/dev/check_contract_symbols.py`** in CI (extend the symbol list when you add cross-boundary types).
 3. Keep `packages/shared/src/contracts.ts` aligned with `apps/api/src/spark/models/contracts.py` for all cross-boundary types consumed by mobile/dashboard.
+4. Inside Python, prefer narrow imports from `spark.models.api`, `spark.models.context`, `spark.models.offers`, `spark.models.transactions`, `spark.models.redemption`, and `spark.models.conflict`. Treat `spark.models.contracts` as a compatibility barrel for legacy imports.
+5. Keep `spark.db` narrow: connections, schema bootstrap, and DB package scaffolding. Put SQL-backed persistence operations in `spark.repositories`.
+
+## Repository layout conventions
+
+- **Application code** lives under `apps/` (API, mobile, dashboard).
+- **Shared TypeScript contracts/types** live under `packages/`.
+- **Developer/ops scripts** live under `scripts/`.
+- **Infrastructure assets** (container/runtime configs, pipeline assets) live under `infra/`.
+
+Examples:
+- Fluent Bit assets: `infra/fluentbit/`
+- Graph ops scripts: `scripts/ops/`
 
 ---
 

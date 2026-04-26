@@ -9,7 +9,6 @@ HYBRID ARCHITECTURE:
 """
 
 import json
-import logging
 import uuid
 
 from fastapi import APIRouter
@@ -17,14 +16,16 @@ from fastapi import APIRouter
 from spark.config import AGENT_ENABLED
 from spark.db.connection import get_connection
 from spark.graph.repository import get_repository
-from spark.models.contracts import ExplainabilityReason, GenerateOfferRequest
+from spark.models.api import GenerateOfferRequest
+from spark.models.offers import ExplainabilityReason
 from spark.services.composite import build_composite_state
 from spark.services.graph_rules import GraphValidationService
 from spark.services.hard_rails import enforce_hard_rails
 from spark.services.offer_generator import generate_offer_llm
 from spark.services.redemption import generate_qr_payload
+from spark.utils.logger import get_logger
 
-logger = logging.getLogger("spark.offers")
+logger = get_logger("spark.offers")
 router = APIRouter(prefix="/api/offers", tags=["offers"])
 
 
@@ -136,12 +137,10 @@ async def generate_offer(request: GenerateOfferRequest):
                 merchant_id=request.merchant_id,
             )
 
-            if agent_decision and not agent_decision.get("skip"):
+            if agent_decision and not agent_decision.skip:
                 # Agent succeeded — override merchant selection
-                request.merchant_id = agent_decision.get(
-                    "merchant_id", request.merchant_id
-                )
-                agent_reasoning = agent_decision.get("reasoning")
+                request.merchant_id = agent_decision.merchant_id or request.merchant_id
+                agent_reasoning = agent_decision.reasoning
                 pipeline_source = "agent"
                 logger.info(
                     "agent_selected_merchant",
@@ -150,12 +149,11 @@ async def generate_offer(request: GenerateOfferRequest):
                         "reasoning": agent_reasoning,
                     },
                 )
-            elif agent_decision and agent_decision.get("skip"):
+            elif agent_decision and agent_decision.skip:
                 return {
                     "offer": None,
-                    "reason": agent_decision.get(
-                        "reason", "Agent determined no suitable merchant."
-                    ),
+                    "reason": agent_decision.reason
+                    or "Agent determined no suitable merchant.",
                     "pipeline": "agent",
                     "recheck_in_minutes": 30,
                 }
@@ -209,25 +207,12 @@ async def generate_offer(request: GenerateOfferRequest):
     # 4. Generate offer content
     offer_id = str(uuid.uuid4())
 
-    if agent_decision and agent_decision.get("content"):
-        # Agent provided content + GenUI → wrap as LLMOfferOutput
-        from spark.models.contracts import LLMOfferOutput
-
-        llm_output = LLMOfferOutput(
-            content=agent_decision["content"],
-            genui=agent_decision.get(
-                "genui",
-                {
-                    "color_palette": "warm_amber",
-                    "typography_weight": "medium",
-                    "background_style": "gradient",
-                    "imagery_prompt": "contextual offer card",
-                    "urgency_style": "gentle_pulse",
-                    "card_mood": "cozy",
-                },
-            ),
-            framing_band_used=state.conflict_resolution.framing_band or "",
+    if agent_decision and agent_decision.content:
+        llm_output = agent_decision.to_llm_offer_output(
+            state.conflict_resolution.framing_band or ""
         )
+        if llm_output is None:
+            llm_output = await generate_offer_llm(state)
     else:
         # Deterministic fallback — direct LLM call
         llm_output = await generate_offer_llm(state)
@@ -328,15 +313,18 @@ def _log_offer_audit(
                 llm_output.model_dump_json(),
                 offer.model_dump_json(),
                 json.dumps(
-                    {
-                        "rails_applied": True,
-                        "pipeline": pipeline_source,
-                        "agent_reasoning": agent_reasoning,
-                        "graph_decision": graph_decision or {},
-                        "decision_trace": state.decision_trace.model_dump()
-                        if state.decision_trace
-                        else {},
-                    }
+                    (
+                        (offer.audit_info.model_dump(mode="json") if offer.audit_info else {})
+                        | {
+                            "rails_applied": True,
+                            "pipeline": pipeline_source,
+                            "agent_reasoning": agent_reasoning,
+                            "graph_decision": graph_decision or {},
+                            "decision_trace": state.decision_trace.model_dump()
+                            if state.decision_trace
+                            else {},
+                        }
+                    )
                 ),
                 "SENT",
             ),

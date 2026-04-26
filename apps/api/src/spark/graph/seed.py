@@ -8,12 +8,11 @@ run on every boot.
 
 from __future__ import annotations
 
-import logging
-
 from spark.db.connection import get_connection
 from spark.graph.repository import get_repository
+from spark.utils.logger import get_logger
 
-logger = logging.getLogger("spark.graph.seed")
+logger = get_logger("spark.graph.seed")
 
 
 async def sync_merchants_from_sqlite(db_path: str | None = None) -> int:

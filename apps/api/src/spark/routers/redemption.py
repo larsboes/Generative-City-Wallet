@@ -4,10 +4,8 @@ Redemption and wallet endpoints.
 
 from fastapi import APIRouter
 
-from spark.models.contracts import (
-    ConflictResolveRequest,
-    RedemptionValidationRequest,
-)
+from spark.models.conflict import ConflictResolveRequest
+from spark.models.redemption import RedemptionValidationRequest
 from spark.services.conflict import resolve_conflict
 from spark.services.redemption import (
     confirm_redemption,

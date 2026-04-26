@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 import sqlite3
 
-from spark.models.contracts import DemandContext, Venue
+from spark.models.transactions import DemandContext, Venue
+from spark.services.canonicalization import ensure_utc, hour_of_week, iso, normalize_category
 
 
 BASE_HOURLY_RATES: dict[str, list[float]] = {
@@ -235,34 +236,6 @@ OCCUPANCY_CALIBRATION: dict[str, tuple[float, float]] = {
     "biergarten": (0.5, 28.0),
     "nightclub": (0.0, 35.0),
 }
-
-
-def hour_of_week(dt: datetime) -> int:
-    return dt.weekday() * 24 + dt.hour
-
-
-def ensure_utc(dt: datetime) -> datetime:
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
-
-
-def iso(dt: datetime) -> str:
-    return ensure_utc(dt).isoformat()
-
-
-def normalize_category(category: str | None) -> str:
-    if not category:
-        return "unknown"
-    normalized = category.strip().lower().replace("-", "_").replace(" ", "_")
-    aliases = {
-        "food_court": "fast_food",
-        "ice_cream": "cafe",
-        "coffee_shop": "cafe",
-        "club": "nightclub",
-    }
-    return aliases.get(normalized, normalized)
-
 
 def fallback_historical_rate(category: str, dt: datetime) -> float:
     category = normalize_category(category)

@@ -30,12 +30,12 @@ def generate_event() -> dict:
 
 def run(events_per_minute: int = 30):
     delay = 60.0 / events_per_minute
-    print(f"Generating ~{events_per_minute} events/min → {FLUENTBIT_URL}")
+    print(f"Generating ~{events_per_minute} events/min -> {FLUENTBIT_URL}")
     while True:
         event = generate_event()
         try:
             httpx.post(FLUENTBIT_URL, json=event, timeout=2)
-            print(f"  → {event['merchant_id']} {event['category']} €{event['amount']}")
+            print(f"  -> {event['merchant_id']} {event['category']} EUR{event['amount']}")
         except httpx.ConnectError:
             print("FluentBit not reachable, retrying...")
         time.sleep(delay + random.uniform(-delay * 0.2, delay * 0.2))

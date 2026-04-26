@@ -7,11 +7,10 @@ hard blocks -> candidate scoring -> threshold -> anti-spam checks -> decision tr
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime
 
-from spark.db.connection import get_connection
+from spark.models.decision import DecisionTraceStep, MerchantDecision, OfferDecisionResult
+from spark.services.offer_decision_repository import OfferDecisionRepository
 from spark.services.conflict import resolve_conflict
 from spark.services.density import compute_density_signal
 
@@ -26,34 +25,6 @@ POST_WORKOUT_RECOVERY_CATEGORIES = {
 POST_WORKOUT_SUPPRESSED_CATEGORIES = {"bar", "club", "nightclub"}
 
 
-@dataclass(frozen=True)
-class DecisionTraceStep:
-    code: str
-    reason: str
-    score: float = 0.0
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class MerchantDecision:
-    merchant_id: str
-    score: float
-    conflict_recommendation: str
-    conflict_framing_band: str | None
-    trace: list[DecisionTraceStep]
-
-
-@dataclass(frozen=True)
-class OfferDecisionResult:
-    recommendation: str
-    selected_merchant_id: str | None
-    selected_merchant_score: float
-    recheck_in_minutes: int | None
-    trace: list[DecisionTraceStep]
-    candidate_scores: list[dict[str, Any]]
-    conflict_framing_band: str | None
-
-
 def decide_offer(
     *,
     session_id: str,
@@ -66,11 +37,12 @@ def decide_offer(
     now: datetime | None = None,
 ) -> OfferDecisionResult:
     current_dt = now or datetime.now()
+    repo = OfferDecisionRepository(db_path)
     hard_block = _check_hard_blocks(
         session_id=session_id,
         movement_mode=movement_mode,
-        db_path=db_path,
         now=current_dt,
+        repo=repo,
     )
     if hard_block:
         return OfferDecisionResult(
@@ -83,7 +55,7 @@ def decide_offer(
             conflict_framing_band=None,
         )
 
-    candidates = _list_candidate_merchants(grid_cell=grid_cell, db_path=db_path)
+    candidates = repo.list_candidate_merchants(grid_cell=grid_cell)
     if not candidates:
         return OfferDecisionResult(
             recommendation="DO_NOT_RECOMMEND",
@@ -103,8 +75,8 @@ def decide_offer(
     merchant_decisions: list[MerchantDecision] = []
     for candidate in candidates:
         merchant_decision = _score_merchant_candidate(
-            merchant_id=candidate["id"],
-            merchant_category=candidate["type"],
+            merchant_id=candidate.merchant_id,
+            merchant_category=candidate.merchant_category,
             movement_mode=movement_mode,
             social_preference=social_preference,
             weather_need=weather_need,
@@ -193,8 +165,8 @@ def _check_hard_blocks(
     *,
     session_id: str,
     movement_mode: str,
-    db_path: str | None,
     now: datetime,
+    repo: OfferDecisionRepository,
 ) -> DecisionTraceStep | None:
     if movement_mode == "exercising":
         return DecisionTraceStep(
@@ -203,67 +175,29 @@ def _check_hard_blocks(
             metadata={"movement_mode": movement_mode, "recheck_in_minutes": 10},
         )
 
-    conn = get_connection(db_path)
-    try:
-        unresolved = conn.execute(
-            """
-            SELECT offer_id FROM offer_audit_log
-            WHERE session_id = ?
-              AND status IN ('SENT', 'ACCEPTED')
-            ORDER BY created_at DESC
-            LIMIT 1
-            """,
-            (session_id,),
-        ).fetchone()
-        if unresolved:
-            recheck_in_minutes = _movement_recheck_minutes(
-                movement_mode=movement_mode, default_minutes=20
-            )
-            return DecisionTraceStep(
-                code="single_offer_guard",
-                reason="Session has an unresolved active offer; one-offer policy blocks new offer.",
-                metadata={
-                    "active_offer_id": unresolved["offer_id"],
-                    "recheck_in_minutes": recheck_in_minutes,
-                },
-            )
+    session_state = repo.get_session_state(
+        session_id=session_id, now=now
+    )
+    if session_state.unresolved_offer_id:
+        recheck_in_minutes = _movement_recheck_minutes(
+            movement_mode=movement_mode, default_minutes=20
+        )
+        return DecisionTraceStep(
+            code="single_offer_guard",
+            reason="Session has an unresolved active offer; one-offer policy blocks new offer.",
+            metadata={
+                "active_offer_id": session_state.unresolved_offer_id,
+                "recheck_in_minutes": recheck_in_minutes,
+            },
+        )
 
-        today_count = conn.execute(
-            """
-            SELECT COUNT(*) AS c
-            FROM offer_audit_log
-            WHERE session_id = ?
-              AND datetime(created_at) >= datetime(?)
-            """,
-            (session_id, (now - timedelta(hours=24)).isoformat()),
-        ).fetchone()
-        if today_count and int(today_count["c"]) >= 3:
-            return DecisionTraceStep(
-                code="daily_cap_reached",
-                reason="Session hit max offers per rolling 24h window.",
-                metadata={"max_offers": 3, "recheck_in_minutes": 180},
-            )
-
-    finally:
-        conn.close()
+    if session_state.offers_last_24h >= 3:
+        return DecisionTraceStep(
+            code="daily_cap_reached",
+            reason="Session hit max offers per rolling 24h window.",
+            metadata={"max_offers": 3, "recheck_in_minutes": 180},
+        )
     return None
-
-
-def _list_candidate_merchants(
-    *, grid_cell: str, db_path: str | None
-) -> list[dict[str, Any]]:
-    conn = get_connection(db_path)
-    try:
-        rows = conn.execute(
-            "SELECT id, type FROM merchants WHERE grid_cell = ?",
-            (grid_cell,),
-        ).fetchall()
-        if rows:
-            return [dict(r) for r in rows]
-        fallback = conn.execute("SELECT id, type FROM merchants LIMIT 5").fetchall()
-        return [dict(r) for r in fallback]
-    finally:
-        conn.close()
 
 
 def _score_merchant_candidate(

@@ -19,7 +19,7 @@ from spark.graph.repository import (
     PreferenceScore,
     RecentOffer,
 )
-from spark.models.contracts import IntentVector
+from spark.models.context import IntentVector
 from spark.services import composite as composite_module
 
 

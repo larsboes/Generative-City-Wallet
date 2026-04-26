@@ -9,19 +9,19 @@ from datetime import datetime
 
 from spark.db.connection import get_connection
 from spark.graph.repository import GraphRepository, get_repository
-from spark.models.contracts import (
+from spark.models.common import ConflictRecommendation
+from spark.models.context import (
     ActiveCoupon,
     CompositeContextState,
     ConflictResolutionContext,
-    ConflictRecommendation,
     DecisionTraceItem,
-    OfferDecisionTrace,
+    DemoOverrides,
     EnvironmentContext,
     IntentVector,
     MerchantContext,
     MerchantDemand,
+    OfferDecisionTrace,
     UserContext,
-    DemoOverrides,
 )
 from spark.services.density import compute_density_signal
 from spark.services.conflict import resolve_conflict

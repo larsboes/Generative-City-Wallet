@@ -9,6 +9,8 @@ Safety and boundary model for generated offer content.
 - Deterministic engine decides eligibility and merchant selection.
 - LLM generates wording/style only after deterministic approval.
 - Hard rails enforce final business and safety constraints.
+- Raw model output is never treated as the final offer contract.
+- Python canonicalization owns DB-truth overrides, typed offer assembly, and rails audit.
 
 ```mermaid
 flowchart LR
@@ -28,6 +30,14 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 3. expiry computed server-side
 4. banned health/safety claims scrubbed
 5. placeholders normalized
+6. canonical mapping actions recorded for audit persistence
+
+## Why hard rails stay in Python
+
+- They depend on DB truth, not just event payload fields.
+- They build the canonical `OfferObject`, not an ingress-side intermediate record.
+- They need typed runtime models and stable audit metadata for later inspection.
+- They sit on the boundary between generative output (`LLMOfferOutput`) and the final server contract (`OfferObject`).
 
 ---
 
@@ -51,6 +61,7 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 ## Audit and explainability hooks
 
 - rails metadata persisted in offer audit log (`rails_audit` payload)
+- canonical mapping actions record what was rewritten, defaulted, derived, or redacted
 - decision trace and graph decision metadata also attached by router layer
 
 ---

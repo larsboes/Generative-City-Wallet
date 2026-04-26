@@ -4,8 +4,6 @@ QR token generation, validation, and cashback credit.
 
 import hashlib
 import hmac
-import json
-import logging
 import time
 from datetime import datetime
 
@@ -16,8 +14,10 @@ from spark.config import (
 )
 from spark.db.connection import get_connection
 from spark.graph.repository import get_repository
+from spark.utils.logger import get_logger
+from spark.services.canonicalization import parse_stored_offer
 
-logger = logging.getLogger("spark.redemption")
+logger = get_logger("spark.redemption")
 
 # Reinforcement deltas for the user knowledge graph.
 # Tuned conservatively — the graph is bounded to [0, 1].
@@ -81,10 +81,8 @@ def validate_qr(
             return {"valid": False, "offer_id": offer_id, "error": "INVALID_TOKEN"}
 
         # Parse discount from final_offer
-        final_offer = (
-            json.loads(offer_row["final_offer"]) if offer_row["final_offer"] else {}
-        )
-        discount = final_offer.get("discount", {})
+        parsed_offer = parse_stored_offer(offer_row["final_offer"])
+        final_offer = parsed_offer.value
 
         conn.close()
 
@@ -92,8 +90,10 @@ def validate_qr(
             "valid": True,
             "offer_id": offer_id,
             "merchant_id": merchant_id,
-            "discount_value": discount.get("value", 0),
-            "discount_type": discount.get("type", "percentage"),
+            "discount_value": final_offer.discount.value if final_offer else 0,
+            "discount_type": (
+                final_offer.discount.type if final_offer else "percentage"
+            ),
             "session_id": offer_row["session_id"],
             "expires_at": datetime.fromtimestamp(expiry_unix).isoformat(),
         }
@@ -126,12 +126,10 @@ def confirm_redemption(
     )
 
     # Calculate cashback (discount value as cashback EUR)
-    final_offer = (
-        json.loads(offer_row["final_offer"]) if offer_row["final_offer"] else {}
-    )
-    discount = final_offer.get("discount", {})
-    discount_pct = discount.get("value", 0)
-    merchant_name = final_offer.get("merchant", {}).get("name", "Unknown")
+    parsed_offer = parse_stored_offer(offer_row["final_offer"])
+    final_offer = parsed_offer.value
+    discount_pct = final_offer.discount.value if final_offer else 0
+    merchant_name = final_offer.merchant.name if final_offer else "Unknown"
 
     # Assume average transaction of €5 for cashback calculation
     avg_transaction = 5.0

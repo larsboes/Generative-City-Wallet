@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 
-from spark.db.connection import get_connection, insert_venue_transactions, upsert_venues
+from spark.db.connection import get_connection
+from spark.repositories.transactions import insert_venue_transactions
+from spark.repositories.venues import upsert_venues
 from spark.services.signals import (
     classify_density,
     compute_demand_context,

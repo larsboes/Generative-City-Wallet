@@ -2,8 +2,8 @@ import math
 import sqlite3
 from typing import Iterable
 
-from spark.db.connection import upsert_venues as db_upsert_venues
-from spark.models.contracts import Venue
+from spark.models.transactions import Venue
+from spark.repositories.venues import upsert_venues as repo_upsert_venues
 from spark.services.signals import normalize_category
 
 
@@ -86,4 +86,4 @@ def list_venues(
 
 
 def save_venues(db_path: str, venues: Iterable[dict]) -> int:
-    return db_upsert_venues(db_path, list(venues))
+    return repo_upsert_venues(db_path, list(venues))

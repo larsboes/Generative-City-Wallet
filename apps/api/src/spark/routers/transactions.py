@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 
 from spark.db.connection import get_connection
-from spark.models.contracts import (
+from spark.models.transactions import (
     LiveUpdateRequest,
     TransactionGenerationRequest,
     TransactionGenerationResponse,

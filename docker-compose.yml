@@ -28,8 +28,8 @@ services:
       - "${FLUENTBIT_HTTP_PORT:-8889}:8888"
       - "${FLUENTBIT_METRICS_PORT:-2021}:2020"
     volumes:
-      - ./src/pipeline/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
-      - ./src/pipeline/scripts:/fluent-bit/scripts:ro
+      - ./infra/fluentbit/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
+      - ./infra/fluentbit/scripts:/fluent-bit/scripts:ro
       - fluentbit-data:/fluent-bit/data
     restart: unless-stopped
 

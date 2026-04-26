@@ -19,7 +19,8 @@ from spark.config import (
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
 )
-from spark.models.contracts import CompositeContextState, LLMOfferOutput
+from spark.models.context import CompositeContextState
+from spark.models.offers import LLMOfferOutput
 
 # ── System Prompt (from doc 17 — complete) ─────────────────────────────────────
 

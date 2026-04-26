@@ -10,7 +10,6 @@ during a request.
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator, Awaitable, Callable, Optional, TypeVar
@@ -25,8 +24,9 @@ from spark.config import (
     NEO4J_URI,
     NEO4J_USER,
 )
+from spark.utils.logger import get_logger
 
-logger = logging.getLogger("spark.graph")
+logger = get_logger("spark.graph")
 
 T = TypeVar("T")
 

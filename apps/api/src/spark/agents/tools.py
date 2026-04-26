@@ -13,6 +13,22 @@ import json
 from datetime import datetime
 
 from strands import tool
+from spark.models.agents import (
+    ConflictCheckToolResult,
+    DensitySignalToolResult,
+    UserPreferenceToolResult,
+    WeatherContextToolResult,
+)
+
+
+def _dump_tool_payload(model) -> str:
+    return model.model_dump_json()
+
+
+def _dump_tool_payload_list(models: list) -> str:
+    return json.dumps(
+        [m.model_dump(mode="json") for m in models], ensure_ascii=False, default=str
+    )
 
 
 @tool
@@ -27,7 +43,8 @@ def get_all_density_signals() -> str:
     from spark.services.density import get_all_merchants_density
 
     results = get_all_merchants_density()
-    return json.dumps(results, default=str, ensure_ascii=False)
+    typed = [DensitySignalToolResult.model_validate(result) for result in results]
+    return _dump_tool_payload_list(typed)
 
 
 @tool
@@ -42,7 +59,7 @@ def get_merchant_density(merchant_id: str) -> str:
     from spark.services.density import compute_density_signal
 
     result = compute_density_signal(merchant_id)
-    return json.dumps(result, default=str, ensure_ascii=False)
+    return _dump_tool_payload(DensitySignalToolResult.model_validate(result))
 
 
 @tool
@@ -62,16 +79,18 @@ async def get_user_preferences(session_id: str) -> str:
 
     if not scores:
         # Cold-start fallback
-        return json.dumps(
-            [
-                {"category": "cafe", "weight": 0.82},
-                {"category": "bakery", "weight": 0.60},
-                {"category": "bar", "weight": 0.40},
-            ]
-        )
+        fallback = [
+            UserPreferenceToolResult(category="cafe", weight=0.82),
+            UserPreferenceToolResult(category="bakery", weight=0.60),
+            UserPreferenceToolResult(category="bar", weight=0.40),
+        ]
+        return _dump_tool_payload_list(fallback)
 
-    return json.dumps(
-        [{"category": s.category, "weight": round(s.weight, 3)} for s in scores]
+    return _dump_tool_payload_list(
+        [
+            UserPreferenceToolResult(category=s.category, weight=round(s.weight, 3))
+            for s in scores
+        ]
     )
 
 
@@ -86,7 +105,7 @@ async def get_weather_context() -> str:
     from spark.services.weather import get_stuttgart_weather
 
     weather = await get_stuttgart_weather()
-    return json.dumps(weather, default=str, ensure_ascii=False)
+    return _dump_tool_payload(WeatherContextToolResult.model_validate(weather))
 
 
 @tool
@@ -113,16 +132,15 @@ def check_conflict(
         current_txn_rate=current_txn_rate,
         current_dt=datetime.now(),
     )
-    return json.dumps(
-        {
-            "recommendation": result.recommendation,
-            "framing_band": result.framing_band,
-            "coupon_mechanism": result.coupon_mechanism,
-            "reason": result.reason,
-            "allowed_vocabulary": result.allowed_vocabulary,
-            "banned_vocabulary": result.banned_vocabulary,
-        },
-        ensure_ascii=False,
+    return _dump_tool_payload(
+        ConflictCheckToolResult(
+            recommendation=result.recommendation,
+            framing_band=result.framing_band,
+            coupon_mechanism=result.coupon_mechanism,
+            reason=result.reason,
+            allowed_vocabulary=result.allowed_vocabulary,
+            banned_vocabulary=result.banned_vocabulary,
+        )
     )
 
 

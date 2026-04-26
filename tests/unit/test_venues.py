@@ -1,4 +1,5 @@
-from spark.db.connection import get_connection, upsert_venues
+from spark.db.connection import get_connection
+from spark.repositories.venues import upsert_venues
 from spark.services.venues import haversine_m, list_venues
 
 

@@ -38,6 +38,51 @@ Key rule: recommendation is deterministic; LLM is framing/UI generation only.
 
 ---
 
+## Runtime ownership and mapping boundaries
+
+- **Fluent Bit / Lua** owns ingress validation and lightweight event normalization.
+  - required field checks
+  - coercion and dead-letter routing
+  - deterministic event enrichment such as time buckets and category aliases
+- **Python runtime** owns domain canonicalization.
+  - DB-authoritative overrides
+  - typed contract assembly
+  - offer hard rails
+  - audit and explainability metadata
+
+Rule of thumb: if logic needs DB truth, response contracts, or product/business rules, it belongs in Python, not Lua.
+
+---
+
+## Code structure boundaries
+
+- **`spark.models`** defines typed shapes grouped by lifecycle and boundary.
+  - `api`: HTTP request/response DTOs
+  - `context`: composite context and deterministic decision-trace models
+  - `offers`: raw LLM output, canonical offer objects, rails audit
+  - `transactions` / `redemption` / `conflict` / `agents`: subsystem-specific DTOs
+  - `contracts.py` remains a compatibility barrel; new code should prefer narrow module imports
+- **`spark.services`** owns business logic and canonicalization.
+  - deterministic decision policy
+  - composite context assembly
+  - hard rails
+  - redemption and transaction logic
+- **`spark.repositories`** owns SQL-backed persistence operations.
+  - inserts, upserts, and repository-style reads
+  - canonical SQL access points for venues and transactions
+- **`spark.db`** stays narrow.
+  - connection/bootstrap helpers
+  - schema
+  - low-level package scaffolding
+- **`spark.agents`** is an orchestration/adaptation layer.
+  - prompt + model invocation
+  - tool adapters for Strands
+  - typed agent DTOs adapted back into canonical offer models
+
+Rule of thumb: transport shapes live in `models`, policy lives in `services`, SQL lives in `repositories`, and `db` should not accumulate business logic.
+
+---
+
 ## Local vs cloud data boundary
 
 ### On-device only (must not be uploaded raw)
@@ -81,6 +126,7 @@ Key rule: recommendation is deterministic; LLM is framing/UI generation only.
 - `architecture/context-signals.md` — signal model and composite context usage
 - `architecture/offer-decision-engine.md` — rules-first ranking and thresholding
 - `architecture/llm-and-hard-rails.md` — generation boundary and safety enforcement
+- `architecture/ingress-and-canonicalization.md` — runtime mapping boundary between Fluent Bit and Python
 - `architecture/neo4j-graph.md` — graph model, rules, writes, operations
 - `DATA-MODEL.md` — canonical contracts + SQLite + graph projection model
 - `architecture/consumer-app-surfaces.md` — delivery surfaces and app flow

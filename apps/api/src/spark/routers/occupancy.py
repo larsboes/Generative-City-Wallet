@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 
 from spark.db.connection import get_connection
-from spark.models.contracts import (
+from spark.models.transactions import (
     OccupancyQueryRequest,
     OccupancyQueryResponse,
     OccupancyResponse,

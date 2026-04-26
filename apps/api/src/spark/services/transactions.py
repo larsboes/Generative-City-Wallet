@@ -1,17 +1,16 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from hashlib import sha256
 import math
 import random
 import sqlite3
 from typing import Iterable
 
-from spark.db.connection import insert_venue_transactions
-from spark.models.contracts import Venue
+from spark.models.transactions import Venue
+from spark.repositories.transactions import insert_venue_transactions
+from spark.services.canonicalization import ensure_utc, hour_of_week, normalize_category
 from spark.services.signals import (
     BASE_HOURLY_RATES,
     DAY_MULTIPLIERS,
-    hour_of_week,
-    normalize_category,
 )
 from spark.services.venues import get_venue, list_venues
 
@@ -27,13 +26,6 @@ CATEGORY_AVG_TICKET_EUR: dict[str, float] = {
     "nightclub": 16.00,
     "retail": 32.00,
 }
-
-
-def ensure_utc(dt: datetime) -> datetime:
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
-
 
 def floor_hour(dt: datetime) -> datetime:
     utc = ensure_utc(dt)

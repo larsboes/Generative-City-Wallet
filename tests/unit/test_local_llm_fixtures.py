@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from spark.models.contracts import CompositeContextState, IntentVector
+from spark.models.context import CompositeContextState, IntentVector
 
 
 def _fixture(path: str) -> Path:

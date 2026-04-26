@@ -1,6 +1,8 @@
 from datetime import date, datetime, timezone
 
-from spark.db.connection import get_connection, upsert_venues
+from spark.db.connection import get_connection
+from spark.repositories.transactions import insert_venue_transactions
+from spark.repositories.venues import upsert_venues
 from spark.services.transaction_stats import (
     get_daily_transactions,
     get_fastest_slowest_hours,
@@ -87,3 +89,43 @@ def test_live_update_and_stats_are_log_backed(tmp_path) -> None:
     assert revenue["total_revenue_eur"] > 0
     assert len(rankings["fastest_hours"]) == 5
     assert len(rankings["slowest_hours"]) == 5
+
+
+def test_insert_venue_transactions_canonicalizes_fields(tmp_path) -> None:
+    db_path = str(tmp_path / "canonical.db")
+    seed_venue(db_path)
+    conn = get_connection(db_path)
+    try:
+        inserted = insert_venue_transactions(
+            conn,
+            [
+                {
+                    "transaction_id": "txn-1",
+                    "merchant_id": "osm_node_1",
+                    "category": "coffee shop",
+                    "timestamp": "2026-04-20T09:15:00+00:00",
+                    "hour_of_day": 0,
+                    "day_of_week": 4,
+                    "hour_of_week": 99,
+                    "amount_eur": "7.50",
+                }
+            ],
+        )
+        row = conn.execute(
+            """
+            SELECT category, hour_of_day, day_of_week, hour_of_week, currency, source
+            FROM venue_transactions
+            WHERE transaction_id = 'txn-1'
+            """
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert inserted == 1
+    assert row is not None
+    assert row["category"] == "cafe"
+    assert row["hour_of_day"] == 9
+    assert row["day_of_week"] == 0
+    assert row["hour_of_week"] == 9
+    assert row["currency"] == "EUR"
+    assert row["source"] == "synthetic"

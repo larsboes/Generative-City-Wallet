@@ -16,6 +16,7 @@ Long-form product, pitch, and hackathon planning material lives under **[`planni
 | **[`architecture/context-signals.md`](architecture/context-signals.md)** | **Context model:** signal categories, composite usage, and runtime boundaries. |
 | **[`architecture/offer-decision-engine.md`](architecture/offer-decision-engine.md)** | **Decision engine:** deterministic ranking, thresholding, and trace. |
 | **[`architecture/llm-and-hard-rails.md`](architecture/llm-and-hard-rails.md)** | **LLM safety boundary:** deterministic recommendation vs generative framing and rails. |
+| **[`architecture/ingress-and-canonicalization.md`](architecture/ingress-and-canonicalization.md)** | **Mapping boundary:** Fluent Bit ingress normalization vs Python canonical contracts. |
 | **[`DATA-MODEL.md`](DATA-MODEL.md)** | **Data model:** contracts, SQLite tables, graph projection relationships, and ownership. |
 | **[`architecture/consumer-app-surfaces.md`](architecture/consumer-app-surfaces.md)** | **Consumer surfaces:** in-app, push, lock-screen/widget behavior and flow. |
 | **[`architecture/merchant-dashboard.md`](architecture/merchant-dashboard.md)** | **Business surfaces:** overview, rules, analytics, validation flow. |
