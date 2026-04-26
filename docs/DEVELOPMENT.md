@@ -10,7 +10,7 @@ For architecture and data flows, see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 | Area | Owns | Consumes |
 |------|------|-----------|
 | **`apps/api`** | HTTP API, SQLite, Neo4j graph, offer pipeline | `@spark/shared` **not** imported — mirror contracts in `spark.models.contracts` |
-| **`apps/mobile`** | Expo UI, on-device flows | `@spark/shared` for request/response shapes |
+| **`apps/mobile`** | React PWA UI, on-device flows | `@spark/shared` for request/response shapes |
 | **`apps/web-dashboard`** | Merchant UI | `@spark/shared` + `VITE_*` env when wired |
 | **`packages/shared`** | TypeScript types only | Nothing from `apps/*` |
 
@@ -40,7 +40,7 @@ Examples:
 | Command | What |
 |---------|------|
 | `npm run dev:api` | FastAPI + uvicorn reload on `:8000` |
-| `npm run dev:mobile` | Expo dev server |
+| `npm run dev:mobile` | React PWA dev server |
 | `npm run dev:dashboard` | Vite dev server on `:3000` |
 
 ### Taskfile quick reference

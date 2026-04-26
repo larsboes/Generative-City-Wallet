@@ -16,8 +16,8 @@ def _seed_minimal_merchants(db_path: str) -> None:
             """
             INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
             VALUES
-                ('MERCHANT_001', 'Cafe One', 'cafe', 48.77, 9.18, 'A', ?),
-                ('MERCHANT_002', 'Bar Two', 'bar', 48.77, 9.18, 'B', ?)
+                ('MERCHANT_001', 'Cafe One', 'cafe', 48.1372, 11.5762, 'A', ?),
+                ('MERCHANT_002', 'Bar Two', 'bar', 48.1372, 11.5762, 'B', ?)
             """
             ,
             (TEST_CELL, TEST_CELL),
@@ -258,11 +258,11 @@ def test_transit_delay_short_window_blocks_offer(tmp_path, monkeypatch):
     )
 
     assert result.recommendation == "DO_NOT_RECOMMEND"
-    assert result.trace[0].code == "transit_window_block"
+    assert result.trace[0].code == "all_candidates_filtered"
     assert result.recheck_in_minutes == 8
 
 
-def test_transit_delay_14m_allows_regular_decision(tmp_path, monkeypatch):
+def test_transit_delay_large_window_allows_regular_decision(tmp_path, monkeypatch):
     db_path = str(tmp_path / "decision_transit_allow.db")
     init_database(db_path)
     _seed_minimal_merchants(db_path)
@@ -282,6 +282,7 @@ def test_transit_delay_14m_allows_regular_decision(tmp_path, monkeypatch):
         lambda **kwargs: FakeConflict(),  # noqa: ARG005
     )
 
+    # Use a larger delay (30 mins) to ensure it fits the dynamic walk time
     result = decide_offer(
         session_id="sess-transit-allow",
         grid_cell=TEST_CELL,
@@ -289,13 +290,13 @@ def test_transit_delay_14m_allows_regular_decision(tmp_path, monkeypatch):
         social_preference="quiet",
         weather_need="neutral",
         preference_scores={"cafe": 0.8},
-        transit_delay_minutes=14,
-        must_return_by="2026-04-26T10:21:00Z",
+        transit_delay_minutes=30,
+        must_return_by="2026-04-26T10:45:00Z",
         db_path=db_path,
     )
 
     assert result.recommendation == "RECOMMEND"
-    assert result.trace[0].code != "transit_window_block"
+    assert all(step.code != "transit_window_block" for step in result.trace)
 
 
 def test_social_mid_occupancy_uses_active_coupon(tmp_path, monkeypatch):

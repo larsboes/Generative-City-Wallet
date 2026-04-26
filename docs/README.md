@@ -73,4 +73,4 @@ Primary implementation paths:
 - `apps/api/src/spark/services/redemption.py`
 - `apps/api/src/spark/services/wallet_seed.py`
 - `apps/api/src/spark/repositories/redemption.py`
-- `scripts/ops/run_graph_maintenance.py`
+- `infra/pipeline/graph-maintenance.py`

@@ -2,6 +2,9 @@
 
 Runtime signal model and composite context assembly.
 
+> [!TIP]
+> Start with this page for signal semantics, then continue in [`offer-decision-engine.md`](./offer-decision-engine.md) for ranking and threshold behavior.
+
 ---
 
 ## Signal categories
@@ -23,15 +26,40 @@ Runtime signal model and composite context assembly.
 
 ```mermaid
 flowchart TD
-  weather[Weather] --> composite[CompositeState]
-  demand[DemandSignal] --> composite
-  movement[MovementMode] --> composite
-  time[TimeBucket] --> composite
-  prefs[PreferenceScores] --> composite
-  composite --> decide[DecisionEngine]
-  decide --> conflict[ConflictResolver]
-  conflict --> llm[LLMFraming]
+  subgraph Data Sources
+      weather((Weather API))
+      demand((Payone Density))
+      movement((Motion Mode))
+      time((Time Bucket))
+      prefs[(Neo4j Prefs)]
+  end
+
+  subgraph Composite Assembly
+      composite{Composite State Builder}
+      decision(Offer Decision Engine)
+      conflict[Conflict Resolver & Framing]
+  end
+
+  weather --> composite
+  demand --> composite
+  movement --> composite
+  time --> composite
+  prefs -.-> composite
+
+  composite ==> decision
+  decision ==> conflict
+  conflict ==> llm(((Gemini Flash)))
 ```
+
+### Runtime code links
+
+| Concern | File |
+|---|---|
+| Composite builder | [`apps/api/src/spark/services/composite.py`](../../apps/api/src/spark/services/composite.py) |
+| Deterministic decision | [`apps/api/src/spark/services/offer_decision.py`](../../apps/api/src/spark/services/offer_decision.py) |
+| Context models | [`apps/api/src/spark/models/context.py`](../../apps/api/src/spark/models/context.py) |
+| API request models | [`apps/api/src/spark/models/api.py`](../../apps/api/src/spark/models/api.py) |
+| Intent trust normalization | [`apps/api/src/spark/services/intent_trust.py`](../../apps/api/src/spark/services/intent_trust.py) |
 
 ---
 
@@ -45,16 +73,16 @@ flowchart TD
 
 ## Known simplifications
 
-- distance currently uses deterministic proxy in backend scoring path
-- some advanced planning signals remain roadmap items (OCR transit, wallet seed, Spark Wave)
+- Some optional signals are still advisory/fail-soft depending on provider availability.
+- Cross-session identity continuity policy is intentionally bounded by retention and reset controls.
 
 ---
 
 ## Implementation
 
-- models: `apps/api/src/spark/models/contracts.py`
-- builder: `apps/api/src/spark/services/composite.py`
-- decision: `apps/api/src/spark/services/offer_decision.py`
+- models: [`apps/api/src/spark/models/context.py`](../../apps/api/src/spark/models/context.py), [`apps/api/src/spark/models/api.py`](../../apps/api/src/spark/models/api.py)
+- builder: [`apps/api/src/spark/services/composite.py`](../../apps/api/src/spark/services/composite.py)
+- decision: [`apps/api/src/spark/services/offer_decision.py`](../../apps/api/src/spark/services/offer_decision.py)
 
 ---
 

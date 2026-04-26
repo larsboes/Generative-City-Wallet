@@ -33,9 +33,7 @@ _FALLBACK = {
 
 
 def _city_for_grid(grid_cell: str) -> str:
-    if grid_cell.startswith("STR-"):
-        return "Stuttgart"
-    return "Stuttgart"
+    return "München"
 
 
 def _resolve_seed_path() -> Path:

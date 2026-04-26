@@ -35,7 +35,7 @@ Here is exactly how data flows securely from the User's device to the generated 
 
 ```mermaid
 sequenceDiagram
-    participant User as User (Mobile App)
+    participant User as User (React PWA)
     participant Sensors as Local Sensors & Gemma 3n
     participant Fluent as FluentBit Ingestion
     participant API as FastAPI Backend
@@ -80,6 +80,6 @@ For the judges who dive straight into the code, here is your compass through the
 | `apps/api/src/spark/services/` | **The Brains.** Business logic. Look here for bounding rules, trust levels, and context composite builders. |
 | `apps/api/src/spark/graph/` | **The Memory.** Neo4j interactions. Look for idempotency logic, decay rules, and migration scripts. |
 | `infra/fluentbit/` | **The Ears.** Log ingestion configurations modeling the Payone merchant data feed. |
-| `apps/mobile/` | **The Face.** Expo React Native code, ensuring beautiful UI renders based on GenUI JSON schemas. |
+| `apps/mobile/` | **The Face.** React PWA code, ensuring beautiful UI renders based on GenUI JSON schemas. |
 
 *Thank you for reviewing Spark! We believe we have demonstrated that hyper-personalized AI can act deterministically, profitably, and with absolute respect for user privacy.*

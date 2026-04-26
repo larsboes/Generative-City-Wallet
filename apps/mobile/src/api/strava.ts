@@ -29,6 +29,10 @@ export type DerivedStravaSignal = {
   latestSportType?: string;
 };
 
+export type ParsedStravaCallback =
+  | { ok: true; code: string; state?: string }
+  | { ok: false; error: string; state?: string };
+
 function stravaClientId(): string {
   return process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? "";
 }
@@ -54,6 +58,24 @@ export function buildStravaAuthorizeUrl(state: string): string {
   url.searchParams.set("scope", "read,activity:read_all");
   url.searchParams.set("state", state);
   return url.toString();
+}
+
+export function parseStravaCallbackUrl(urlString: string): ParsedStravaCallback {
+  try {
+    const parsed = new URL(urlString);
+    const error = parsed.searchParams.get("error");
+    const code = parsed.searchParams.get("code");
+    const state = parsed.searchParams.get("state") ?? undefined;
+    if (error) {
+      return { ok: false, error, state };
+    }
+    if (!code) {
+      return { ok: false, error: "missing_code", state };
+    }
+    return { ok: true, code, state };
+  } catch {
+    return { ok: false, error: "invalid_callback_url" };
+  }
 }
 
 export async function exchangeCodeForToken(code: string): Promise<StravaTokenSet> {

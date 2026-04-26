@@ -20,10 +20,15 @@ tasks:
     cmds:
       - PYTHONPATH={{.PYTHONPATH}} uv run python scripts/ops/load_munich_demo.py
 
-  demo:seed-legacy:
-    desc: Seed legacy Stuttgart demo merchants and payone buckets
+  demo:seed:
+    desc: Seed Munich OSM demo merchants and synthetic transaction history
     cmds:
       - PYTHONPATH={{.PYTHONPATH}} uv run python -m spark.db.seed
+
+  maintenance:graph:
+    desc: Run graph cleanup and preference decay
+    cmds:
+      - PYTHONPATH={{.PYTHONPATH}} uv run python infra/pipeline/graph-maintenance.py
 
   smoke:intent:
     desc: Smoke-test IntentVector API contract without generation

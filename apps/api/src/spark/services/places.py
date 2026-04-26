@@ -23,13 +23,15 @@ _FALLBACK = {
     "popular_place_name": None,
 }
 
-_GRID_CENTER = {
-    "STR-MITTE-047": (48.7758, 9.1829),
-}
+_MUNICH_CENTER = (48.137154, 11.576124)
 
 
 def _grid_to_lat_lon(grid_cell: str) -> tuple[float, float]:
-    return _GRID_CENTER.get(grid_cell, _GRID_CENTER["STR-MITTE-047"])
+    try:
+        import h3
+        return h3.cell_to_latlng(grid_cell)
+    except Exception:
+        return _MUNICH_CENTER
 
 
 def _map_to_busyness(place: dict[str, Any]) -> float:

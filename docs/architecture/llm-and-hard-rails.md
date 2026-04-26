@@ -2,6 +2,15 @@
 
 Safety and boundary model for generated offer content.
 
+## Quick Navigation
+
+- [Core boundary](#core-boundary)
+- [Hard rail checks](#hard-rail-checks)
+- [What LLM cannot decide](#what-llm-cannot-decide)
+- [Failure and fallback](#failure-and-fallback)
+- [Audit and explainability hooks](#audit-and-explainability-hooks)
+- [Code map](#code-map)
+
 ---
 
 ## Core boundary
@@ -13,10 +22,23 @@ Safety and boundary model for generated offer content.
 - Python canonicalization owns DB-truth overrides, typed offer assembly, and rails audit.
 
 ```mermaid
-flowchart LR
-  decision[DecisionApproved] --> llm[LLMOutput]
-  llm --> rails[HardRails]
-  rails --> offer[OfferObject]
+sequenceDiagram
+    participant Pipeline as Deterministic Engine
+    participant Gemini as Gemini Flash (Cloud)
+    participant Rails as Server Hard Rails
+    participant DB as SQLite Audit
+    
+    Pipeline->>Gemini: 1. Send Target Context (Passed Gates)
+    Gemini-->>Pipeline: 2. Return Generated GenUI JSON
+    Pipeline->>Rails: 3. Pass JSON to Rules Validator
+    
+    rect rgb(200, 10, 10, 0.1)
+        Note over Rails: Discount Capped<br/>Expiry Enforced<br/>Safety Claims Verified
+        Rails->>Rails: Bounding Checks Override Bad Output
+    end
+    
+    Rails->>DB: 4. Persist Original vs Adjusted JSON
+    Rails-->>Pipeline: 5. Return Canonical OfferObject
 ```
 
 ---
@@ -31,6 +53,15 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 4. banned health/safety claims scrubbed
 5. placeholders normalized
 6. canonical mapping actions recorded for audit persistence
+
+### Linked implementation
+
+| Capability | File |
+|---|---|
+| LLM output generation | [`apps/api/src/spark/services/offer_generator.py`](../../apps/api/src/spark/services/offer_generator.py) |
+| Hard rail enforcement | [`apps/api/src/spark/services/hard_rails.py`](../../apps/api/src/spark/services/hard_rails.py) |
+| Offer route orchestration | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Contract models | [`apps/api/src/spark/models/offers.py`](../../apps/api/src/spark/models/offers.py) |
 
 ## Why hard rails stay in Python
 
@@ -47,6 +78,9 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 - merchant entitlement values
 - hard financial terms outside configured limits
 - lifecycle timestamps
+
+> [!IMPORTANT]
+> The LLM is a renderer, not a policy engine. Treat every generated field as untrusted until rails canonicalization completes.
 
 ---
 
@@ -68,9 +102,9 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 
 ## Code map
 
-- `apps/api/src/spark/services/offer_generator.py`
-- `apps/api/src/spark/services/hard_rails.py`
-- `apps/api/src/spark/routers/offers.py`
+- [`apps/api/src/spark/services/offer_generator.py`](../../apps/api/src/spark/services/offer_generator.py)
+- [`apps/api/src/spark/services/hard_rails.py`](../../apps/api/src/spark/services/hard_rails.py)
+- [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py)
 
 ---
 

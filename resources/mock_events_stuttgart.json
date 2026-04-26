@@ -1,6 +1,30 @@
 {
   "events": [
     {
+      "id": "luma-discover-evt-yAxlZAeFQuqS21N",
+      "name": "The Female Athlete",
+      "city": "Stuttgart",
+      "start_at": "2026-04-26T10:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-C3lMGuxqQ4lCF0N",
+      "name": "The Female Athlete USC",
+      "city": "Stuttgart",
+      "start_at": "2026-04-26T10:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-llQkLmQcnme5zNE",
+      "name": "\ud83c\udfa8Offline Craft Club | ecosign Academy of Design",
+      "city": "Stuttgart",
+      "start_at": "2026-04-26T12:00:00.000Z"
+    },
+    {
+      "id": "seed-muc-001",
+      "name": "Munich Product Circle",
+      "city": "Munich",
+      "start_at": "2026-04-26T18:00:00Z"
+    },
+    {
       "id": "seed-str-001",
       "name": "Feierabend Rooftop Session",
       "city": "Stuttgart",
@@ -19,10 +43,106 @@
       "start_at": "2026-04-26T20:00:00Z"
     },
     {
-      "id": "seed-muc-001",
-      "name": "Munich Product Circle",
-      "city": "Munich",
-      "start_at": "2026-04-26T18:00:00Z"
+      "id": "luma-discover-evt-OoiClcSGhlCEuwC",
+      "name": "ClawCon NRW #3",
+      "city": "Stuttgart",
+      "start_at": "2026-04-28T16:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-XZbuI7ObvmxMtXJ",
+      "name": "Inner-Circle Exclusive | \ud83c\udfa8Offline Craft Club | Caf\u00e9 Boxenstopp",
+      "city": "Stuttgart",
+      "start_at": "2026-04-28T16:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-yGXnhCmxckIujSu",
+      "name": "Building Bridges Between Academia and Big Pharma",
+      "city": "Stuttgart",
+      "start_at": "2026-04-29T12:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-eYvwAPY8j5kjC8e",
+      "name": "Strategie-Abend f\u00fcr Unternehmer und Finanzf\u00fchrungskr\u00e4fte im deutschen Mittelstand",
+      "city": "Stuttgart",
+      "start_at": "2026-04-29T15:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-PJ3PzIjAIAdvbpv",
+      "name": "Nachfolge in K\u00f6lner Familienunternehmen",
+      "city": "Stuttgart",
+      "start_at": "2026-04-29T15:55:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-9DDKWCEvqE4qdsT",
+      "name": "OSC COMMUNITY RUN",
+      "city": "Stuttgart",
+      "start_at": "2026-04-29T16:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-XuNg0Ag2OLnZqrA",
+      "name": "German Dinner at Maximilian\u2019s Lahnstein",
+      "city": "Stuttgart",
+      "start_at": "2026-05-02T17:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-nWx1EeZF7txTA1D",
+      "name": "Inner-Circle Exclusive | FLINTA* Sunday Walk x Cologne Girls Talking & Walking \ud83c\udf1e",
+      "city": "Stuttgart",
+      "start_at": "2026-05-03T09:45:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-y9JGHkVOlv0CkDE",
+      "name": "Vineyard Tour & Wine Tasting",
+      "city": "Stuttgart",
+      "start_at": "2026-05-03T14:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-DoVs8O315pdhjSe",
+      "name": "XL Offline Hangout \ud83d\udcf5\ud83e\udd17\u26ea | Live Music | Special Edition",
+      "city": "Stuttgart",
+      "start_at": "2026-05-09T10:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-PXmhTOEktpuPapB",
+      "name": "#BCD Stammtisch K\u00f6ln mit Oma's Atmosph\u00e4re",
+      "city": "Stuttgart",
+      "start_at": "2026-05-13T16:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-WvsEkDzeeB4ARHP",
+      "name": "Young Founders x Venture Night",
+      "city": "Stuttgart",
+      "start_at": "2026-05-13T16:30:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-sl6hQBbKwE0DR8V",
+      "name": "Offline Hangout \ud83d\udecb\ufe0f\u2615 | die Wohngemeinschaft",
+      "city": "Stuttgart",
+      "start_at": "2026-05-17T10:45:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-GUrD3TMqo81ZMGo",
+      "name": "Venture Padel Tour | #2 Cologne 2026",
+      "city": "Stuttgart",
+      "start_at": "2026-05-28T15:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-NsHqZW49Euv7ztm",
+      "name": "OpenClaw Showcase",
+      "city": "Stuttgart",
+      "start_at": "2026-05-28T16:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-6Ufb1VkV95jy4t2",
+      "name": "AIDev 6 - Developer Community (LLM, Applications & Generative AI)",
+      "city": "Stuttgart",
+      "start_at": "2026-06-02T15:00:00.000Z"
+    },
+    {
+      "id": "luma-discover-evt-23PGQ9Oe8MTWRN0",
+      "name": "\"bii. pr\u00e4sentiert attraktive Aktienthemen au\u00dferhalb des Rampenlichts\u201d bii workshops",
+      "city": "Stuttgart",
+      "start_at": "2026-07-09T14:30:00.000Z"
     }
   ]
 }

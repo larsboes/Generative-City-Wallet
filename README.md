@@ -2,7 +2,7 @@
 
 > **"Right place. Right time. Right Spark."**
 
-[![Mobile: Expo](https://img.shields.io/badge/Mobile-Expo-000000?logo=expo&logoColor=white)](https://expo.dev/)
+[![Frontend: React PWA](https://img.shields.io/badge/Frontend-React%20PWA-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Dashboard: React + Vite](https://img.shields.io/badge/Dashboard-React%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![AI: Gemini Flash](https://img.shields.io/badge/AI-Gemini%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
@@ -60,7 +60,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | **[`docs/README.md`](docs/README.md)** | **Current** docs index — implementation truth + Neo4j user graph |
 | **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | Architecture, hybrid pipeline, FastAPI routers, SQLite vs Neo4j |
 | **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | npm workspaces, Turbo, folder map, root scripts, CI, Docker |
-| **[`docs/NEO4J-GRAPH.md`](docs/NEO4J-GRAPH.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
+| **[`docs/architecture/neo4j-graph.md`](docs/architecture/neo4j-graph.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
 | **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
 
 ---
@@ -78,13 +78,10 @@ References: [`docs/planning/12-SUBMISSION-README.md`](docs/planning/12-SUBMISSIO
 - Privacy architecture is enforced by design boundary: on-device context abstraction and server-side pseudonymous session processing.
 - Monorepo quality gates are in place (`lint`, `typecheck`, `test`, contract symbol checks) and documented in `docs/DEVELOPMENT.md`.
 
-### What did not work yet / still incomplete
+### What remains after MVP implementation
 
-- OCR transit delay enrichment is still missing end-to-end in runtime.
-- Wallet pass cold-start seeding is still missing as a production flow.
-- Spark Wave social coordination remains concept-level, not fully integrated.
-- Advanced post-workout rollout is partial; movement-aware orchestration is not fully complete.
-- TS/Python contract parity is partial for some newer runtime fields.
+- Long-horizon identity continuity (cross-session pseudonymous linkage with explicit retention controls) is intentionally post-demo unless required by judges.
+- Demo/story polish remains: ensure README/demo script values and runbook outputs stay fully aligned for judging.
 
 ### Local run instructions (actual monorepo paths)
 
@@ -94,7 +91,7 @@ Run from repo root:
 # API (FastAPI on :8000)
 npm run dev:api
 
-# Mobile (Expo)
+# Mobile (React PWA)
 npm run dev:mobile
 
 # Dashboard (Vite on :3000)
@@ -187,11 +184,11 @@ After `docker compose up -d --build`, use these local endpoints:
 | Fluent Bit HTTP input | `http://localhost:8889` | none |
 | Fluent Bit metrics/API | `http://localhost:2021` | none |
 
-### Submission data still required from final demo run
+### Submission data locked for demo
 
-- **100 Munich Merchants**: Final Munich merchant list loaded from `resources/mock_venues_munich.json`.
-- **42.0**: Community Hero Score baseline from measured demo session.
-- **Milan, David, Finn, Lars**: Final team for submission.
+- **100 Munich Merchants**: Demo merchant list loaded from `resources/mock_venues_munich.json`.
+- **42.0**: Community Hero Score baseline used in the submission narrative.
+- **Milan, David, Finn, Lars**: Final team listed in submission materials.
 
 ### Readiness gates
 
@@ -205,7 +202,7 @@ After `docker compose up -d --build`, use these local endpoints:
 
 ## Tech Stack (MVP)
 
-- **Mobile:** Expo / React Native
+- **Mobile:** React PWA
 - **Merchant Dashboard:** Vite + React (scaffold in `apps/web-dashboard`; planning docs still target Next.js)
 - **Backend:** FastAPI (Python)
 - **AI (server):** Gemini Flash (offer generation + GenUI — fast, structured JSON output)
@@ -248,7 +245,7 @@ curl -s -X POST 'http://localhost:8000/api/graph/decay-preferences?stale_after_d
 **Scheduled maintenance (cron)** — from the repo root; uses the same `.env` as the app:
 
 ```cron
-0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python scripts/ops/run_graph_maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
+0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python infra/pipeline/graph-maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
 ```
 
 Adjust `cd` and `uv` path to your machine. The script runs **cleanup** (artifact + preference-edge retention) then **decay** in one shot, and emits maintenance health metadata (`last_decay_age_hours`, `decay_gap_alarm`) for monitoring.

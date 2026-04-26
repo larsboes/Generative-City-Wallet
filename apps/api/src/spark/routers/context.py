@@ -25,7 +25,7 @@ async def composite_endpoint(
 
 
 @router.get("/provider-status")
-async def provider_status_endpoint(grid_cell: str = "STR-MITTE-047"):
+async def provider_status_endpoint(grid_cell: str = "891f8d7a49bffff"):
     """
     Lightweight key/setup verification for external context providers.
     Returns provider status in one response without requiring mobile payloads.
