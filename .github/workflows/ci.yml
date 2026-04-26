@@ -90,7 +90,7 @@ jobs:
         run: |
           PYTHONPATH=apps/api/src uv run uvicorn spark.main:app --port 8000 &
           sleep 3
-          curl -sf http://localhost:8000/api/health
+          curl -sf http://localhost:8000/api/v1/health
           kill %1
 
   security:
