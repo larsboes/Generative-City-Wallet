@@ -53,8 +53,8 @@ async def test_weather_cache_hit_metadata(monkeypatch):
     monkeypatch.setattr(weather, "OPENWEATHER_API_KEY", "")
     weather._cache = {}
     weather._cache_ts = 0
-    first = await weather.get_stuttgart_weather()
-    second = await weather.get_stuttgart_weather()
+    first = await weather.get_city_weather()
+    second = await weather.get_city_weather()
     assert first["source"] == "fallback_defaults"
     assert second["cache_hit"] is True
 

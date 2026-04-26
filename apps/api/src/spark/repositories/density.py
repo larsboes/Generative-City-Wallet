@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from spark.db.connection import get_connection
+from spark.domain.interfaces import IDensityRepository
 
 
 def get_hourly_transaction_stats(
@@ -62,3 +63,30 @@ def list_merchants_for_density(db_path: str | None = None) -> list[dict[str, Any
         return [dict(r) for r in rows]
     finally:
         conn.close()
+
+
+class DensityRepository(IDensityRepository):
+    """Concrete IDensityRepository backed by SQLite, wrapping existing functions."""
+
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = db_path
+
+    def get_hourly_transaction_stats(
+        self, merchant_id: str, hour_of_week: int
+    ) -> tuple[float, int]:
+        return get_hourly_transaction_stats(merchant_id, hour_of_week, self.db_path)
+
+    def get_latest_transaction_rate(
+        self, merchant_id: str, hour_of_week: int
+    ) -> float:
+        return get_latest_transaction_rate(merchant_id, hour_of_week, self.db_path)
+
+    def get_historical_avg_at_arrival_hour(
+        self, merchant_id: str, arrival_hour_of_week: int
+    ) -> float | None:
+        return get_historical_avg_at_arrival_hour(
+            merchant_id, arrival_hour_of_week, self.db_path
+        )
+
+    def list_merchants_for_density(self) -> list[dict[str, Any]]:
+        return list_merchants_for_density(self.db_path)

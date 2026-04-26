@@ -96,15 +96,15 @@ async def get_user_preferences(session_id: str) -> str:
 
 @tool
 async def get_weather_context() -> str:
-    """Get current Stuttgart weather conditions.
+    """Get current city weather conditions.
 
     Returns temperature, feels_like, weather_condition, weather_need
     (warmth_seeking/refreshment_seeking/shelter_seeking/neutral),
     and vibe_signal (cozy/energetic/refreshing/neutral).
     """
-    from spark.services.weather import get_stuttgart_weather
+    from spark.services.weather import get_city_weather
 
-    weather = await get_stuttgart_weather()
+    weather = await get_city_weather()
     return _dump_tool_payload(WeatherContextToolResult.model_validate(weather))
 
 

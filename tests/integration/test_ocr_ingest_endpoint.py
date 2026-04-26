@@ -8,7 +8,7 @@ from spark.main import app
 def test_ocr_ingest_low_confidence_is_not_accepted():
     with TestClient(app) as client:
         response = client.post(
-            "/api/ocr/transit",
+            "/api/v1/ocr/transit",
             json={
                 "city": "Berlin",
                 "district": "Kreuzberg",
@@ -28,7 +28,7 @@ def test_ocr_ingest_low_confidence_is_not_accepted():
 def test_ocr_ingest_invalid_must_return_by_is_rejected():
     with TestClient(app) as client:
         response = client.post(
-            "/api/ocr/transit",
+            "/api/v1/ocr/transit",
             json={
                 "city": "Berlin",
                 "district": "Kreuzberg",
@@ -46,7 +46,7 @@ def test_ocr_ingest_invalid_must_return_by_is_rejected():
 def test_ocr_parse_endpoint_returns_structured_payload():
     with TestClient(app) as client:
         response = client.post(
-            "/api/ocr/transit/parse",
+            "/api/v1/ocr/transit/parse",
             json={
                 "raw_text": "U1 Kreuzberg delay 18 minutes return 2026-04-26T18:45:00Z",
                 "city_hint": "Berlin",
@@ -64,7 +64,7 @@ def test_ocr_parse_endpoint_returns_structured_payload():
 def test_ocr_ingest_threshold_boundary_is_accepted():
     with TestClient(app) as client:
         response = client.post(
-            "/api/ocr/transit",
+            "/api/v1/ocr/transit",
             json={
                 "city": "Berlin",
                 "district": "Kreuzberg",

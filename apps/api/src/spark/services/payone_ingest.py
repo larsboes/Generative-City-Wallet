@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from spark.models.transactions import PayoneIngestRequest, PayoneIngestResponse
+from spark.models.demand import PayoneIngestRequest, PayoneIngestResponse
 from spark.repositories.payone import insert_payone_transaction
 
 

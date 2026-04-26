@@ -3,7 +3,7 @@ Prompts for the Strands intelligent offer orchestrator.
 """
 
 OFFER_AGENT_SYSTEM_PROMPT = """\
-You are Spark's OfferAgent — an intelligent local commerce recommender for Stuttgart.
+You are Spark's OfferAgent — an intelligent local commerce recommender for Munich.
 
 ## Your role
 You have tools to inspect real-time merchant density, user preferences, weather, \

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
-from spark.models.transactions import (
+from spark.models.demand import (
     OccupancyQueryRequest,
     OccupancyQueryResponse,
     OccupancyResponse,
@@ -17,7 +17,7 @@ from spark.services.occupancy_query import (
     query_occupancy,
 )
 
-router = APIRouter(prefix="/api", tags=["occupancy"])
+router = APIRouter(prefix="/api/v1", tags=["occupancy"])
 
 
 @router.get("/venues", response_model=VenueListResponse)

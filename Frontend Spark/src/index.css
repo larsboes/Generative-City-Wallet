@@ -1,0 +1,192 @@
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Spark — editorial design system. Warm paper + deep ink + Sparkassen red.
+   All colors HSL. */
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 36 30% 97%;          /* warm paper */
+    --foreground: 220 25% 10%;          /* deep ink */
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 10%;
+
+    /* Brand */
+    --primary: 354 65% 44%;             /* Sparkassen red, softened */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 354 70% 54%;
+    --primary-deep: 354 60% 34%;
+
+    --ink: 220 25% 10%;                 /* hero / display */
+    --ink-foreground: 36 30% 97%;
+
+    --secondary: 36 25% 94%;
+    --secondary-foreground: 220 25% 10%;
+
+    --muted: 36 20% 93%;
+    --muted-foreground: 220 10% 40%;
+
+    --accent: 354 60% 96%;
+    --accent-foreground: 354 55% 30%;
+
+    --success: 152 50% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 25% 10%;
+
+    --destructive: 0 65% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 15% 88%;
+    --input: 36 15% 88%;
+    --ring: 354 65% 44%;
+
+    --radius: 0.75rem;
+
+    /* Effects */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-ink: linear-gradient(180deg, hsl(220 25% 12%), hsl(220 30% 7%));
+    --gradient-paper: radial-gradient(60% 80% at 50% 0%, hsl(36 35% 98%), hsl(36 28% 95%));
+    --shadow-elegant: 0 10px 40px -12px hsl(var(--primary) / 0.28);
+    --shadow-card: 0 1px 2px hsl(220 25% 10% / 0.04), 0 8px 24px -12px hsl(220 25% 10% / 0.08);
+    --shadow-pop: 0 1px 2px hsl(220 25% 10% / 0.06), 0 24px 48px -16px hsl(220 25% 10% / 0.18);
+
+    /* Sidebar */
+    --sidebar-background: 220 25% 10%;
+    --sidebar-foreground: 36 25% 88%;
+    --sidebar-primary: 354 65% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 16%;
+    --sidebar-accent-foreground: 36 30% 97%;
+    --sidebar-border: 220 25% 18%;
+    --sidebar-ring: 354 65% 54%;
+  }
+
+  .dark {
+    --background: 220 28% 8%;
+    --foreground: 36 25% 95%;
+    --card: 220 25% 11%;
+    --card-foreground: 36 25% 95%;
+    --popover: 220 25% 11%;
+    --popover-foreground: 36 25% 95%;
+    --primary: 354 65% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 22% 16%;
+    --secondary-foreground: 36 25% 95%;
+    --muted: 220 22% 16%;
+    --muted-foreground: 36 10% 65%;
+    --accent: 354 40% 22%;
+    --accent-foreground: 36 25% 95%;
+    --destructive: 0 60% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 22% 18%;
+    --input: 220 22% 18%;
+    --ring: 354 65% 54%;
+    --sidebar-background: 220 30% 6%;
+    --sidebar-foreground: 36 25% 88%;
+    --sidebar-primary: 354 65% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 25% 14%;
+    --sidebar-accent-foreground: 36 30% 95%;
+    --sidebar-border: 220 25% 16%;
+    --sidebar-ring: 354 65% 58%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html, body { @apply overflow-x-hidden; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+  .pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Fraunces', 'Times New Roman', serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.025em;
+  }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+  .grain {
+    position: relative;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .text-balance { text-wrap: balance; }
+
+  .gradient-ink { background: var(--gradient-ink); }
+  .gradient-paper { background: var(--gradient-paper); }
+
+  .marquee {
+    display: flex;
+    gap: 2rem;
+    animation: marquee 40s linear infinite;
+    width: max-content;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+/* ===== Map (Spark) ===== */
+.mapboxgl-map { font-family: inherit; background: hsl(var(--background)); }
+.mapboxgl-ctrl-attrib {
+  background: hsl(var(--background) / 0.75) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 10px !important;
+  backdrop-filter: blur(4px);
+}
+.mapboxgl-ctrl-attrib a { color: hsl(var(--primary)) !important; }
+
+/* Venue pin */
+.spark-pin {
+  width: 28px; height: 28px; cursor: pointer;
+  display: grid; place-items: center;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 4px 12px -2px hsl(var(--primary) / 0.45);
+  transition: transform 0.18s ease;
+}
+.spark-pin:hover { transform: scale(1.12); }
+.spark-pin[data-active="true"] {
+  background: hsl(var(--ink));
+  color: hsl(var(--ink-foreground));
+  transform: scale(1.18);
+  box-shadow: 0 6px 16px -2px hsl(var(--ink) / 0.5);
+}
+
+/* "You are here" dot */
+.spark-me {
+  width: 14px; height: 14px; border-radius: 9999px;
+  background: hsl(217 91% 60%);
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 0 0 5px hsl(217 91% 60% / 0.18);
+}

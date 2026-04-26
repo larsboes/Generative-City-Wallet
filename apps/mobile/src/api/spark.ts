@@ -24,7 +24,7 @@ export async function postComposite(intent: IntentVector): Promise<unknown> {
     continuity_hint: continuityHint,
   };
 
-  const r = await fetch(`${apiBase()}/api/context/composite`, {
+  const r = await fetch(`${apiBase()}/api/v1/context/composite`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

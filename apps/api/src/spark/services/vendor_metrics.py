@@ -4,7 +4,7 @@ from datetime import date, datetime, timezone
 
 from spark.db.connection import get_connection
 from spark.services.contracts import VendorDashboardData
-from spark.services.signals import compute_demand_context
+from spark.services.demand import compute_demand_context
 from spark.repositories.transaction_stats import (
     get_daily_average,
     get_daily_transactions,

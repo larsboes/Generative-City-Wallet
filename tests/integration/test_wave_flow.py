@@ -68,7 +68,7 @@ def test_wave_two_session_progression():
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/waves",
+            "/api/v1/waves",
             json={
                 "offer_id": offer_id,
                 "merchant_id": "MERCHANT_001",
@@ -83,7 +83,7 @@ def test_wave_two_session_progression():
         assert created.json()["catalyst_bonus_pct"] == 0.125
 
         joined = client.post(
-            f"/api/waves/{wave_id}/join",
+            f"/api/v1/waves/{wave_id}/join",
             json={"session_id": friend_session},
         )
         assert joined.status_code == 200
@@ -94,7 +94,7 @@ def test_wave_two_session_progression():
 
         # Replay join from same session should not increment again.
         replay = client.post(
-            f"/api/waves/{wave_id}/join",
+            f"/api/v1/waves/{wave_id}/join",
             json={"session_id": friend_session},
         )
         assert replay.status_code == 200
@@ -136,7 +136,7 @@ def test_wave_expired_not_joinable():
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/waves",
+            "/api/v1/waves",
             json={
                 "offer_id": offer_id,
                 "merchant_id": "MERCHANT_001",
@@ -159,7 +159,7 @@ def test_wave_expired_not_joinable():
             conn.close()
 
         joined = client.post(
-            f"/api/waves/{wave_id}/join",
+            f"/api/v1/waves/{wave_id}/join",
             json={"session_id": friend_session},
         )
         assert joined.status_code == 404
@@ -196,7 +196,7 @@ def test_wave_cleanup_endpoint_marks_expired_rows():
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/waves",
+            "/api/v1/waves",
             json={
                 "offer_id": offer_id,
                 "merchant_id": "MERCHANT_001",
@@ -218,15 +218,15 @@ def test_wave_cleanup_endpoint_marks_expired_rows():
         finally:
             conn.close()
 
-        cleanup = client.post("/api/waves/cleanup")
+        cleanup = client.post("/api/v1/waves/cleanup")
         assert cleanup.status_code == 200
         assert cleanup.json()["cleaned"] >= 1
 
-        get_wave = client.get(f"/api/waves/{wave_id}")
+        get_wave = client.get(f"/api/v1/waves/{wave_id}")
         assert get_wave.status_code == 200
         assert get_wave.json()["status"] == "EXPIRED"
 
-        cleanup_again = client.post("/api/waves/cleanup")
+        cleanup_again = client.post("/api/v1/waves/cleanup")
         assert cleanup_again.status_code == 200
         assert cleanup_again.json()["cleaned"] == 0
 
@@ -262,7 +262,7 @@ def test_wave_participant_cap_prevents_additional_joins():
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/waves",
+            "/api/v1/waves",
             json={
                 "offer_id": offer_id,
                 "merchant_id": "MERCHANT_001",
@@ -286,14 +286,14 @@ def test_wave_participant_cap_prevents_additional_joins():
 
         for idx in range(2, 51):
             joined = client.post(
-                f"/api/waves/{wave_id}/join",
+                f"/api/v1/waves/{wave_id}/join",
                 json={"session_id": f"sess-cap-{run_id}-{idx}"},
             )
             assert joined.status_code == 200
             assert joined.json()["join_applied"] is True
 
         capped_join = client.post(
-            f"/api/waves/{wave_id}/join",
+            f"/api/v1/waves/{wave_id}/join",
             json={"session_id": f"sess-cap-{run_id}-51"},
         )
         assert capped_join.status_code == 200
@@ -339,10 +339,10 @@ def test_wave_create_rate_limit_rejects_immediate_duplicate_create():
     }
 
     with TestClient(app) as client:
-        created = client.post("/api/waves", json=payload)
+        created = client.post("/api/v1/waves", json=payload)
         assert created.status_code == 200
 
-        duplicate = client.post("/api/waves", json=payload)
+        duplicate = client.post("/api/v1/waves", json=payload)
         assert duplicate.status_code == 400
         assert duplicate.json()["detail"] == "wave_create_failed"
 
@@ -357,7 +357,7 @@ def test_wave_create_blocks_when_too_many_active_waves_for_session():
             offer_id = f"offer-wave-active-cap-{run_id}-{idx}"
             _insert_offer_row(offer_id, creator_session)
             created = client.post(
-                "/api/waves",
+                "/api/v1/waves",
                 json={
                     "offer_id": offer_id,
                     "merchant_id": "MERCHANT_001",
@@ -385,7 +385,7 @@ def test_wave_join_blocks_when_session_exceeds_burst_limit():
             creator_session = f"sess-wave-owner-{run_id}-{idx}"
             _insert_offer_row(offer_id, creator_session)
             created = client.post(
-                "/api/waves",
+                "/api/v1/waves",
                 json={
                     "offer_id": offer_id,
                     "merchant_id": "MERCHANT_001",
@@ -399,7 +399,7 @@ def test_wave_join_blocks_when_session_exceeds_burst_limit():
 
         for idx, wave_id in enumerate(wave_ids, start=1):
             joined = client.post(
-                f"/api/waves/{wave_id}/join",
+                f"/api/v1/waves/{wave_id}/join",
                 json={"session_id": joining_session},
             )
             if idx <= 12:
@@ -419,7 +419,7 @@ def test_wave_join_blocks_high_risk_session_after_repeated_denied_attempts():
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/waves",
+            "/api/v1/waves",
             json={
                 "offer_id": offer_id,
                 "merchant_id": "MERCHANT_001",
@@ -433,13 +433,13 @@ def test_wave_join_blocks_high_risk_session_after_repeated_denied_attempts():
 
         for _ in range(6):
             denied = client.post(
-                f"/api/waves/{uuid.uuid4()}/join",
+                f"/api/v1/waves/{uuid.uuid4()}/join",
                 json={"session_id": risky_session},
             )
             assert denied.status_code == 404
 
         blocked = client.post(
-            f"/api/waves/{valid_wave_id}/join",
+            f"/api/v1/waves/{valid_wave_id}/join",
             json={"session_id": risky_session},
         )
         assert blocked.status_code == 404
@@ -478,7 +478,7 @@ def test_wave_bonus_is_consumed_by_redemption_cashback():
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/waves",
+            "/api/v1/waves",
             json={
                 "offer_id": offer_id,
                 "merchant_id": "MERCHANT_001",
@@ -491,7 +491,7 @@ def test_wave_bonus_is_consumed_by_redemption_cashback():
         wave_id = created.json()["wave_id"]
 
         joined = client.post(
-            f"/api/waves/{wave_id}/join",
+            f"/api/v1/waves/{wave_id}/join",
             json={"session_id": f"sess-wave-redeem-friend-{run_id}"},
         )
         assert joined.status_code == 200

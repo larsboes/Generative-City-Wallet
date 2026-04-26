@@ -4,9 +4,11 @@ Assembles all signals into a single CompositeContextState for the LLM.
 Supports demo overrides from the Context Slider.
 """
 
+import asyncio
 from datetime import datetime
 
-from spark.graph.repository import GraphRepository, get_repository
+from spark.domain.interfaces import IGraphRepository
+from spark.graph.repository import get_repository
 from spark.models.common import ConflictRecommendation
 from spark.models.context import (
     ActiveCoupon,
@@ -42,7 +44,7 @@ from spark.services.offer_decision import decide_offer
 from spark.services.intent_trust import normalize_intent_vector, provenance_metadata
 from spark.services.identity_continuity import resolve_continuity_identity
 from spark.services.places import get_places_context
-from spark.services.weather import get_stuttgart_weather
+from spark.services.weather import get_city_weather
 
 DEFAULT_PREFERENCE_SCORES = HELPER_DEFAULT_PREFERENCE_SCORES
 
@@ -58,7 +60,7 @@ async def build_composite_state(
     transit_delay_minutes: int | None = None,
     must_return_by: str | None = None,
     db_path: str | None = None,
-    graph_repo: GraphRepository | None = None,
+    graph_repo: IGraphRepository | None = None,
 ) -> CompositeContextState:
     """
     Assemble all signals into a CompositeContextState.
@@ -80,7 +82,7 @@ async def build_composite_state(
             effective_must_return_by = demo_overrides.must_return_by
 
     # ── Weather (used for trust normalization + environment context) ─────────
-    weather = await get_stuttgart_weather()
+    weather = await get_city_weather()
     weather = apply_demo_weather_overrides(
         weather=weather, demo_overrides=demo_overrides, current_hour=now.hour
     )
@@ -112,9 +114,11 @@ async def build_composite_state(
     await repo.ensure_session(intent.session_id)
 
     # ── Preference scores from the user knowledge graph ─────────────────────
-    preference_scores = await load_preference_scores(intent.session_id, repo)
-    places_context = await get_places_context(intent.grid_cell)
-    event_context = await get_luma_event_context(intent.grid_cell)
+    preference_scores, places_context, event_context = await asyncio.gather(
+        load_preference_scores(intent.session_id, repo),
+        get_places_context(intent.grid_cell),
+        get_luma_event_context(intent.grid_cell),
+    )
 
     # Auto-select merchant through deterministic decision pipeline.
     decision = decide_offer(

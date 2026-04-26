@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from spark.models.wave import (
     CreateWaveRequest,
@@ -8,6 +8,7 @@ from spark.models.wave import (
     JoinWaveResponse,
     WaveResponse,
 )
+from spark.routers.errors import require_admin
 from spark.services.wave import (
     cleanup_expired_waves,
     create_wave_record,
@@ -15,7 +16,7 @@ from spark.services.wave import (
     join_wave_record,
 )
 
-router = APIRouter(prefix="/api/waves", tags=["waves"])
+router = APIRouter(prefix="/api/v1/waves", tags=["waves"])
 
 
 @router.post("", response_model=WaveResponse)
@@ -49,7 +50,7 @@ async def get_wave_endpoint(wave_id: str):
     return WaveResponse(**wave)
 
 
-@router.post("/cleanup")
+@router.post("/cleanup", dependencies=[Depends(require_admin)])
 async def cleanup_waves_endpoint():
     cleaned = cleanup_expired_waves()
     return {"cleaned": cleaned}

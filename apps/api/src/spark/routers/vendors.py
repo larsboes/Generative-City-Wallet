@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from fastapi import APIRouter, Query
 
 from spark.routers.errors import as_not_found
-from spark.models.transactions import (
+from spark.models.vendor import (
     DailyTransactionsResponse,
     DashboardHourlyBucket,
     HourRankingsResponse,
@@ -20,7 +20,7 @@ from spark.services.vendor_metrics import (
     fetch_vendor_dashboard_today,
 )
 
-router = APIRouter(prefix="/api/vendors", tags=["vendors"])
+router = APIRouter(prefix="/api/v1/vendors", tags=["vendors"])
 
 
 @router.get(

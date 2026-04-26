@@ -46,7 +46,7 @@ Built for the **DSV Gruppe Hackathon** — HackNation 2025.
 flowchart LR
     device(📱 Device Context) -. "No PII" .-> server
     density(📊 Payone Density) --> server(⚙️ Spark Python Backend)
-    server -- "Deterministic Safety Gates" --> graph[(🌐 Neo4j Graph)]
+    server -- "Deterministic Safety Gates" --> graph[("🌐 Neo4j Graph")]
     graph -- Preference Weights --> server
     server -- "Abstract Vector" --> llm(🧠 Gemini Flash)
     llm -- "GenUI Output" --> device
@@ -85,6 +85,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | Architecture, hybrid pipeline, FastAPI routers, SQLite vs Neo4j |
 | **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | npm workspaces, Turbo, folder map, root scripts, CI, Docker |
 | **[`docs/architecture/neo4j-graph.md`](docs/architecture/neo4j-graph.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
+| **[`docs/INTEGRATION.md`](docs/INTEGRATION.md)** | Frontend ↔ FastAPI backend handshake point and wiring guide |
 | **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
 
 ---
@@ -104,7 +105,7 @@ References: [`docs/planning/12-SUBMISSION-README.md`](docs/planning/12-SUBMISSIO
 
 ### What remains after MVP implementation
 
-- Long-horizon identity continuity (cross-session pseudonymous linkage with explicit retention controls) is intentionally post-demo unless required by judges.
+- Frontend Spark ↔ FastAPI wiring: the Lovable frontend and the FastAPI backend are not yet connected (see [`docs/INTEGRATION.md`](docs/INTEGRATION.md)).
 - Demo/story polish remains: ensure README/demo script values and runbook outputs stay fully aligned for judging.
 
 ### Local run instructions (actual monorepo paths)
@@ -166,7 +167,6 @@ docker compose down
 Services exposed by `docker-compose.yml`:
 
 - backend API: `http://localhost:8000`
-- Redis: `localhost:6379`
 - Neo4j Browser: `http://localhost:7474`
 - Neo4j Bolt: `localhost:7687`
 - Fluent Bit HTTP input: `localhost:8889` (container `8888`)
@@ -200,11 +200,10 @@ After `docker compose up -d --build`, use these local endpoints:
 | Swagger UI | `http://localhost:8000/docs` | none |
 | ReDoc | `http://localhost:8000/redoc` | none |
 | OpenAPI JSON | `http://localhost:8000/openapi.json` | none |
-| API health | `http://localhost:8000/api/health` | none |
-| Graph health | `http://localhost:8000/api/graph/health` | none |
+| API health | `http://localhost:8000/api/v1/health` | none |
+| Graph health | `http://localhost:8000/api/v1/graph/health` | none |
 | Neo4j Browser | `http://localhost:7474` | user `neo4j`, password `spark-neo4j-dev` |
 | Neo4j Bolt | `localhost:7687` | user `neo4j`, password `spark-neo4j-dev` |
-| Redis | `localhost:6379` | none (no auth in local compose) |
 | Fluent Bit HTTP input | `http://localhost:8889` | none |
 | Fluent Bit metrics/API | `http://localhost:2021` | none |
 
@@ -226,7 +225,8 @@ After `docker compose up -d --build`, use these local endpoints:
 
 ## Tech Stack (MVP)
 
-- **Mobile:** React PWA (Privacy-First)
+- **Consumer + Merchant UI:** React / Vite / Supabase (`Frontend Spark/`) — full PWA with auth, offer display, QR redemption, merchant dashboard
+- **Mobile (legacy):** React Native PWA (`apps/mobile/`) — on-device Gemma inference prototype
 - **Backend:** FastAPI (Python 3.12+)
 - **Edge AI:** **Gemma 3n** via Google AI Edge (On-device intent extraction — no PII leaves the boundary)
 - **Cloud AI:** **Gemini Flash** (Just-in-time GenUI and offer framing — low latency, high reasoning)
@@ -247,22 +247,22 @@ With the API running on `http://localhost:8000`:
 
 ```bash
 # Health + driver metrics
-curl -s http://localhost:8000/api/graph/health | jq .
+curl -s http://localhost:8000/api/v1/graph/health | jq .
 
 # Node/edge counts
-curl -s http://localhost:8000/api/graph/stats | jq .
+curl -s http://localhost:8000/api/v1/graph/stats | jq .
 
 # Applied migrations (GraphMigration nodes)
-curl -s http://localhost:8000/api/graph/migrations | jq .
+curl -s http://localhost:8000/api/v1/graph/migrations | jq .
 
 # Preferences with event-level attribution (optional explainability detail)
-curl -s 'http://localhost:8000/api/graph/sessions/sess-123/preferences?include_attribution=true&event_limit=10' | jq .
+curl -s 'http://localhost:8000/api/v1/graph/sessions/sess-123/preferences?include_attribution=true&event_limit=10' | jq .
 
 # Delete old offers/contexts/redemptions/wallet events + stale sessions + old PREFERS/AVOIDS edges
-curl -s -X POST 'http://localhost:8000/api/graph/cleanup?retention_days=30' | jq .
+curl -s -X POST 'http://localhost:8000/api/v1/graph/cleanup?retention_days=30' | jq .
 
 # Linear decay on stale PREFERS edges (after N days without reinforcement)
-curl -s -X POST 'http://localhost:8000/api/graph/decay-preferences?stale_after_days=7&default_decay_rate=0.01' | jq .
+curl -s -X POST 'http://localhost:8000/api/v1/graph/decay-preferences?stale_after_days=7&default_decay_rate=0.01' | jq .
 ```
 
 **Scheduled maintenance (cron)** — from the repo root; uses the same `.env` as the app:

@@ -33,13 +33,6 @@ services:
       - fluentbit-data:/fluent-bit/data
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: spark-redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
   neo4j:
     image: neo4j:5
     container_name: spark-neo4j

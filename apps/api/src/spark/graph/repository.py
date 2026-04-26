@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from spark.domain.interfaces import IGraphRepository
 from spark.graph.client import is_available
 from spark.graph.models import MerchantOfferStats, PreferenceScore, RecentOffer
 from spark.graph.store.merchants import MerchantGraphRepository
@@ -19,7 +20,7 @@ from spark.graph.store.redemptions import RedemptionGraphRepository
 from spark.graph.store.sessions import SessionGraphRepository
 
 
-class GraphRepository:
+class GraphRepository(IGraphRepository):
     """High-level domain facade over Neo4j. All sub-repositories fail soft."""
 
     def __init__(self) -> None:
@@ -159,6 +160,10 @@ class GraphRepository:
             default_decay_rate=default_decay_rate,
             now_unix=now_unix,
         )
+
+    async def clear_session_data(self, session_id: str) -> dict:
+        """Delete all graph nodes and edges for a session (GDPR erasure)."""
+        return await self._ops.clear_session_data(session_id)
 
     async def stats(self) -> dict:
         return await self._ops.stats()

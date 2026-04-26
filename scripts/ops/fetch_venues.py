@@ -13,7 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT / "apps" / "api" / "src"))
 
 from spark.db.connection import upsert_venues  # noqa: E402
-from spark.services.signals import normalize_category  # noqa: E402
+from spark.services.canonicalization import normalize_category  # noqa: E402
 
 
 DEFAULT_CATEGORIES = [

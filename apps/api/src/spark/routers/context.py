@@ -2,12 +2,19 @@
 Context endpoints — composite state builder.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from spark.domain.interfaces import IGraphRepository
+from spark.graph.repository import get_repository
 from spark.models.context import CompositeContextState, DemoOverrides, IntentVector
 from spark.services.composite import build_composite_state, build_provider_probe_intent
 
-router = APIRouter(prefix="/api/context", tags=["context"])
+router = APIRouter(prefix="/api/v1/context", tags=["context"])
+
+
+def get_graph_repo() -> IGraphRepository:
+    """FastAPI dependency: provides the concrete graph repository."""
+    return get_repository()
 
 
 @router.post("/composite", response_model=CompositeContextState)
@@ -15,12 +22,15 @@ async def composite_endpoint(
     intent: IntentVector,
     merchant_id: str | None = None,
     demo_overrides: DemoOverrides | None = None,
+    graph_repo: IGraphRepository = Depends(get_graph_repo),
 ):
     """
     Build the full CompositeContextState from an intent vector.
     Supports demo_overrides for the Context Slider.
     """
-    state = await build_composite_state(intent, merchant_id, demo_overrides)
+    state = await build_composite_state(
+        intent, merchant_id, demo_overrides, graph_repo=graph_repo
+    )
     return state
 
 

@@ -8,7 +8,7 @@ from spark.models.transactions import (
 from spark.routers.errors import as_bad_request, as_not_found
 from spark.services.transaction_generation import generate_history, generate_live_update
 
-router = APIRouter(prefix="/api/transactions", tags=["transactions"])
+router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 
 
 @router.post("/generate/history", response_model=TransactionGenerationResponse)

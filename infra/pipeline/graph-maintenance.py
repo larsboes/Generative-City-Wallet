@@ -21,10 +21,12 @@ from spark.config import (
 )
 from spark.graph import close_graph, init_graph
 from spark.graph.repository import get_repository
-from spark.repositories.redemption import (
+from spark.repositories.graph_event import (
     acquire_graph_event_idempotency_key,
-    cleanup_preference_update_log,
     get_latest_graph_event_timestamp,
+)
+from spark.repositories.preference_event import (
+    cleanup_preference_update_log,
     record_learning_metric,
 )
 from spark.services.wave import cleanup_expired_waves

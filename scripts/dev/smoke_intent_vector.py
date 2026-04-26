@@ -41,14 +41,14 @@ def main() -> int:
     parser.add_argument(
         "--generate",
         action="store_true",
-        help="Also POST /api/offers/generate (needs full GenerateOfferRequest body)",
+        help="Also POST /api/v1/offers/generate (needs full GenerateOfferRequest body)",
     )
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
 
     with httpx.Client(timeout=60.0) as client:
-        r = client.post(f"{base}/api/context/composite", json=SAMPLE_INTENT)
-        print("POST /api/context/composite", r.status_code)
+        r = client.post(f"{base}/api/v1/context/composite", json=SAMPLE_INTENT)
+        print("POST /api/v1/context/composite", r.status_code)
         if r.status_code != 200:
             print(r.text[:2000])
             return 1
@@ -72,8 +72,8 @@ def main() -> int:
                 )
                 return 1
             body = {"intent": SAMPLE_INTENT, "merchant_id": merchant_id}
-            r2 = client.post(f"{base}/api/offers/generate", json=body)
-            print("POST /api/offers/generate", r2.status_code)
+            r2 = client.post(f"{base}/api/v1/offers/generate", json=body)
+            print("POST /api/v1/offers/generate", r2.status_code)
             if r2.status_code != 200:
                 print(r2.text[:2000])
                 return 1

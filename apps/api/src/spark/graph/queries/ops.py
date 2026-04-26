@@ -82,3 +82,9 @@ RETURN
   size(rs) AS redemptions_deleted,
   size(ws) AS wallet_events_deleted
 """
+
+CLEAR_SESSION_DATA = """
+MATCH (u:UserSession {session_id: $session_id})
+OPTIONAL MATCH (u)-[r]->(n)
+DETACH DELETE u, n
+"""

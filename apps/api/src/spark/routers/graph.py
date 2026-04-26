@@ -4,10 +4,10 @@ Graph admin / debug endpoints.
 Useful for the demo dashboard and operational checks. Read-only.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from spark.models.api import WalletSeedRequest
-from spark.repositories.redemption import get_recent_preference_update_events
+from spark.repositories.preference_event import get_recent_preference_update_events
 from spark.config import (
     GRAPH_PREF_DECAY_DEFAULT_RATE,
     GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
@@ -24,9 +24,10 @@ from spark.models.graph_api import (
     SessionPreferencesResponse,
     SessionRecentOffersResponse,
 )
+from spark.routers.errors import require_admin
 from spark.services.wallet_seed import apply_wallet_seed_preferences
 
-router = APIRouter(prefix="/api/graph", tags=["graph"])
+router = APIRouter(prefix="/api/v1/graph", tags=["graph"])
 
 
 @router.get("/health", response_model=GraphHealthResponse)
@@ -122,7 +123,7 @@ async def wallet_seed(session_id: str, request: WalletSeedRequest):
     }
 
 
-@router.post("/cleanup", response_model=GraphCleanupResponse)
+@router.post("/cleanup", response_model=GraphCleanupResponse, dependencies=[Depends(require_admin)])
 async def run_graph_cleanup(retention_days: int = GRAPH_RETENTION_DAYS):
     """Delete graph session/offer artifacts older than retention window."""
     repo = get_repository()
@@ -133,7 +134,7 @@ async def run_graph_cleanup(retention_days: int = GRAPH_RETENTION_DAYS):
     }
 
 
-@router.post("/decay-preferences", response_model=GraphDecayResponse)
+@router.post("/decay-preferences", response_model=GraphDecayResponse, dependencies=[Depends(require_admin)])
 async def run_preference_decay(
     stale_after_days: int = GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
     default_decay_rate: float = GRAPH_PREF_DECAY_DEFAULT_RATE,

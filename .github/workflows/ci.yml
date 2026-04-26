@@ -90,7 +90,7 @@ jobs:
         run: |
           PYTHONPATH=apps/api/src uv run uvicorn spark.main:app --port 8000 &
           sleep 3
-          curl -sf http://localhost:8000/api/health
+          curl -sf http://localhost:8000/api/v1/health
           kill %1
 
   security:
@@ -158,4 +158,4 @@ jobs:
           image-ref: spark-backend:${{ github.sha }}
           format: table
           severity: CRITICAL,HIGH
-          exit-code: 0
+          exit-code: 1

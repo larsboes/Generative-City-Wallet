@@ -68,39 +68,35 @@ flowchart TB
 ## System Map
 
 ```mermaid
-C4Container
-    title System Map: Spark Generative City Wallet
-    
-    Person(user, "Consumer", "Uses the React PWA")
-    Person(merchant, "Local Merchant", "Manages business on Dashboard")
-    
-    System_Boundary(spark_cloud, "Spark Cloud Environment") {
-        Container(api, "FastAPI Orchestrator", "Python", "Handles trust policies, routing, and gates LLM access.")
-        ContainerDb(sqlite, "Idempotency & Audit", "SQLite", "Stores offer lifecycle & transaction hashes.")
-        ContainerDb(neo4j, "User Knowledge Graph", "Neo4j", "Explainable preferences, graph-based deterministic guardrails.")
-        Container(fluent, "FluentBit Ingestion", "Lua", "Normalizes and proxies Payone synthetic transactions.")
-    }
+flowchart TB
+    user(["👤 Consumer\nReact PWA"])
+    merchant(["🏪 Local Merchant\nDashboard"])
 
-    System_Ext(gemini, "Gemini Flash", "Synthesizes UI/Offer text just-in-time.")
-    System_Ext(payone, "Payone Sim (Density)")
-    System_Ext(weather, "Weather API")
-    System_Ext(strava, "Strava API (Mobile)")
-    System_Ext(luma, "Luma Events API")
-    System_Ext(maps, "Google Places API")
-    
-    Rel(user, api, "Sends anonymous Intent Vector", "HTTPS")
-    Rel(merchant, api, "Views analytics", "HTTPS")
-    Rel(payone, fluent, "Transaction pings", "HTTP")
-    Rel(fluent, api, "Density ingestion", "HTTP/RPC")
-    
-    Rel(api, strava, "Gets recent runs")
-    Rel(api, weather, "Fetches ambient")
-    Rel(api, luma, "Fetches local events")
-    Rel(api, maps, "Validates locations")
-    
-    Rel(api, sqlite, "audit & persistence", "SQL")
-    Rel(api, neo4j, "fetch & update weights", "Bolt")
-    Rel(api, gemini, "GenUI structured generation", "gRPC/REST")
+    subgraph spark_cloud["☁️ Spark Cloud Environment"]
+        api["FastAPI Orchestrator\n(Python)\nTrust policies · routing · LLM gating"]
+        sqlite[("Idempotency & Audit\nSQLite")]
+        neo4j[("User Knowledge Graph\nNeo4j")]
+        fluent["FluentBit Ingestion\n(Lua)\nNormalises Payone signals"]
+    end
+
+    gemini(["🧠 Gemini Flash\nGenUI synthesis"])
+    payone(["💳 Payone Sim\nDensity signals"])
+    weather(["🌤️ Weather API"])
+    strava(["🚴 Strava API"])
+    luma(["🎟️ Luma Events API"])
+    maps(["📍 Google Places API"])
+
+    user -- "Anonymous Intent Vector (HTTPS)" --> api
+    merchant -- "Analytics (HTTPS)" --> api
+    payone -- "Transaction pings" --> fluent
+    fluent -- "Density ingestion" --> api
+    api --> strava
+    api --> weather
+    api --> luma
+    api --> maps
+    api -- "audit & persistence" --> sqlite
+    api -- "fetch & update weights" --> neo4j
+    api -- "GenUI structured generation" --> gemini
 ```
 
 ---

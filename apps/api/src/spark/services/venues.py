@@ -2,7 +2,7 @@ import math
 import sqlite3
 from typing import Iterable
 
-from spark.models.transactions import Venue
+from spark.models.demand import Venue
 from spark.repositories.venues import (
     get_venue_row,
     list_venue_rows,

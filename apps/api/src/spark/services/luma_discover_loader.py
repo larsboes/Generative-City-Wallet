@@ -122,8 +122,8 @@ def load_discover_seed_events(
     period: str = "future",
     pages: int = 1,
     timeout: float = 8.0,
-    city: str = "Stuttgart",
-    seed_file: str = "resources/mock_events_stuttgart.json",
+    city: str = "Munich",
+    seed_file: str = "resources/mock_events_munich.json",
     replace_discover: bool = False,
     cookie: str = "",
     user_agent: str = (
@@ -222,11 +222,11 @@ def main() -> int:
         "--timeout", type=float, default=8.0, help="HTTP timeout seconds (default: 8.0)"
     )
     parser.add_argument(
-        "--city", default="Stuttgart", help="Fallback city for normalized events"
+        "--city", default="Munich", help="Fallback city for normalized events"
     )
     parser.add_argument(
         "--seed-file",
-        default="resources/mock_events_stuttgart.json",
+        default="resources/mock_events_munich.json",
         help="Seed JSON file path",
     )
     parser.add_argument(

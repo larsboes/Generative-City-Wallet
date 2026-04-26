@@ -6,6 +6,8 @@ Prefer importing from the narrow module (`api`, `context`, `offers`, `transactio
 """
 
 from spark.models.api import (
+    ClearProfileRequest as ClearProfileRequest,
+    ClearProfileResponse as ClearProfileResponse,
     ContinuityResetRequest as ContinuityResetRequest,
     ContinuityResetResponse as ContinuityResetResponse,
     GenerateOfferRequest as GenerateOfferRequest,
@@ -80,26 +82,30 @@ from spark.models.redemption import (
     RedemptionValidationRequest as RedemptionValidationRequest,
     RedemptionValidationResponse as RedemptionValidationResponse,
 )
+from spark.models.demand import (
+    DemandContext as DemandContext,
+    OccupancyQueryRequest as OccupancyQueryRequest,
+    OccupancyQueryResponse as OccupancyQueryResponse,
+    OccupancyResponse as OccupancyResponse,
+    Venue as Venue,
+    VenueListResponse as VenueListResponse,
+)
 from spark.models.transactions import (
+    LiveUpdateRequest as LiveUpdateRequest,
+    TransactionGenerationRequest as TransactionGenerationRequest,
+    TransactionGenerationResponse as TransactionGenerationResponse,
+)
+from spark.models.vendor import (
     DailyTransactionsResponse as DailyTransactionsResponse,
     DashboardHourlyBucket as DashboardHourlyBucket,
-    DemandContext as DemandContext,
     HourRankingBucket as HourRankingBucket,
     HourRankingsResponse as HourRankingsResponse,
     HourlyAverageBucket as HourlyAverageBucket,
     HourlyTransactionBucket as HourlyTransactionBucket,
-    LiveUpdateRequest as LiveUpdateRequest,
-    OccupancyQueryRequest as OccupancyQueryRequest,
-    OccupancyQueryResponse as OccupancyQueryResponse,
-    OccupancyResponse as OccupancyResponse,
     RevenueDay as RevenueDay,
     RevenueLast7DaysResponse as RevenueLast7DaysResponse,
     TransactionAveragesResponse as TransactionAveragesResponse,
-    TransactionGenerationRequest as TransactionGenerationRequest,
-    TransactionGenerationResponse as TransactionGenerationResponse,
     VendorDashboardTodayResponse as VendorDashboardTodayResponse,
-    Venue as Venue,
-    VenueListResponse as VenueListResponse,
 )
 from spark.models.wave import (
     CreateWaveRequest as CreateWaveRequest,
@@ -118,6 +124,8 @@ __all__ = [
     "CompositeContextState",
     "ConflictRecommendation",
     "ConflictCheckToolResult",
+    "ClearProfileRequest",
+    "ClearProfileResponse",
     "ConflictResolveRequest",
     "ConflictResolveResponse",
     "ContinuityResetRequest",

@@ -1,6 +1,6 @@
 """
-OpenWeatherMap integration for Stuttgart.
-Falls back to realistic Stuttgart defaults when no API key is set.
+OpenWeatherMap integration for Munich.
+Falls back to realistic Munich defaults when no API key is set.
 """
 
 import time
@@ -9,9 +9,9 @@ from datetime import datetime
 import httpx
 
 from spark.config import (
+    CITY_ID,
     CONTEXT_PROVIDER_TIMEOUT_SECONDS,
     OPENWEATHER_API_KEY,
-    STUTTGART_CITY_ID,
     WEATHER_CACHE_TTL_SECONDS,
 )
 
@@ -21,16 +21,16 @@ _cache: dict[str, dict] = {}
 _cache_ts: float = 0
 
 
-# ── Stuttgart fallback defaults (realistic spring day) ─────────────────────────
+# ── Munich fallback defaults (realistic spring day) ──────────────────────────
 
-STUTTGART_DEFAULTS = {
+CITY_DEFAULTS = {
     "weather_condition": "overcast",
-    "temp_celsius": 11.0,
-    "feels_like_celsius": 8.0,
+    "temp_celsius": 12.0,
+    "feels_like_celsius": 9.0,
     "weather_need": "warmth_seeking",
     "vibe_signal": "cozy",
-    "humidity": 72,
-    "wind_speed": 3.2,
+    "humidity": 68,
+    "wind_speed": 2.8,
     "source": "fallback_defaults",
     "provider_available": False,
     "cache_hit": False,
@@ -65,8 +65,8 @@ def classify_vibe_signal(weather_need: str, temp: float, hour: int) -> str:
     return "neutral"
 
 
-async def get_stuttgart_weather() -> dict:
-    """Fetch current Stuttgart weather. Returns cached result within TTL."""
+async def get_city_weather() -> dict:
+    """Fetch current Munich weather. Returns cached result within TTL."""
     global _cache, _cache_ts
 
     now = time.time()
@@ -74,7 +74,7 @@ async def get_stuttgart_weather() -> dict:
         return {**_cache, "cache_hit": True}
 
     if not OPENWEATHER_API_KEY:
-        _cache = STUTTGART_DEFAULTS.copy()
+        _cache = CITY_DEFAULTS.copy()
         _cache_ts = now
         return _cache
 
@@ -85,7 +85,7 @@ async def get_stuttgart_weather() -> dict:
             resp = await client.get(
                 "https://api.openweathermap.org/data/2.5/weather",
                 params={
-                    "id": STUTTGART_CITY_ID,
+                    "id": CITY_ID,
                     "appid": OPENWEATHER_API_KEY,
                     "units": "metric",
                     "lang": "de",
@@ -123,6 +123,6 @@ async def get_stuttgart_weather() -> dict:
 
     except Exception:
         # Fallback to defaults on any API error
-        _cache = STUTTGART_DEFAULTS.copy()
+        _cache = CITY_DEFAULTS.copy()
         _cache_ts = now
         return _cache

@@ -58,6 +58,16 @@ class ContinuityResetResponse(BaseModel):
     opt_out: bool
 
 
+class ClearProfileRequest(BaseModel):
+    session_id: str = Field(min_length=1)
+
+
+class ClearProfileResponse(BaseModel):
+    session_id: str
+    graph_cleared: dict
+    identity_unlinked: bool
+
+
 class GenerateOfferBlockedResponse(BaseModel):
     offer: None = None
     reason: str
