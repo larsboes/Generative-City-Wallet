@@ -74,14 +74,14 @@ flowchart LR
         server[FastAPI Backend]
     end
 
-    vector -- "Only abstract fields\n(e.g., 'STR-MITTE-047', 'walking')" --> server
+    vector -- "Only abstract fields\n(e.g., '891f8d7a49bffff', 'walking')" --> server
 ```
 
 ### Components
 
 **1. GPS Quantizer**
 - Raw GPS coordinates never leave the device.
-- Quantized to a ~50m grid cell (e.g., `"STR-MITTE-047"`).
+- Quantized to a ~50m H3 grid cell (e.g., `"891f8d7a49bffff"`).
 - Only the grid cell reaches the server.
 
 **2. IMU / Motion Classifier**
@@ -122,7 +122,7 @@ What leaves the device. No PII. No raw location.
 
 ```json
 {
-  "grid_cell": "STR-MITTE-047",
+  "grid_cell": "891f8d7a49bffff",
   "movement_mode": "browsing",
   "time_bucket": "tuesday_lunch",
   "weather_need": "warmth_seeking",
@@ -236,7 +236,7 @@ Rule of thumb: if logic needs DB truth, response contracts, or product/business 
 
 For `POST /api/offers/generate`, the backend applies a field-level trust policy before deterministic scoring:
 
-- `time_bucket` is **authoritative** server-side and recomputed from request time.
+- `time_bucket` is **advisory** from intent and retained for decisioning; when missing/blank it falls back to server-derived request time.
 - `weather_need` is **advisory** and is validated against server weather context.
 - `activity_signal` and `activity_confidence` are **advisory** and normalized with source/signal consistency:
   - `activity_source=none` forces `activity_signal=none` and `activity_confidence=0`

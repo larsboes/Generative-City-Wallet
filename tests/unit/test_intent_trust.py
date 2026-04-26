@@ -9,7 +9,7 @@ from spark.services.intent_trust import normalize_intent_vector
 def _intent() -> IntentVector:
     return IntentVector.model_validate(
         {
-            "grid_cell": "STR-MITTE-047",
+            "grid_cell": "891f8d7a49bffff",
             "movement_mode": "browsing",
             "time_bucket": "friday_evening",
             "weather_need": "neutral",
@@ -26,20 +26,20 @@ def _intent() -> IntentVector:
     )
 
 
-def test_normalize_overrides_time_bucket_and_weather_need():
+def test_normalize_keeps_client_time_bucket_and_overrides_weather_need():
     result = normalize_intent_vector(
         _intent(),
         now=datetime(2026, 4, 26, 9, 30),
         derived_weather_need="warmth_seeking",
     )
 
-    assert result.intent.time_bucket == "sunday_mid_morning"
+    assert result.intent.time_bucket == "friday_evening"
     assert result.intent.weather_need.value == "warmth_seeking"
 
     time_row = next(item for item in result.provenance if item.field == "time_bucket")
     weather_row = next(item for item in result.provenance if item.field == "weather_need")
-    assert time_row.action == "overridden"
-    assert time_row.policy == "authoritative"
+    assert time_row.action == "accepted"
+    assert time_row.policy == "advisory"
     assert weather_row.action == "overridden"
     assert weather_row.policy == "advisory"
 
@@ -55,6 +55,21 @@ def test_normalize_keeps_client_weather_need_when_server_signal_missing():
     assert result.intent.weather_need.value == "neutral"
     assert weather_row.action == "accepted"
     assert weather_row.source == "client_intent_fallback"
+
+
+def test_normalize_derives_time_bucket_when_client_bucket_missing():
+    intent = _intent().model_copy(update={"time_bucket": "   "})
+    result = normalize_intent_vector(
+        intent,
+        now=datetime(2026, 4, 26, 9, 30),
+        derived_weather_need="neutral",
+    )
+
+    assert result.intent.time_bucket == "sunday_mid_morning"
+    time_row = next(item for item in result.provenance if item.field == "time_bucket")
+    assert time_row.action == "derived"
+    assert time_row.policy == "advisory"
+    assert time_row.source == "server_time_fallback"
 
 
 def test_normalize_activity_fields_resets_when_source_none():

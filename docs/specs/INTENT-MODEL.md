@@ -33,7 +33,7 @@ The output of the on-device inference layer. No PII, no raw coordinates.
 
 ```json
 {
-  "grid_cell": "STR-MITTE-047",
+  "grid_cell": "891f8d7a49bffff",
   "movement_mode": "browsing",
   "time_bucket": "tuesday_lunch",
   "weather_need": "warmth_seeking",

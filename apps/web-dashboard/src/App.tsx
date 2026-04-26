@@ -3,7 +3,7 @@ import type { IntentVector } from "@spark/shared";
 const _exampleIntent: IntentVector = {
   grid_cell: "demo",
   movement_mode: "browsing",
-  time_bucket: "lunch",
+  time_bucket: "tuesday_lunch",
   weather_need: "neutral",
   social_preference: "neutral",
   price_tier: "mid",

@@ -38,23 +38,27 @@ def normalize_intent_vector(
 ) -> IntentNormalizationResult:
     """Apply server-side trust policy to client-provided intent fields."""
     canonical_time_bucket = classify_time_bucket(now)
+    client_time_bucket = intent.time_bucket.strip()
+    final_time_bucket = client_time_bucket or canonical_time_bucket
     normalized = intent.model_copy(
         update={
-            "time_bucket": canonical_time_bucket,
+            "time_bucket": final_time_bucket,
         }
     )
 
     provenance: list[IntentFieldProvenance] = [
         IntentFieldProvenance(
             field="time_bucket",
-            policy="authoritative",
+            policy="advisory",
             client_value=intent.time_bucket,
-            final_value=canonical_time_bucket,
-            action="accepted"
-            if intent.time_bucket == canonical_time_bucket
-            else "overridden",
-            reason="Canonical time bucket is derived server-side from request timestamp.",
-            source="server_time",
+            final_value=final_time_bucket,
+            action="accepted" if client_time_bucket else "derived",
+            reason=(
+                "Client-provided time bucket retained for decisioning."
+                if client_time_bucket
+                else "Client time bucket missing; derived from server request timestamp."
+            ),
+            source="client_intent" if client_time_bucket else "server_time_fallback",
         )
     ]
 

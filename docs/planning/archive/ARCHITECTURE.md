@@ -68,7 +68,7 @@ Protect user PII. Comply with GDPR. Demonstrate Sparkasse-level trust.
 
 **1. GPS Quantizer**
 - Raw GPS coordinates never leave the device
-- Quantized to a ~50m grid cell (e.g., `"STR-MITTE-047"`)
+- Quantized to a ~50m H3 grid cell (e.g., `"891f8d7a49bffff"`)
 - Grid cell is what reaches the server — not coordinates
 
 **2. IMU / Motion Classifier**
@@ -103,7 +103,7 @@ What leaves the device. No PII. No raw location.
 
 ```json
 {
-  "grid_cell": "STR-MITTE-047",
+  "grid_cell": "891f8d7a49bffff",
   "movement_mode": "browsing",
   "time_bucket": "tuesday_lunch",
   "weather_need": "warmth_seeking",
