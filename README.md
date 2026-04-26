@@ -85,7 +85,6 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** | Architecture, hybrid pipeline, FastAPI routers, SQLite vs Neo4j |
 | **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | npm workspaces, Turbo, folder map, root scripts, CI, Docker |
 | **[`docs/architecture/neo4j-graph.md`](docs/architecture/neo4j-graph.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
-| **[`docs/INTEGRATION.md`](docs/INTEGRATION.md)** | Frontend ↔ FastAPI backend handshake point and wiring guide |
 | **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
 
 ---
@@ -105,7 +104,7 @@ References: [`docs/planning/12-SUBMISSION-README.md`](docs/planning/12-SUBMISSIO
 
 ### What remains after MVP implementation
 
-- Frontend Spark ↔ FastAPI wiring: the Lovable frontend and the FastAPI backend are not yet connected (see [`docs/INTEGRATION.md`](docs/INTEGRATION.md)).
+- Demo data polish: ensure Munich merchant fixtures and Hero Score values are fully aligned for judging.
 - Demo/story polish remains: ensure README/demo script values and runbook outputs stay fully aligned for judging.
 
 ### Local run instructions (actual monorepo paths)
