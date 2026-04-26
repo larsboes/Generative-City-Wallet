@@ -40,7 +40,7 @@ OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 LUMA_API_KEY = os.getenv("LUMA_API_KEY", "")
 LUMA_BASE_URL = os.getenv("LUMA_BASE_URL", "https://api.lu.ma").rstrip("/")
-LUMA_SEED_EVENTS_PATH = os.getenv("LUMA_SEED_EVENTS_PATH", "resources/mock_events_stuttgart.json")
+LUMA_SEED_EVENTS_PATH = os.getenv("LUMA_SEED_EVENTS_PATH", "resources/mock_events_munich.json")
 
 # ── Gemini Flash ───────────────────────────────────────────────────────────────
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")

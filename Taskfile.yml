@@ -20,8 +20,8 @@ tasks:
     cmds:
       - PYTHONPATH={{.PYTHONPATH}} uv run python scripts/ops/load_munich_demo.py
 
-  demo:seed-legacy:
-    desc: Seed legacy Stuttgart demo merchants and payone buckets
+  demo:seed:
+    desc: Seed Munich OSM demo merchants and synthetic transaction history
     cmds:
       - PYTHONPATH={{.PYTHONPATH}} uv run python -m spark.db.seed
 
