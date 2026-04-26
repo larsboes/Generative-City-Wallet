@@ -2,6 +2,24 @@
 
 > **"Right place. Right time. Right Spark."**
 
+[![Privacy: GDPR Compliant](https://img.shields.io/badge/Privacy-GDPR_Compliant-green?style=flat-square)](docs/ARCHITECTURE.md#privacy-boundary--on-device-layer)
+[![Edge AI: Gemma 3n](https://img.shields.io/badge/Edge_AI-Gemma_3n-blue?style=flat-square)](docs/ARCHITECTURE.md#privacy-boundary--on-device-layer)
+
+---
+
+## 🔒 Privacy by Design (GDPR Statement)
+
+Spark is built on a **Zero-PII Architecture**. We solve the "Personalization vs. Privacy" paradox by moving the intelligence to the edge:
+
+1.  **On-Device Intent Extraction**: All raw sensor data (GPS, Motion, Health) is processed locally using **Gemma 3n**. Only abstract, anonymous "Intent Vectors" reach the Spark Cloud.
+2.  **Geographic Quantization**: Precise coordinates never leave the device. Location is quantized into ~50m **H3 Grid Cells** before transmission.
+3.  **Pseudonymous Continuity**: We use time-bounded, server-derived pseudonyms (`continuity_id`) instead of stable identifiers. Users can rotate or reset their identity at any time.
+4.  **No Data Monetization**: Spark is designed for local commerce enablement, not data harvesting. We don't build "Social Graphs"—we build "Contextual Moments."
+
+---
+
+# ⚡ Spark — Overview
+
 [![Frontend: React PWA](https://img.shields.io/badge/Frontend-React%20PWA-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Dashboard: React + Vite](https://img.shields.io/badge/Dashboard-React%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -15,6 +33,12 @@ Spark is an AI-powered city wallet that detects the most relevant local offer fo
 Built for the **DSV Gruppe Hackathon** — HackNation 2025.
 
 > **🏅 Hackathon Judges:** Please jump directly to our [Hackathon Judge Guide](docs/HACKATHON_JUDGE_GUIDE.md) for a curated technical tour.
+> 
+> **Key Submission Evidence:**
+> - **[Mia's Scenario Demo](scripts/demo/mia_scenario.py)**: A concrete demo script showing the system responding to "Rain + Low Density" exactly as requested in the brief.
+> - **[UX Rationale](docs/UX-RATIONALE.md)**: Our strategy for "3-Second Instant Comprehension" using GenUI.
+> - **[Merchant Portal Mockup](apps/web-dashboard/src/App.tsx)**: Showing how businesses set AI goals (e.g., "Fill Quiet Hours").
+> - **Privacy Shield**: See our [GDPR Statement](#-privacy-by-design-gdpr-statement) above.
 
 ### How it Works (in 10 seconds)
 
@@ -202,15 +226,14 @@ After `docker compose up -d --build`, use these local endpoints:
 
 ## Tech Stack (MVP)
 
-- **Mobile:** React PWA
-- **Merchant Dashboard:** Vite + React (scaffold in `apps/web-dashboard`; planning docs still target Next.js)
-- **Backend:** FastAPI (Python)
-- **AI (server):** Gemini Flash (offer generation + GenUI — fast, structured JSON output)
-- **AI (on-device):** Gemma 3n via Google AI Edge (intent extraction — no PII leaves device)
-- **Context APIs:** OpenWeatherMap, Google Places (New), Luma, optional Strava activity abstraction, VVS (Stuttgart transit)
-- **Merchant Data:** Simulated Payone transaction feed (Python generator)
-- **Maps:** Mapbox (merchant heatmap)
-- **User knowledge graph (optional):** Neo4j — session preferences, offer lifecycle, deterministic guardrails, explainability on offers
+- **Mobile:** React PWA (Privacy-First)
+- **Backend:** FastAPI (Python 3.12+)
+- **Edge AI:** **Gemma 3n** via Google AI Edge (On-device intent extraction — no PII leaves the boundary)
+- **Cloud AI:** **Gemini Flash** (Just-in-time GenUI and offer framing — low latency, high reasoning)
+- **Persistence:** SQLite (Audit & Idempotency) + **Neo4j** (Knowledge Graph for explainable personalization)
+- **Ingestion:** **Fluent Bit** + Lua (High-performance Payone density bridge)
+- **Context Ecosystem:** Google Places (New), OpenWeatherMap, Luma, Strava, VVS
+- **Maps:** Mapbox (Real-time merchant heatmapping)
 
 ---
 

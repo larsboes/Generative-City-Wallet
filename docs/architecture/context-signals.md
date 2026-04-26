@@ -28,9 +28,12 @@ Runtime signal model and composite context assembly.
 flowchart TD
   subgraph Data Sources
       weather((Weather API))
+      luma((Luma Events))
+      maps((Google Places))
+      strava((Strava Auth))
       demand((Payone Density))
       movement((Motion Mode))
-      time((Time Bucket))
+      time((Time Buket))
       prefs[(Neo4j Prefs)]
   end
 
@@ -41,7 +44,10 @@ flowchart TD
   end
 
   weather --> composite
+  luma --> composite
+  maps --> composite
   demand --> composite
+  strava --> movement
   movement --> composite
   time --> composite
   prefs -.-> composite

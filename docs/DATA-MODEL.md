@@ -92,6 +92,9 @@ classDiagram
     +bool dwell_signal
     +bool battery_low
     +string session_id
+    +string activity_signal
+    +string activity_source
+    +float activity_confidence
   }
 
   class UserContext {
@@ -123,6 +126,7 @@ classDiagram
     +string category
     +float distance_m
     +string address
+    +bool places_verified
     +MerchantDemand demand
     +ActiveCoupon active_coupon
   }
@@ -132,6 +136,7 @@ classDiagram
     +float temp_celsius
     +float feels_like_celsius
     +string weather_need
+    +list local_events
     +string vibe_signal
   }
 

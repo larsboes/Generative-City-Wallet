@@ -199,5 +199,9 @@ Example no-offer response shape when blocked:
    - inspect `decision_trace.trace` entries and conflict reason.
 5. Check movement rollout behavior:
    - inspect `decision_trace.trace` for `movement_category_adjustment` and associated metadata.
-6. Check Spark Wave economics propagation (outside selection engine):
+6. Check dynamic transit viability:
+   - verify `transit_delay_minutes` in request.
+   - check merchant `distance_m_estimated` in trace.
+   - logic: `(dist / 80) * 2 + 5` must be `<= delay`.
+7. Check Spark Wave economics propagation (outside selection engine):
    - inspect offer explainability for `spark_wave_catalyst_bonus` in `POST /api/offers/generate` response.
