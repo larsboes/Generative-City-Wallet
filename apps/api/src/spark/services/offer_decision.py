@@ -161,7 +161,9 @@ def decide_offer(
     recheck_minutes = None if final_recommendation != "DO_NOT_RECOMMEND" else 30
     return OfferDecisionResult(
         recommendation=final_recommendation,
-        selected_merchant_id=best.merchant_id if final_recommendation != "DO_NOT_RECOMMEND" else None,
+        selected_merchant_id=best.merchant_id
+        if final_recommendation != "DO_NOT_RECOMMEND"
+        else None,
         selected_merchant_score=round(best.score, 3),
         recheck_in_minutes=recheck_minutes,
         trace=best.trace,
@@ -200,7 +202,10 @@ def _check_hard_blocks(
             return DecisionTraceStep(
                 code="single_offer_guard",
                 reason="Session has an unresolved active offer; one-offer policy blocks new offer.",
-                metadata={"active_offer_id": unresolved["offer_id"], "recheck_in_minutes": 20},
+                metadata={
+                    "active_offer_id": unresolved["offer_id"],
+                    "recheck_in_minutes": 20,
+                },
             )
 
         today_count = conn.execute(
@@ -224,7 +229,9 @@ def _check_hard_blocks(
     return None
 
 
-def _list_candidate_merchants(*, grid_cell: str, db_path: str | None) -> list[dict[str, Any]]:
+def _list_candidate_merchants(
+    *, grid_cell: str, db_path: str | None
+) -> list[dict[str, Any]]:
     conn = get_connection(db_path)
     try:
         rows = conn.execute(
@@ -249,7 +256,9 @@ def _score_merchant_candidate(
     current_dt: datetime,
     db_path: str | None,
 ) -> MerchantDecision | None:
-    density = compute_density_signal(merchant_id, current_dt=current_dt, db_path=db_path)
+    density = compute_density_signal(
+        merchant_id, current_dt=current_dt, db_path=db_path
+    )
     conflict = resolve_conflict(
         merchant_id=merchant_id,
         user_social_pref=social_preference,
@@ -301,7 +310,9 @@ def _score_merchant_candidate(
         )
     )
 
-    weather_alignment = _weather_alignment(weather_need=weather_need, merchant_category=merchant_category)
+    weather_alignment = _weather_alignment(
+        weather_need=weather_need, merchant_category=merchant_category
+    )
     weather_points = weather_alignment * 10.0
     score += weather_points
     trace.append(
@@ -342,5 +353,7 @@ def _weather_alignment(*, weather_need: str, merchant_category: str) -> float:
     if weather_need == "refreshment_seeking":
         return 1.0 if merchant_category in cool_categories else 0.4
     if weather_need == "shelter_seeking":
-        return 0.9 if merchant_category in warm_categories | nightlife_categories else 0.5
+        return (
+            0.9 if merchant_category in warm_categories | nightlife_categories else 0.5
+        )
     return 0.5

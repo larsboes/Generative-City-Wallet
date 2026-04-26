@@ -58,7 +58,9 @@ def test_decision_selects_highest_scoring_candidate(tmp_path, monkeypatch):
         framing_band = "quiet_intentional"
         reason = "ok"
 
-    monkeypatch.setattr("spark.services.offer_decision.compute_density_signal", fake_density)
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal", fake_density
+    )
     monkeypatch.setattr(
         "spark.services.offer_decision.resolve_conflict",
         lambda **kwargs: FakeConflict(),  # noqa: ARG005
