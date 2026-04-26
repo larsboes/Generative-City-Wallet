@@ -129,3 +129,92 @@ def test_decision_enforces_single_offer_guard(tmp_path, monkeypatch):
 
     assert result.recommendation == "DO_NOT_RECOMMEND"
     assert result.trace[0].code == "single_offer_guard"
+
+
+def test_post_workout_prefers_recovery_categories(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_post_workout_recovery.db")
+    init_database(db_path)
+    _seed_minimal_merchants(db_path)
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.4, "current_rate": 5.0},  # noqa: ARG005
+    )
+
+    class FakeConflict:
+        recommendation = "RECOMMEND"
+        framing_band = "quiet_intentional"
+        reason = "ok"
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.resolve_conflict",
+        lambda **kwargs: FakeConflict(),  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-post-workout",
+        grid_cell="STR-MITTE-047",
+        movement_mode="post_workout",
+        social_preference="neutral",
+        weather_need="neutral",
+        preference_scores={"cafe": 0.5, "bar": 0.5},
+        db_path=db_path,
+        now=datetime(2026, 4, 26, 10, 0, 0),
+    )
+
+    assert result.recommendation == "RECOMMEND"
+    assert result.selected_merchant_id == "MERCHANT_001"  # cafe beats bar
+    assert any(
+        step.code == "movement_category_adjustment"
+        and step.metadata.get("movement_mode") == "post_workout"
+        for step in result.trace
+    )
+
+
+def test_post_workout_shortens_single_offer_guard_recheck(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_post_workout_cooldown.db")
+    init_database(db_path)
+    _seed_minimal_merchants(db_path)
+
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO offer_audit_log (
+                offer_id, created_at, session_id, status
+            ) VALUES (?, ?, ?, ?)
+            """,
+            ("off-post-1", datetime.now().isoformat(), "sess-post-guard", "SENT"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.2, "current_rate": 2.0},  # noqa: ARG005
+    )
+
+    class FakeConflict:
+        recommendation = "RECOMMEND"
+        framing_band = "quiet_intentional"
+        reason = "ok"
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.resolve_conflict",
+        lambda **kwargs: FakeConflict(),  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-post-guard",
+        grid_cell="STR-MITTE-047",
+        movement_mode="post_workout",
+        social_preference="quiet",
+        weather_need="warmth_seeking",
+        preference_scores={"cafe": 1.0},
+        db_path=db_path,
+    )
+
+    assert result.recommendation == "DO_NOT_RECOMMEND"
+    assert result.trace[0].code == "single_offer_guard"
+    assert result.recheck_in_minutes == 12

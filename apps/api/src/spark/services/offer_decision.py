@@ -16,6 +16,14 @@ from spark.services.conflict import resolve_conflict
 from spark.services.density import compute_density_signal
 
 MIN_SCORE_THRESHOLD = 30.0
+POST_WORKOUT_RECOVERY_CATEGORIES = {
+    "healthy_cafe",
+    "juice_bar",
+    "smoothie_bar",
+    "cafe",
+    "bakery",
+}
+POST_WORKOUT_SUPPRESSED_CATEGORIES = {"bar", "club", "nightclub"}
 
 
 @dataclass(frozen=True)
@@ -97,6 +105,7 @@ def decide_offer(
         merchant_decision = _score_merchant_candidate(
             merchant_id=candidate["id"],
             merchant_category=candidate["type"],
+            movement_mode=movement_mode,
             social_preference=social_preference,
             weather_need=weather_need,
             preference_scores=preference_scores,
@@ -111,7 +120,9 @@ def decide_offer(
             recommendation="DO_NOT_RECOMMEND",
             selected_merchant_id=None,
             selected_merchant_score=0.0,
-            recheck_in_minutes=30,
+            recheck_in_minutes=_movement_recheck_minutes(
+                movement_mode=movement_mode, default_minutes=30
+            ),
             trace=[
                 DecisionTraceStep(
                     code="all_candidates_filtered",
@@ -139,7 +150,9 @@ def decide_offer(
             recommendation="DO_NOT_RECOMMEND",
             selected_merchant_id=None,
             selected_merchant_score=round(best.score, 3),
-            recheck_in_minutes=30,
+            recheck_in_minutes=_movement_recheck_minutes(
+                movement_mode=movement_mode, default_minutes=30
+            ),
             trace=[
                 DecisionTraceStep(
                     code="below_threshold",
@@ -158,7 +171,11 @@ def decide_offer(
         if best.conflict_recommendation in {"RECOMMEND", "RECOMMEND_WITH_FRAMING"}
         else "DO_NOT_RECOMMEND"
     )
-    recheck_minutes = None if final_recommendation != "DO_NOT_RECOMMEND" else 30
+    recheck_minutes = (
+        None
+        if final_recommendation != "DO_NOT_RECOMMEND"
+        else _movement_recheck_minutes(movement_mode=movement_mode, default_minutes=30)
+    )
     return OfferDecisionResult(
         recommendation=final_recommendation,
         selected_merchant_id=best.merchant_id
@@ -199,12 +216,15 @@ def _check_hard_blocks(
             (session_id,),
         ).fetchone()
         if unresolved:
+            recheck_in_minutes = _movement_recheck_minutes(
+                movement_mode=movement_mode, default_minutes=20
+            )
             return DecisionTraceStep(
                 code="single_offer_guard",
                 reason="Session has an unresolved active offer; one-offer policy blocks new offer.",
                 metadata={
                     "active_offer_id": unresolved["offer_id"],
-                    "recheck_in_minutes": 20,
+                    "recheck_in_minutes": recheck_in_minutes,
                 },
             )
 
@@ -250,6 +270,7 @@ def _score_merchant_candidate(
     *,
     merchant_id: str,
     merchant_category: str,
+    movement_mode: str,
     social_preference: str,
     weather_need: str,
     preference_scores: dict[str, float],
@@ -324,6 +345,24 @@ def _score_merchant_candidate(
         )
     )
 
+    movement_points, movement_reason = _movement_category_adjustment(
+        movement_mode=movement_mode,
+        merchant_category=merchant_category,
+    )
+    if movement_points != 0.0:
+        score += movement_points
+        trace.append(
+            DecisionTraceStep(
+                code="movement_category_adjustment",
+                reason=movement_reason,
+                score=round(movement_points, 3),
+                metadata={
+                    "movement_mode": movement_mode,
+                    "merchant_category": merchant_category,
+                },
+            )
+        )
+
     trace.append(
         DecisionTraceStep(
             code="conflict_resolution",
@@ -357,3 +396,31 @@ def _weather_alignment(*, weather_need: str, merchant_category: str) -> float:
             0.9 if merchant_category in warm_categories | nightlife_categories else 0.5
         )
     return 0.5
+
+
+def _movement_category_adjustment(
+    *, movement_mode: str, merchant_category: str
+) -> tuple[float, str]:
+    """
+    Deterministic movement-aware weighting.
+
+    Post-workout users should see recovery-oriented options and avoid nightlife.
+    """
+    if movement_mode != "post_workout":
+        return 0.0, "No movement-specific category adjustment."
+    if merchant_category in POST_WORKOUT_RECOVERY_CATEGORIES:
+        return 18.0, "Post-workout recovery category boost applied."
+    if merchant_category in POST_WORKOUT_SUPPRESSED_CATEGORIES:
+        return -14.0, "Post-workout nightlife suppression applied."
+    return 0.0, "Post-workout neutral category."
+
+
+def _movement_recheck_minutes(*, movement_mode: str, default_minutes: int) -> int:
+    """
+    Adapt retry cadence to movement transitions.
+
+    Post-workout windows are short-lived, so recheck sooner than default.
+    """
+    if movement_mode == "post_workout":
+        return max(5, min(default_minutes, 12))
+    return default_minutes

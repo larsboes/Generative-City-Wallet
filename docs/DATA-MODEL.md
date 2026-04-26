@@ -6,11 +6,13 @@ Canonical data model across contracts, SQLite persistence, and graph projection.
 
 ## Model layers
 
-1. **API contracts (Pydantic)**  
+1. **Canonical API contracts (Python runtime)**  
    `apps/api/src/spark/models/contracts.py`
-2. **Operational store (SQLite)**  
+2. **Shared cross-client mirror (TypeScript)**  
+   `packages/shared/src/contracts.ts` (`@spark/shared`)
+3. **Operational store (SQLite)**  
    `apps/api/src/spark/db/schema.sql`
-3. **Knowledge graph (Neo4j)**  
+4. **Knowledge graph (Neo4j)**  
    projected best-effort from offer/outcome lifecycle
 
 ---
@@ -307,7 +309,8 @@ sequenceDiagram
 
 - **Source of truth for offer lifecycle:** SQLite `offer_audit_log`
 - **Source of truth for wallet balance:** SQLite `wallet_transactions`
-- **Source of truth for contract shape:** Python contracts (and mirrored TS shared contracts)
+- **Source of truth for contract shape:** Python contracts in `apps/api/src/spark/models/contracts.py`
+- **Parity requirement for frontend/shared consumers:** TypeScript mirror in `packages/shared/src/contracts.ts` must stay field-for-field aligned with Python
 - **Graph:** derived/augmenting personalization layer, fail-soft
 
 ---
