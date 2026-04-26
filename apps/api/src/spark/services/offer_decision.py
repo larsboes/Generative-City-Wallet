@@ -378,6 +378,8 @@ def _score_merchant_candidate(
                     "activity_signal": activity_signal,
                     "activity_source": activity_source,
                     "activity_confidence": round(max(0.0, min(1.0, activity_confidence)), 3),
+                    "source_present": activity_source != "none",
+                    "confidence_band": _confidence_band(activity_confidence),
                 },
             )
         )
@@ -542,3 +544,14 @@ def _activity_alignment_points(
         if merchant_category in {"cafe", "bakery"}:
             return round(2.0 * confidence, 3)
     return 0.0
+
+
+def _confidence_band(confidence: float) -> str:
+    bounded = max(0.0, min(1.0, confidence))
+    if bounded >= 0.8:
+        return "high"
+    if bounded >= 0.5:
+        return "medium"
+    if bounded > 0.0:
+        return "low"
+    return "none"

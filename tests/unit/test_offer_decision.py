@@ -320,6 +320,8 @@ def test_social_mid_occupancy_uses_active_coupon(tmp_path, monkeypatch):
     finally:
         conn.close()
 
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
         lambda merchant_id, **kwargs: {"density_score": 0.4, "current_rate": 15.0},  # noqa: ARG005
     )
 
@@ -337,3 +339,80 @@ def test_social_mid_occupancy_uses_active_coupon(tmp_path, monkeypatch):
     assert result.recommendation == "RECOMMEND_WITH_FRAMING"
     assert result.selected_merchant_id == "MERCHANT_005"
     assert result.trace[-1].metadata["coupon_type"] == "TIME_BOUND"
+
+
+def test_strava_activity_signal_adds_alignment_trace(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_strava_trace.db")
+    init_database(db_path)
+    _seed_minimal_merchants(db_path)
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.35, "current_rate": 4.0},  # noqa: ARG005
+    )
+
+    class FakeConflict:
+        recommendation = "RECOMMEND"
+        framing_band = "quiet_intentional"
+        reason = "ok"
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.resolve_conflict",
+        lambda **kwargs: FakeConflict(),  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-strava",
+        grid_cell=TEST_CELL,
+        movement_mode="browsing",
+        social_preference="neutral",
+        weather_need="neutral",
+        preference_scores={"cafe": 0.6, "bar": 0.2},
+        activity_signal="post_workout",
+        activity_source="strava",
+        activity_confidence=0.86,
+        db_path=db_path,
+        now=datetime(2026, 4, 26, 10, 0, 0),
+    )
+
+    activity_step = next(step for step in result.trace if step.code == "activity_alignment")
+    assert activity_step.metadata["activity_source"] == "strava"
+    assert activity_step.metadata["source_present"] is True
+    assert activity_step.metadata["confidence_band"] == "high"
+
+
+def test_no_activity_signal_emits_no_activity_alignment_trace(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_no_activity_trace.db")
+    init_database(db_path)
+    _seed_minimal_merchants(db_path)
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.35, "current_rate": 4.0},  # noqa: ARG005
+    )
+
+    class FakeConflict:
+        recommendation = "RECOMMEND"
+        framing_band = "quiet_intentional"
+        reason = "ok"
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.resolve_conflict",
+        lambda **kwargs: FakeConflict(),  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-no-activity",
+        grid_cell=TEST_CELL,
+        movement_mode="browsing",
+        social_preference="neutral",
+        weather_need="neutral",
+        preference_scores={"cafe": 0.6, "bar": 0.2},
+        activity_signal="none",
+        activity_source="none",
+        activity_confidence=0.0,
+        db_path=db_path,
+        now=datetime(2026, 4, 26, 10, 0, 0),
+    )
+
+    assert all(step.code != "activity_alignment" for step in result.trace)

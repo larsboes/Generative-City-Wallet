@@ -1,8 +1,10 @@
 import type { IntentVector } from "@spark/shared";
+import type { DerivedStravaSignal } from "../api/strava";
 
 export interface ActivitySignalInput {
   movementMode: IntentVector["movement_mode"];
   stravaRecentActivity?: boolean;
+  stravaConfidence?: number;
   nativeHealthRecentActivity?: boolean;
   locationGridAccuracyM?: number;
 }
@@ -24,7 +26,11 @@ export function deriveSourceSignals(
     activitySignal = "resting";
   }
 
-  const confidence = source === "hybrid" ? 0.9 : source === "movement_inferred" ? 0.5 : 0.75;
+  let confidence =
+    source === "hybrid" ? 0.9 : source === "movement_inferred" ? 0.5 : 0.75;
+  if (source === "strava" && typeof input.stravaConfidence === "number") {
+    confidence = Math.max(0, Math.min(1, input.stravaConfidence));
+  }
 
   return {
     ...intent,
@@ -33,4 +39,18 @@ export function deriveSourceSignals(
     activity_confidence: confidence,
     location_grid_accuracy_m: input.locationGridAccuracyM,
   };
+}
+
+export function applyStravaSignalToIntent(
+  intent: IntentVector,
+  movementMode: IntentVector["movement_mode"],
+  stravaSignal: DerivedStravaSignal,
+  locationGridAccuracyM?: number,
+): IntentVector {
+  return deriveSourceSignals(intent, {
+    movementMode,
+    stravaRecentActivity: stravaSignal.hasRecentActivity,
+    stravaConfidence: stravaSignal.confidence,
+    locationGridAccuracyM,
+  });
 }

@@ -100,3 +100,24 @@ def test_normalize_activity_confidence_caps_by_source():
         item for item in result.provenance if item.field == "activity_confidence"
     )
     assert confidence_row.action == "overridden"
+
+
+def test_normalize_activity_signal_consistency_for_no_source():
+    intent = _intent().model_copy(
+        update={
+            "activity_source": "none",
+            "activity_signal": "active_recently",
+            "activity_confidence": 0.6,
+        }
+    )
+    result = normalize_intent_vector(
+        intent,
+        now=datetime(2026, 4, 26, 9, 30),
+        derived_weather_need="neutral",
+    )
+    assert result.intent.activity_signal == "none"
+    assert result.intent.activity_confidence == 0.0
+    signal_row = next(
+        item for item in result.provenance if item.field == "activity_signal"
+    )
+    assert signal_row.action == "overridden"

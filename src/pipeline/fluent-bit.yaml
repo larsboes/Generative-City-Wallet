@@ -1,0 +1,40 @@
+service:
+  flush: 1
+  daemon: off
+  log_level: info
+
+pipeline:
+  inputs:
+    - name: http
+      listen: 0.0.0.0
+      port: 8888
+      tag: payone
+      format: json
+      successful_response_code: 201
+
+  filters:
+    - name: lua
+      match: payone
+      script: /fluent-bit/scripts/validate.lua
+      call: cb_filter
+
+  outputs:
+    - name: stdout
+      match: payone
+      format: json_lines
+
+    - name: http
+      match: payone
+      host: backend
+      port: 8000
+      uri: /api/payone/ingest
+      format: json
+      json_date_key: timestamp
+      json_date_format: iso8601
+      retry_limit: false
+
+    - name: file
+      match: _fluent-bit_dead_letter
+      path: /fluent-bit/data/dlq/
+      file: failed
+      format: json_lines

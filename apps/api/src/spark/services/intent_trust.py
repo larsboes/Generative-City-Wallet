@@ -15,6 +15,13 @@ ACTIVITY_CONFIDENCE_CAP_BY_SOURCE = {
     "strava": 0.95,
     "hybrid": 0.95,
 }
+ALLOWED_ACTIVITY_SIGNALS_BY_SOURCE = {
+    "none": {"none"},
+    "movement_inferred": {"none", "active_recently", "post_workout", "resting"},
+    "native_health": {"none", "active_recently", "post_workout", "resting"},
+    "strava": {"none", "active_recently", "post_workout", "resting"},
+    "hybrid": {"none", "active_recently", "post_workout", "resting"},
+}
 
 
 @dataclass(frozen=True)
@@ -101,12 +108,17 @@ def _normalize_activity_fields(
         final_signal = "none"
         final_confidence = 0.0
     else:
-        final_signal = activity_signal
+        allowed_signals = ALLOWED_ACTIVITY_SIGNALS_BY_SOURCE.get(
+            activity_source, {"none"}
+        )
+        final_signal = activity_signal if activity_signal in allowed_signals else "none"
         if activity_signal == "none":
             final_confidence = 0.0
         else:
             confidence_cap = ACTIVITY_CONFIDENCE_CAP_BY_SOURCE.get(activity_source, 0.7)
             final_confidence = max(0.0, min(activity_confidence, confidence_cap))
+            if final_signal == "none":
+                final_confidence = 0.0
 
     normalized = intent.model_copy(
         update={
@@ -122,7 +134,7 @@ def _normalize_activity_fields(
             client_value=activity_source,
             final_value=activity_source,
             action="accepted",
-            reason="Activity source is accepted as advisory metadata for downstream trust checks.",
+            reason="Activity source is accepted as advisory metadata for consistency and confidence trust checks.",
             source="client_intent",
         )
     )
@@ -134,7 +146,7 @@ def _normalize_activity_fields(
             final_value=final_signal,
             action="accepted" if activity_signal == final_signal else "overridden",
             reason=(
-                "Activity signal is reset to 'none' when no trusted activity source is provided."
+                "Activity signal is reset to 'none' when source/signal consistency validation fails."
                 if activity_signal != final_signal
                 else "Activity signal accepted with advisory trust policy."
             ),

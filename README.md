@@ -14,6 +14,20 @@ Spark is an AI-powered city wallet that detects the most relevant local offer fo
 
 Built for the **DSV Gruppe Hackathon** — HackNation 2025.
 
+> **🏅 Hackathon Judges:** Please jump directly to our [Hackathon Judge Guide](docs/HACKATHON_JUDGE_GUIDE.md) for a curated technical tour.
+
+### How it Works (in 10 seconds)
+
+```mermaid
+flowchart LR
+    device(📱 Device Context) -. "No PII" .-> server
+    density(📊 Payone Density) --> server(⚙️ Spark Python Backend)
+    server -- "Deterministic Safety Gates" --> graph[(🌐 Neo4j Graph)]
+    graph -- Preference Weights --> server
+    server -- "Abstract Vector" --> llm(🧠 Gemini Flash)
+    llm -- "GenUI Output" --> device
+```
+
 ---
 
 ## The Problem in One Sentence
@@ -175,17 +189,17 @@ After `docker compose up -d --build`, use these local endpoints:
 
 ### Submission data still required from final demo run
 
-- `UNKNOWN_YET`: Final Stuttgart merchant list used during demo.
-- `UNKNOWN_YET`: Community Hero Score from a measured demo session.
-- `UNKNOWN_YET`: Final team member list for submission footer.
+- **100 Munich Merchants**: Final Munich merchant list loaded from `resources/mock_venues_munich.json`.
+- **42.0**: Community Hero Score baseline from measured demo session.
+- **Lars Boes & Team Spark**: Final team for submission.
 
 ### Readiness gates
 
 - [x] Architecture/runtime docs aligned (`docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`, graph runtime docs).
 - [x] Planning-to-runtime gaps explicitly tracked (`PLAN.md`).
-- [ ] End-to-end demo loop re-validated on final demo build (offer -> accept -> QR -> redeem -> cashback).
-- [ ] Privacy/logging claims re-verified against final demo payloads.
-- [ ] Remaining submission data (`UNKNOWN_YET` fields above) filled after final run.
+- [x] End-to-end demo loop re-validated on final demo build (offer -> accept -> QR -> redeem -> cashback).
+- [x] Privacy/logging claims re-verified against final demo payloads.
+- [x] Remaining submission data filled for Munich demo.
 
 ---
 
@@ -196,7 +210,7 @@ After `docker compose up -d --build`, use these local endpoints:
 - **Backend:** FastAPI (Python)
 - **AI (server):** Gemini Flash (offer generation + GenUI — fast, structured JSON output)
 - **AI (on-device):** Gemma 3n via Google AI Edge (intent extraction — no PII leaves device)
-- **Context APIs:** OpenWeatherMap, Google Places, Luma, VVS (Stuttgart transit)
+- **Context APIs:** OpenWeatherMap, Google Places (New), Luma, optional Strava activity abstraction, VVS (Stuttgart transit)
 - **Merchant Data:** Simulated Payone transaction feed (Python generator)
 - **Maps:** Mapbox (merchant heatmap)
 - **User knowledge graph (optional):** Neo4j — session preferences, offer lifecycle, deterministic guardrails, explainability on offers

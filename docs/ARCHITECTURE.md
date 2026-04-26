@@ -7,15 +7,33 @@ For planning rationale, see `planning/README.md`.
 
 ---
 
-## System map
+## System Map
 
 ```mermaid
-flowchart TB
-  mobile[Mobile App] --> api[FastAPI Backend]
-  dashboard[Merchant Dashboard] --> api
-  api --> sqlite[(SQLite)]
-  api --> neo4j[(Neo4j optional)]
-  api --> llm[(Gemini/Ollama optional)]
+C4Container
+    title System Map: Spark Generative City Wallet
+    
+    Person(user, "Consumer", "Uses the Mobile App")
+    Person(merchant, "Local Merchant", "Manages business on Dashboard")
+    
+    System_Boundary(spark_cloud, "Spark Cloud Environment") {
+        Container(api, "FastAPI Orchestrator", "Python", "Handles trust policies, routing, and gates LLM access.")
+        ContainerDb(sqlite, "Idempotency & Audit", "SQLite", "Stores offer lifecycle & transaction hashes.")
+        ContainerDb(neo4j, "User Knowledge Graph", "Neo4j", "Explainable preferences, graph-based deterministic guardrails.")
+        Container(fluent, "FluentBit Ingestion", "Lua", "Normalizes and proxies Payone synthetic transactions.")
+    }
+
+    System_Ext(gemini, "Gemini Flash", "Synthesizes UI/Offer text just-in-time.")
+    System_Ext(payone, "Payone Feed", "Simulated density density signal trigger.")
+    
+    Rel(user, api, "Sends anonymous Intent Vector", "HTTPS")
+    Rel(merchant, api, "Views analytics", "HTTPS")
+    Rel(payone, fluent, "Transaction pings", "HTTP")
+    Rel(fluent, api, "Density ingestion", "HTTP/RPC")
+    
+    Rel(api, sqlite, "audit & persistence", "SQL")
+    Rel(api, neo4j, "fetch & update weights", "Bolt")
+    Rel(api, gemini, "GenUI structured generation", "gRPC/REST")
 ```
 
 ---
@@ -24,21 +42,26 @@ flowchart TB
 
 Protect user PII by ensuring raw data never leaves the device.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    USER'S DEVICE (On-Device)                     │
-│                                                                   │
-│  GPS (quantized)  ──┐                                            │
-│  IMU / Pedometer  ──┤──► Local Intent Engine ──► Intent Vector   │
-│  User History DB  ──┘   (Phi-3 / rule model)       │            │
-│                                                     │            │
-│  ← Nothing personal leaves this boundary ──────────┘            │
-└─────────────────────────────────────────────────────────────────┘
-                              │ Intent Vector (no PII)
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    SPARK CLOUD BACKEND                           │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Device ["📱 User's Device (Privacy Boundary)"]
+        direction TB
+        raw1[Raw GPS Stream] --> quant[Quantizer]
+        raw2[IMU / Pedometer] --> class[Motion Classifier]
+        raw3[Local History DB] --> class
+        
+        quant -->|Grid Cell| intent[Local Intent Engine]
+        class -->|Motion Mode| intent
+        intent -->|Extracts| vector[Abstract Intent Vector]
+        
+        note1[Nothing raw leaves this boundary!]
+    end
+
+    subgraph Backend ["☁️ Spark Cloud"]
+        server[FastAPI Backend]
+    end
+
+    vector -- "Only abstract fields\n(e.g., 'STR-MITTE-047', 'walking')" --> server
 ```
 
 ### Components
@@ -95,14 +118,23 @@ What leaves the device. No PII. No raw location.
 
 ```mermaid
 flowchart TD
-  req[GenerateOfferRequest] --> decision[DeterministicDecisionEngine]
-  decision --> rules[GraphRuleGate]
-  rules -->|reject| nooffer[No offer response]
-  rules -->|accept| gen[LLM content generation]
-  gen --> rails[HardRails]
-  rails --> audit[SQLite audit]
-  rails --> neo4j_write[Neo4j write best-effort]
-  rails --> response[OfferObject]
+  req(GenerateOfferRequest) --> t_trust[1. Intent Trust Normalization]
+  t_trust --> composite[2. Fetch Density, Weather, Graph]
+  composite --> decision{3. Deterministic Rule Gate}
+  
+  decision -- "Category Blocked / Moving Fast" --> reject[Provide Silent UX No Offer]
+  
+  decision -- "Perfect Context & Density" --> llm(4. Gemini GenUI Request)
+  
+  llm -- "Generated Schema" --> rails{5. Output Hard Rails}
+  rails -- "Bounds checking" --> audit[(SQLite Audit Trace)]
+  rails --> write[(Neo4j Offer Edge)]
+  rails --> response(6. Dynamic Offer UI)
+
+  classDef blocked fill:#ff9999,stroke:#cc0000;
+  classDef success fill:#99ff99,stroke:#009900;
+  class reject blocked
+  class response success
 ```
 
 Key rule: recommendation is deterministic; LLM is framing/UI generation only.
@@ -273,6 +305,7 @@ Rule of thumb: transport shapes live in `models`, policy lives in `services`, SQ
 - `IntentVector` fields from `GenerateOfferRequest`
 - quantized location (`grid_cell`) instead of raw coordinates
 - derived context flags (`movement_mode`, `weather_need`, `social_preference`, `price_tier`)
+- abstracted activity hints (`activity_signal`, `activity_source`, `activity_confidence`) from optional Strava/native-health paths
 - session-scoped identifiers needed for offer lifecycle and idempotency
 
 ### Backend-side data sources
