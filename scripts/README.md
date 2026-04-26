@@ -12,6 +12,7 @@ Run Python scripts with repo root as cwd, e.g.:
 ```bash
 uv run python scripts/ops/run_graph_maintenance.py
 uv run python scripts/dev/smoke_intent_vector.py
+uv run python scripts/dev/smoke_local_llm.py
 ```
 
-See **`docs/MONOREPO-STRUCTURE.md`** for the full command matrix.
+See **`docs/DEVELOPMENT.md`** for the full command matrix.

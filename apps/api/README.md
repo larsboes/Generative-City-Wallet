@@ -24,9 +24,21 @@ SPARK_API_BASE=http://127.0.0.1:8000 uv run python scripts/dev/smoke_intent_vect
 
 ---
 
-Full endpoint list, env table, and Neo4j notes: see **[`../../docs/REPOSITORY-OVERVIEW.md`](../../docs/REPOSITORY-OVERVIEW.md)** and **[`../../docs/USER-KNOWLEDGE-GRAPH-NEO4J.md`](../../docs/USER-KNOWLEDGE-GRAPH-NEO4J.md)**.
+Full endpoint list, env table, and Neo4j notes: see **[`../../docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)** and **[`../../docs/NEO4J-GRAPH.md`](../../docs/NEO4J-GRAPH.md)**.
 
 Environment variables are defined in `apps/api/src/spark/config.py` (including `OFFER_LLM_PROVIDER`, `OLLAMA_*`, `NEO4J_*`, `GRAPH_*`).
+
+### Local-dev LLM shim (optional)
+
+For backend development without phone inference:
+
+```bash
+OFFER_LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:3b
+# OLLAMA_API_STYLE=ollama   # default (/api/chat)
+# OLLAMA_API_STYLE=openai   # /v1/chat/completions compatible
+```
 
 ## Demo merchants
 

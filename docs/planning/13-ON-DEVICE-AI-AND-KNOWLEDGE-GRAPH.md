@@ -1,6 +1,6 @@
 # 13 — On-Device AI, Knowledge Graph & Liability Architecture
 
-> **Server implementation (Neo4j):** the live backend user/session graph — personalization, rule gate, writes, explainability, retention, migrations — is documented in **[`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md)**. This chapter remains the **product and liability** framing for on-device inference and local graph intent.
+> **Server implementation (Neo4j):** the live backend user/session graph — personalization, rule gate, writes, explainability, retention, migrations — is documented in **[`../NEO4J-GRAPH.md`](../NEO4J-GRAPH.md)**. This chapter remains the **product and liability** framing for on-device inference and local graph intent.
 
 ## Three Threads That Connect Into One Design
 

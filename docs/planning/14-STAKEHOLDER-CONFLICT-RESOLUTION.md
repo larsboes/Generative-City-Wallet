@@ -1,5 +1,7 @@
 # 14 — Stakeholder Conflict Resolution: Matching Social Intent to Venue State
 
+> Archived in-place: implementation now lives in runtime docs/code (`docs/ARCHITECTURE.md`, `apps/api/src/spark/services/conflict.py`). Keep this file for planning rationale.
+
 ## The Real Conflict (It's More Nuanced Than It Looks)
 
 The naive framing: "user wants full venue, merchant needs to fill it." But that's not actually the full problem space. Let's map the actual conflict matrix:

@@ -1,0 +1,127 @@
+[
+  {
+    "timestamp": "2026-04-26T10:15:00Z",
+    "session_id": "fixture-intent-001",
+    "user": {
+      "intent": {
+        "grid_cell": "STR-MITTE-047",
+        "movement_mode": "browsing",
+        "time_bucket": "tuesday_lunch",
+        "weather_need": "warmth_seeking",
+        "social_preference": "quiet",
+        "price_tier": "mid",
+        "recent_categories": ["cafe"],
+        "dwell_signal": false,
+        "battery_low": false,
+        "session_id": "fixture-intent-001"
+      },
+      "preference_scores": {
+        "cafe": 0.82,
+        "bakery": 0.55
+      },
+      "social_preference": "quiet",
+      "price_tier": "mid"
+    },
+    "merchant": {
+      "id": "MERCHANT_001",
+      "name": "Kaffeehaus Mitte",
+      "category": "cafe",
+      "distance_m": 180,
+      "address": "Musterstr. 1, Stuttgart",
+      "demand": {
+        "density_score": 0.22,
+        "drop_pct": 0.44,
+        "signal": "FLASH",
+        "offer_eligible": true,
+        "current_occupancy_pct": 0.41,
+        "predicted_occupancy_pct": 0.49
+      },
+      "active_coupon": {
+        "type": "FLASH",
+        "max_discount_pct": 22,
+        "valid_window_min": 20,
+        "config": {
+          "min_spend": 6.0
+        }
+      },
+      "inventory_signal": "hot_drinks_overstock",
+      "tone_preference": "warm"
+    },
+    "environment": {
+      "weather_condition": "rain",
+      "temp_celsius": 8.3,
+      "feels_like_celsius": 6.1,
+      "weather_need": "warmth_seeking",
+      "vibe_signal": "cozy"
+    },
+    "conflict_resolution": {
+      "recommendation": "RECOMMEND_WITH_FRAMING",
+      "framing_band": "quiet_intentional",
+      "allowed_vocabulary": ["cozy", "calm", "warming"],
+      "banned_vocabulary": ["packed", "buzzing", "voll"]
+    }
+  },
+  {
+    "timestamp": "2026-04-26T18:40:00Z",
+    "session_id": "fixture-intent-002",
+    "user": {
+      "intent": {
+        "grid_cell": "STR-WEST-112",
+        "movement_mode": "commuting",
+        "time_bucket": "weekday_evening",
+        "weather_need": "refreshment_seeking",
+        "social_preference": "social",
+        "price_tier": "high",
+        "recent_categories": ["bar", "restaurant"],
+        "dwell_signal": false,
+        "battery_low": true,
+        "session_id": "fixture-intent-002"
+      },
+      "preference_scores": {
+        "bar": 0.79,
+        "restaurant": 0.64
+      },
+      "social_preference": "social",
+      "price_tier": "high"
+    },
+    "merchant": {
+      "id": "MERCHANT_004",
+      "name": "Westside Bar",
+      "category": "bar",
+      "distance_m": 320,
+      "address": "Beispielallee 12, Stuttgart",
+      "demand": {
+        "density_score": 0.51,
+        "drop_pct": 0.27,
+        "signal": "PRIORITY",
+        "offer_eligible": true,
+        "current_occupancy_pct": 0.56,
+        "predicted_occupancy_pct": 0.61
+      },
+      "active_coupon": {
+        "type": "TIME_BOUND",
+        "max_discount_pct": 18,
+        "valid_window_min": 25,
+        "config": {
+          "happy_hour": true
+        }
+      },
+      "inventory_signal": "cocktail_stock_high",
+      "tone_preference": "energetic"
+    },
+    "environment": {
+      "weather_condition": "clear",
+      "temp_celsius": 24.1,
+      "feels_like_celsius": 25.0,
+      "weather_need": "refreshment_seeking",
+      "vibe_signal": "energetic"
+    },
+    "conflict_resolution": {
+      "recommendation": "RECOMMEND",
+      "framing_band": "social_high_energy",
+      "allowed_vocabulary": ["lively", "social", "afterwork"],
+      "banned_vocabulary": []
+    }
+  }
+]
+

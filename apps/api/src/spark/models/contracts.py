@@ -150,6 +150,25 @@ class ConflictResolutionContext(BaseModel):
     banned_vocabulary: list[str] = Field(default_factory=list)
 
 
+# ── Deterministic decision trace (rules-first offer selection) ─────────────────
+
+
+class DecisionTraceItem(BaseModel):
+    code: str
+    reason: str
+    score: float = 0.0
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+
+class OfferDecisionTrace(BaseModel):
+    recommendation: ConflictRecommendation
+    selected_merchant_id: Optional[str] = None
+    selected_merchant_score: float = 0.0
+    recheck_in_minutes: Optional[int] = None
+    candidate_scores: list[dict[str, object]] = Field(default_factory=list)
+    trace: list[DecisionTraceItem] = Field(default_factory=list)
+
+
 # ── Backend → Gemini Flash API ────────────────────────────────────────────────
 
 
@@ -160,6 +179,7 @@ class CompositeContextState(BaseModel):
     merchant: MerchantContext
     environment: EnvironmentContext
     conflict_resolution: ConflictResolutionContext
+    decision_trace: Optional[OfferDecisionTrace] = None
 
 
 # ── Gemini Flash → Backend (raw LLM output, before hard rails) ────────────────

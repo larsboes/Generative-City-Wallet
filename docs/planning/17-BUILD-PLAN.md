@@ -1,5 +1,7 @@
 # 17 — Build Plan: What to Build, In What Order, Who Owns What
 
+> Archived in-place: implementation sequencing has moved to runtime docs (`docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`). Keep this file as original planning blueprint.
+
 ## What We Still Haven't Done (Despite 16 Docs)
 
 We've documented everything except the three things that actually unlock parallel development:

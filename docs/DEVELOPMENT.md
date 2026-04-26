@@ -1,38 +1,11 @@
-# Monorepo structure — Spark
+# Development — Spark
 
-Single reference for **where code lives**, **how to run it**, and **rules** that keep the TypeScript + Python split maintainable.
-
-For backend depth (routers, Neo4j, hybrid pipeline), see **[`REPOSITORY-OVERVIEW.md`](REPOSITORY-OVERVIEW.md)**.
-
----
-
-## Layout
-
-```
-Generative-City-Wallet/
-├── apps/
-│   ├── api/src/spark/       # FastAPI — import package `spark` (PYTHONPATH=apps/api/src)
-│   ├── mobile/              # Expo consumer (@spark/mobile)
-│   └── web-dashboard/       # Vite merchant UI (@spark/web-dashboard)
-├── packages/
-│   └── shared/              # @spark/shared — TS contracts (source of truth for JS)
-├── tests/
-│   ├── unit/                # Fast, isolated pytest modules
-│   ├── integration/         # API / graph / composite flows
-│   └── conftest.py          # Shared fixtures (applies to all subdirs)
-├── scripts/
-│   ├── ops/                 # Cron / benchmarks / production-adjacent tooling
-│   └── dev/                 # Local smoke + CI guardrails
-├── docs/                    # Implementation docs (this file, overview, Neo4j)
-├── data/                    # SQLite + optional local Neo4j data paths
-├── pyproject.toml           # Python deps + pytest (pythonpath includes apps/api/src)
-├── package.json             # npm workspaces + root scripts
-└── turbo.json               # turbo task graph (build, typecheck, lint)
-```
+This document covers package boundaries, how to run the codebase locally, CI/CD, and active technical debt.
+For architecture and data flows, see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 
 ---
 
-## Package ownership
+## Package ownership & Import rules
 
 | Area | Owns | Consumes |
 |------|------|-----------|
@@ -40,10 +13,6 @@ Generative-City-Wallet/
 | **`apps/mobile`** | Expo UI, on-device flows | `@spark/shared` for request/response shapes |
 | **`apps/web-dashboard`** | Merchant UI | `@spark/shared` + `VITE_*` env when wired |
 | **`packages/shared`** | TypeScript types only | Nothing from `apps/*` |
-
----
-
-## Import rules
 
 1. **Mobile and dashboard** must take boundary types from **`@spark/shared`**, not by copying shapes into each app.
 2. **Python** must not import `packages/shared`; parity is enforced by **review** + **`scripts/dev/check_contract_symbols.py`** in CI (extend the symbol list when you add cross-boundary types).
@@ -93,31 +62,41 @@ Generative-City-Wallet/
 | `scripts/ops/run_graph_maintenance.py` | Neo4j cleanup + preference decay (cron-friendly) |
 | `scripts/ops/benchmark_offer_latency.py` | p95 offer latency Neo4j on vs off |
 | `scripts/dev/smoke_intent_vector.py` | POST sample intent to running API |
+| `scripts/dev/smoke_local_llm.py` | Validates local-LLM fixtures + parser rates |
 | `scripts/dev/check_contract_symbols.py` | CI: TS/Python contract name alignment |
-
-See **`scripts/README.md`** for one-line descriptions.
 
 ---
 
-## Turbo notes
+## Docker & CI Alignment
 
-- **`build`**: `outputs: []` so packages that only typecheck (e.g. `@spark/shared`) or echo a placeholder (`@spark/mobile`) do not produce Turbo “missing outputs” warnings. Tradeoff: Vite `dist/` is not listed as a cache artifact at the Turbo layer; the dashboard build still writes `apps/web-dashboard/dist/` on disk.
+### Docker
+- **`Dockerfile`:** Python 3.12 slim, `uv sync --frozen`, copies `apps/api/src/spark`, sets `PYTHONPATH`, runs uvicorn `spark.main:app` on `8000`.
+- **`docker-compose.yml`:** single `backend` service, `.env`, mounts `./data` → `/app/data` (SQLite + optional Neo4j host data).
+  *Note: Neo4j is **not** defined in compose in-repo; run it separately or extend compose.*
+
+### CI Workflow (`.github/workflows/ci.yml`)
+Runs, in order: Python ruff + format + pyright → **Node** `npm ci` → **`npm run typecheck`** → **`npm run test:contracts`** → pytest (test job) → Docker.
+Keep **root `package-lock.json`** committed so `npm ci` is reproducible.
+
+### Turbo notes
+- **`build`**: `outputs: []` so packages that only typecheck (e.g. `@spark/shared`) or echo a placeholder (`@spark/mobile`) do not produce Turbo “missing outputs” warnings. 
 - **`typecheck`** / **`lint`**: defined per JS workspace; root runs them via `npm run typecheck` / `npm run lint:js`.
 
 ---
 
-## CI alignment
+## Active Tech Debt
 
-`.github/workflows/ci.yml` runs, in order: Python ruff + format + pyright → **Node** `npm ci` → **`npm run typecheck`** → **`npm run test:contracts`** → pytest (test job) → Docker.
+### Open items
+- **Pyright baseline (API package)**
+  - **Scope:** `apps/api/src/spark/`
+  - **Current status:** `uv run pyright apps/api/src/spark/` reports **28 errors**.
+  - **Hotspots:** `agents/agent.py`, `graph/repository.py`, `graph/{migrations,schema}.py`, `services/{composite,offer_generator}.py`, `routers/vendors.py`.
+  - **Tracking note:** address in a dedicated typing pass.
 
-Keep **root `package-lock.json`** committed so `npm ci` is reproducible.
+- **Contract parity drift (Python vs TS)**
+  - `CompositeContextState.decision_trace` now exists in Python contracts.
+  - Mirror this field in `packages/shared/src/contracts.ts` before mobile/dashboard consumes it.
 
----
-
-## See also
-
-| Doc | When |
-|-----|------|
-| [`REPOSITORY-OVERVIEW.md`](REPOSITORY-OVERVIEW.md) | Backend modules, scripts table, tests detail |
-| [`README.md`](../README.md) | Product + Graph Ops cron example |
-| [`apps/api/README.md`](../apps/api/README.md) | API quick start |
+- **Planning-to-implementation deltas**
+  - Advanced signals from planning (`OCR transit scan`, `wallet seed`, `Spark Wave`) are still mostly design-stage.
+  - Track these as explicit implementation epics instead of implicit planning carry-over.

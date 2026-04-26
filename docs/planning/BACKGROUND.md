@@ -1,6 +1,8 @@
 # Spark — Background: Vision, Strategy & Challenge Analysis
 
 > Merged from `00-VISION.md` and `01-CHALLENGE-ANALYSIS.md`. Read this once to understand *why* we built what we built. Not a working document — context only.
+>
+> Stable concept reference now also lives in `../CONCEPT.md`.
 
 ---
 

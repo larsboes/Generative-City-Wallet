@@ -26,6 +26,7 @@
 | `05-MERCHANT-PLATFORM.md` | Merchant platform deep spec (rule engine logic, analytics detail) |
 | `10-OFFER-SELECTION.md` | Why one offer at a time, ranking algorithm, anti-spam rules |
 | `14-STAKEHOLDER-CONFLICT-RESOLUTION.md` | Empty venue + social user conflict — framing rules, coupon mechanics |
+| `22-IMPLEMENTATION-GAPS.md` | What is still missing from planning to runtime implementation |
 
 ### Technical Architecture
 | File | What it answers |
@@ -35,13 +36,14 @@
 | `03-CONTEXT-ENGINE.md` | Every signal: IMU modes, Payone density, weather, events, transit |
 | `04-GENERATIVE-ENGINE.md` | GenUI system, Gemini Flash integration, offer schema, preference learning |
 | `13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md` | User KG (SQLite), FunctionGemma, hard rails, audit trail, transaction KG seeding |
-| **[`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md)** ⭐ | **Implemented server graph (Neo4j)** — personalization, rules, writes, explainability, retention, migrations |
+| **[`../NEO4J-GRAPH.md`](../NEO4J-GRAPH.md)** ⭐ | **Implemented server graph (Neo4j)** — personalization, rules, writes, explainability, retention, migrations |
 | `16-ADVANCED-SIGNALS.md` | Exercise states, OCR transit scan, wallet pass KG seeds, Spark Wave |
 
 ### Build & Implementation
 | File | What it answers |
 |---|---|
 | `15-FINN-BRIEFING.md` | Finn's full spec: Payone generator, density signal, occupancy, conflict engine |
+| `15-1-TRANSACTION-GENERATION.md` | Deep dive on transaction generation and synthetic data seeding rules |
 | `06-MVP-SCOPE.md` | Must/Should/Nice-to-Have tiers, build timeline, tech stack |
 | `08-OPEN-QUESTIONS.md` | Unresolved platform decisions (mobile platform, APIs, discount ranges) |
 
@@ -63,6 +65,19 @@
 | `01-CHALLENGE-ANALYSIS.md` | `BACKGROUND.md` |
 | `09-CRITIQUE.md` | Historical record — decisions already implemented |
 | `11-CONSUMER-UX.md` | `19-PRODUCT-OVERVIEW.md` (wireframes merged in) |
+
+---
+
+## Archived in-place (implemented references)
+
+These files remain in planning for historical rationale, but primary runtime truth has moved to `docs/`:
+
+| Planning file | Runtime truth |
+|---|---|
+| `10-OFFER-SELECTION.md` | `../ARCHITECTURE.md` + code in `services/offer_decision.py` |
+| `14-STAKEHOLDER-CONFLICT-RESOLUTION.md` | `../ARCHITECTURE.md` + `services/conflict.py` |
+| `17-BUILD-PLAN.md` | `../ARCHITECTURE.md` + `../DEVELOPMENT.md` |
+| `13-ON-DEVICE-AI-AND-KNOWLEDGE-GRAPH.md` (server-graph parts) | `../NEO4J-GRAPH.md` |
 
 ---
 
@@ -88,7 +103,7 @@
 | Gemini Flash prompt + JSON schema | 17 | 04 |
 | Hard rails / Air Canada liability | 13 | 17 |
 | User knowledge graph | 13 | 17 |
-| **Server Neo4j graph (implemented)** | [`../USER-KNOWLEDGE-GRAPH-NEO4J.md`](../USER-KNOWLEDGE-GRAPH-NEO4J.md) | [`../REPOSITORY-OVERVIEW.md`](../REPOSITORY-OVERVIEW.md) |
+| **Server Neo4j graph (implemented)** | [`../NEO4J-GRAPH.md`](../NEO4J-GRAPH.md) | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) |
 | Transaction history KG seeding | 13 (Part 4) | — |
 | Conflict resolution (empty venue + social user) | 14 | 15 |
 | Coupon mechanics (milestone coupon) | 14 | 15 |

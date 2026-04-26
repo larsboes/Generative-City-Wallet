@@ -1,5 +1,7 @@
 # 10 — Offer Selection, Ranking & Anti-Spam
 
+> Archived in-place: implementation now lives in runtime docs/code (`docs/ARCHITECTURE.md`, `apps/api/src/spark/services/offer_decision.py`). Keep this file for planning rationale.
+
 ## The Brief's Most Important Design Rule (That We Almost Ignored)
 
 From the challenge: *"What is missing is the layer that connects these signals in real time and turns them into a single, specific, well-timed offer."*
