@@ -33,7 +33,7 @@ flowchart TD
       strava((Strava Auth))
       demand((Payone Density))
       movement((Motion Mode))
-      time((Time Buket))
+      time((Time Bucket))
       prefs[(Neo4j Prefs)]
   end
 
