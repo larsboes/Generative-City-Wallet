@@ -21,83 +21,45 @@ For planning rationale, see [`planning/README.md`](./planning/README.md).
 
 ---
 
-## Signal Vision — Input → Feature Map
+## Signal Sources → Composite State
 
-What signals Spark ingests and what user-facing features they unlock. This is the product layer above the implementation.
+Everything that feeds `composite.py` before the deterministic offer gate runs. See [Offer Pipeline](#offer-pipeline) for what happens next.
 
 ```mermaid
-flowchart LR
-    subgraph Inputs
-        IMU["IMU / Pedometer\n→ fast / slow walking"]
-        Weather["OpenWeatherMap /\nDeutscher Wetterdienst"]
-        GMaps["Google Maps API"]
-        GCal["Google Calendar API"]
-        DB["Deutsche Bahn API"]
-        Health["Google Health API\n(HR, workout complete)"]
-        Places["Google Places API\n(occupancy, busyness)"]
-        Availability["Availability Signal\n(Haben Platz? Ja/Nein)"]
-        MerchantData["Restaurant / Café Data\n(menu, Lebensmittelreste)"]
-        Hotspots["Google Maps\nHotspots for People"]
-        Events["Event Platforms\n(Luma, Meetup, Eventbrite)"]
+flowchart TB
+    subgraph Device["📱 On-Device (Privacy Boundary)"]
+        GPS["GPS → H3 Grid Cell\n(~50m resolution)"]
+        IMU["IMU → Movement Mode\n(browsing / commuting / cycling /\npost_workout / exercising / ...)"]
+        GPS & IMU --> IV
     end
 
-    subgraph Mapping["Unified Data-Mapping Layer\n(Composite State / Intent Vector)"]
-        UDL[" "]
-    end
+    IV["Intent Vector\ngrid_cell · movement_mode · time_bucket\nweather_need · social_preference · price_tier\nbattery_low · dwell_signal · session_id"]
 
-    subgraph Features
-        F1["Indoor / Outdoor\nrecommendation"]
-        F2["Vibe & Allergen matching\n(Hipster, Chic, Sustainability,\nBarrierefreiheit, Magst du Menschen?)"]
-        F3["Coffee Chat\nLocation suggestion"]
-        F4["Transit delay\n→ 10% discount"]
-        F5["Post-workout\ncold drink offer"]
-        F6["Less-busy-than-usual\ntargeting"]
-        F7["Events nearby\n→ mapped to offer context"]
-        F8["Social proof / Influencer\n→ Punkte sammeln (gainback.app)"]
-        F9["Reservation via\nElevenlabs → auto-call"]
-    end
+    IV --> composite["composite.py\nComposite Context State"]
 
-    IMU --> UDL
-    Weather --> UDL
-    GMaps --> UDL
-    GCal --> UDL
-    DB --> UDL
-    Health --> UDL
-    Places --> UDL
-    Availability --> UDL
-    MerchantData --> UDL
-    Hotspots --> UDL
-    Events --> UDL
+    Weather["OpenWeatherMap\ntemp · feels_like · condition → WeatherNeed"] --> composite
+    Density["Payone Density\ndensity_score · drop_pct · signal"] --> composite
+    Places["Google Places API\nnearby_count · avg_rating\n(API key optional)"] --> composite
+    Events["Luma Events\nevents_tonight_count · nearest_event_name\n(seed fallback)"] --> composite
+    Graph["Neo4j User Graph\npreference_scores · continuity_id"] --> composite
 
-    UDL --> F1
-    UDL --> F2
-    UDL --> F3
-    DB --> F4
-    Health --> F5
-    Places --> F6
-    Events --> F7
-    UDL --> F8
-    UDL --> F9
+    composite --> pipeline["→ Offer Pipeline"]
 ```
 
-### Signal Implementation Status
+### Live Signal Status
 
-| Signal | Source | Status | Implementation |
-|---|---|---|---|
-| Motion mode | IMU / on-device | ✅ Live | `intentMapper.ts`, `movement_mode` in IntentVector |
-| Weather | OpenWeatherMap | ✅ Live | `services/weather.py` |
-| Grid cell (location) | H3 / on-device GPS | ✅ Live | `services/location_cells.py` |
-| Merchant occupancy | Payone synthetic | ✅ Live | `services/density.py` |
-| Google Places | Places API (New) | ✅ Live (API key optional) | `services/places.py` |
-| Local events | Luma Discover API | ✅ Live (seed fallback) | `services/events.py` |
-| Transit delay | Deutsche Bahn API | 🔲 Planned | `transit_delay_minutes` field exists in IntentVector |
-| Workout / HR | Google Health API | 🔲 Planned | `activity_signal` field exists in offer_decision |
-| Calendar context | Google Calendar API | 🔲 Planned | — |
-| Availability (Haben Platz) | Merchant push | 🔲 Planned | — |
-| Food waste / Lebensmittelreste | Merchant push | 🔲 Planned | — |
-| Event platforms (Meetup, Eventbrite) | APIs | 🔲 Planned | Luma is the current proxy |
-| Social proof / gainback.app | External | 🔲 Planned | — |
-| Reservation (Elevenlabs) | Voice API | 🔲 Planned | — |
+| Signal | Where it enters | Runtime file |
+|---|---|---|
+| H3 grid cell | `IntentVector.grid_cell` | `services/location_cells.py` |
+| Movement mode | `IntentVector.movement_mode` | `apps/mobile/src/local-llm/intentMapper.ts` |
+| Time bucket | `IntentVector.time_bucket` | `services/composite_helpers.py` (server-authoritative) |
+| Weather | `EnvironmentContext` | `services/weather.py` |
+| Merchant density | `MerchantDemand` | `services/density.py` |
+| Google Places | `CompositeContextState` (external) | `services/places.py` |
+| Luma events | `CompositeContextState` (external) | `services/events.py` |
+| Graph preferences | `UserContext.preference_scores` | `graph/repository.py` |
+| Transit delay | `IntentVector.transit_delay_minutes` | field live, Deutsche Bahn API not wired |
+| Activity signal | `decide_offer(activity_signal=...)` | field live, Health API not wired |
 
 ---
 
