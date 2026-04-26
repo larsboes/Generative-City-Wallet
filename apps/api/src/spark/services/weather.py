@@ -79,7 +79,9 @@ async def get_stuttgart_weather() -> dict:
         return _cache
 
     try:
-        async with httpx.AsyncClient(timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(
+            timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS
+        ) as client:
             resp = await client.get(
                 "https://api.openweathermap.org/data/2.5/weather",
                 params={

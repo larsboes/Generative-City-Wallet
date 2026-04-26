@@ -58,3 +58,27 @@ MATCH (m:GraphMigration)
 RETURN m.id AS id, m.description AS description, m.applied_at_unix AS applied_at_unix
 ORDER BY m.applied_at_unix ASC
 """
+
+PURGE_SESSION_DATA = """
+MATCH (u:UserSession {session_id: $session_id})
+OPTIONAL MATCH (u)-[:RECEIVED_OFFER]->(o:Offer)
+OPTIONAL MATCH (o)-[:GENERATED_IN]->(ctx:ContextSnapshot)
+OPTIONAL MATCH (r:Redemption)-[:FOR_OFFER]->(o)
+OPTIONAL MATCH (w:WalletEvent)-[:CREDIT_FOR]->(r)
+WITH collect(DISTINCT w) AS ws,
+     collect(DISTINCT r) AS rs,
+     collect(DISTINCT ctx) AS cs,
+     collect(DISTINCT o) AS os,
+     collect(DISTINCT u) AS users
+FOREACH (w IN ws | DETACH DELETE w)
+FOREACH (r IN rs | DETACH DELETE r)
+FOREACH (c IN cs | DETACH DELETE c)
+FOREACH (o IN os | DETACH DELETE o)
+FOREACH (u IN users | DETACH DELETE u)
+RETURN
+  size(users) AS sessions_deleted,
+  size(os) AS offers_deleted,
+  size(cs) AS contexts_deleted,
+  size(rs) AS redemptions_deleted,
+  size(ws) AS wallet_events_deleted
+"""

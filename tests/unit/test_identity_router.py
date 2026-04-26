@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 from spark.models.api import ContinuityResetRequest
-from spark.routers.identity import continuity_reset_endpoint
+import spark.routers.identity as identity_router
 
 
 def test_identity_router_reset_rotate_path():
     response = asyncio.run(
-        continuity_reset_endpoint(
+        identity_router.continuity_reset_endpoint(
             ContinuityResetRequest(
                 session_id="sess-router-001",
                 continuity_hint="prev-hint",
@@ -24,8 +25,20 @@ def test_identity_router_reset_rotate_path():
 
 
 def test_identity_router_opt_out_path():
+    called = {"purged": False}
+
+    async def _purge_session_data(*, session_id: str):
+        called["purged"] = session_id == "sess-router-002"
+        return {"sessions_deleted": 1}
+
+    fake_repo = SimpleNamespace(
+        is_available=lambda: True,
+        purge_session_data=_purge_session_data,
+    )
+    original_get_repository = identity_router.get_repository
+    identity_router.get_repository = lambda: fake_repo
     response = asyncio.run(
-        continuity_reset_endpoint(
+        identity_router.continuity_reset_endpoint(
             ContinuityResetRequest(
                 session_id="sess-router-002",
                 continuity_hint="prev-hint",
@@ -33,8 +46,10 @@ def test_identity_router_opt_out_path():
             )
         )
     )
+    identity_router.get_repository = original_get_repository
     assert response.session_id == "sess-router-002"
     assert response.opt_out is True
     assert response.continuity_id is None
     assert response.continuity_hint is None
     assert response.source == "opt_out"
+    assert called["purged"] is True

@@ -9,7 +9,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).parents[2] / "apps" / "api" / "src"))
 
 METHODS = ["contactless", "chip", "apple_pay", "google_pay"]
-FLUENTBIT_URL = "http://localhost:8888"
+FLUENTBIT_URL = "http://localhost:8889"
 DEFAULT_GRID_CELL = "891f8d7a49bffff"
 
 

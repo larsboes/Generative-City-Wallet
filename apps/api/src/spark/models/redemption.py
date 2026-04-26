@@ -58,4 +58,3 @@ class WalletResponse(BaseModel):
     session_id: str
     balance_eur: float
     transactions: list[WalletTransaction]
-

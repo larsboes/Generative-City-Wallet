@@ -65,9 +65,7 @@ def upsert_venues(db_path: str | Path | None, venues: list[dict[str, Any]]) -> i
     return len(venues)
 
 
-def get_venue_row(
-    conn: sqlite3.Connection, merchant_id: str
-) -> sqlite3.Row | None:
+def get_venue_row(conn: sqlite3.Connection, merchant_id: str) -> sqlite3.Row | None:
     return conn.execute(
         "SELECT * FROM venues WHERE merchant_id = ?", (merchant_id,)
     ).fetchone()
@@ -98,4 +96,3 @@ def list_venue_rows(
         f"SELECT * FROM venues {where} ORDER BY name LIMIT ?",
         (*params, bounded_limit),
     ).fetchall()
-

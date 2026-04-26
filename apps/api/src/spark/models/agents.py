@@ -12,7 +12,9 @@ class AgentDecision(BaseModel):
     reasoning: str | None = Field(
         default=None, description="Brief explanation of why this merchant was selected"
     )
-    content: LLMContent | None = Field(default=None, description="Generated offer content")
+    content: LLMContent | None = Field(
+        default=None, description="Generated offer content"
+    )
     genui: LLMGenUI | None = Field(
         default=None, description="Visual design configuration"
     )

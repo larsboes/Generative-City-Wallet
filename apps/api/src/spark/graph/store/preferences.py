@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any, cast
 
 from neo4j import AsyncSession
 
@@ -61,7 +62,9 @@ class PreferenceGraphRepository:
                     source_type=r.get("source_type"),
                     last_reinforced_unix=r.get("last_reinforced_unix"),
                     decay_rate=(
-                        float(r["decay_rate"]) if r.get("decay_rate") is not None else None
+                        float(r["decay_rate"])
+                        if r.get("decay_rate") is not None
+                        else None
                     ),
                     source_confidence=(
                         float(r["source_confidence"])
@@ -100,7 +103,9 @@ class PreferenceGraphRepository:
             return {
                 "stale_after_days": float(stale_after_days),
                 "default_decay_rate": float(default_decay_rate),
-                "edges_touched": float((row and row["edges_touched"]) or 0.0),
+                "edges_touched": float(
+                    cast(Any, (row and row["edges_touched"])) or 0.0
+                ),
             }
 
         return await safe_execute(
@@ -112,4 +117,3 @@ class PreferenceGraphRepository:
             },
             op_name="decay_stale_preferences",
         )
-

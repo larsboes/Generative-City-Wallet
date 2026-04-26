@@ -48,7 +48,9 @@ def resolve_continuity_identity(
     return ContinuityIdentity(
         continuity_id=f"cid_{digest}",
         source=identity_source,
-        expires_at_iso=expires.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        expires_at_iso=expires.replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
     )
 
 

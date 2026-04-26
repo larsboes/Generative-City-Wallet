@@ -18,8 +18,7 @@ def _seed_minimal_merchants(db_path: str) -> None:
             VALUES
                 ('MERCHANT_001', 'Cafe One', 'cafe', 48.1372, 11.5762, 'A', ?),
                 ('MERCHANT_002', 'Bar Two', 'bar', 48.1372, 11.5762, 'B', ?)
-            """
-            ,
+            """,
             (TEST_CELL, TEST_CELL),
         )
         conn.commit()
@@ -376,7 +375,9 @@ def test_strava_activity_signal_adds_alignment_trace(tmp_path, monkeypatch):
         now=datetime(2026, 4, 26, 10, 0, 0),
     )
 
-    activity_step = next(step for step in result.trace if step.code == "activity_alignment")
+    activity_step = next(
+        step for step in result.trace if step.code == "activity_alignment"
+    )
     assert activity_step.metadata["activity_source"] == "strava"
     assert activity_step.metadata["source_present"] is True
     assert activity_step.metadata["confidence_band"] == "high"

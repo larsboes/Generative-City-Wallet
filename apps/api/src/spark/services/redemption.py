@@ -487,7 +487,9 @@ def _cleanup_graph_event_log(db_path: str | None = None) -> None:
     )
 
 
-async def _get_current_category_weight(repo, *, session_id: str, category: str) -> float | None:
+async def _get_current_category_weight(
+    repo, *, session_id: str, category: str
+) -> float | None:
     scores = await repo.get_preference_scores(session_id, limit=25)
     for score in scores:
         if score.category == category:

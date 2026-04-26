@@ -21,4 +21,3 @@ class ConflictResolveResponse(BaseModel):
     coupon_mechanism: Optional[str] = None
     reason: str
     recheck_in_minutes: Optional[int] = None
-

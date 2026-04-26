@@ -30,7 +30,9 @@ class RuleBasedOCRTransitProvider:
 
     async def parse(self, request: OCRTransitParseRequest) -> OCRParseResult:
         text = request.raw_text.strip()
-        delay_match = re.search(r"\b(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b", text, re.I)
+        delay_match = re.search(
+            r"\b(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b", text, re.I
+        )
         if not delay_match:
             return OCRParseResult(parsed=False, reason="delay_not_found")
 

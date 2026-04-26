@@ -95,4 +95,3 @@ class CashbackCredit(BaseModel):
     merchant_name: str
     credited_at: str
     wallet_balance_eur: float
-

@@ -80,8 +80,12 @@ def _build_explainability(
                 reason="Deterministic graph guardrails passed for this candidate.",
                 score=0.7,
                 metadata={
-                    "session_offers_24h": rule_result.metadata.get("session_offers_24h"),
-                    "merchant_offers_24h": rule_result.metadata.get("merchant_offers_24h"),
+                    "session_offers_24h": rule_result.metadata.get(
+                        "session_offers_24h"
+                    ),
+                    "merchant_offers_24h": rule_result.metadata.get(
+                        "merchant_offers_24h"
+                    ),
                 },
             )
         )
@@ -136,7 +140,9 @@ def _log_offer_audit(
                 state.conflict_resolution.recommendation,
                 state.conflict_resolution.recommendation,
                 state.conflict_resolution.framing_band,
-                state.merchant.active_coupon.type if state.merchant.active_coupon else None,
+                state.merchant.active_coupon.type
+                if state.merchant.active_coupon
+                else None,
                 json.dumps(state.merchant.active_coupon.config)
                 if state.merchant.active_coupon
                 else None,
@@ -144,7 +150,11 @@ def _log_offer_audit(
                 offer.model_dump_json(),
                 json.dumps(
                     (
-                        (offer.audit_info.model_dump(mode="json") if offer.audit_info else {})
+                        (
+                            offer.audit_info.model_dump(mode="json")
+                            if offer.audit_info
+                            else {}
+                        )
                         | {
                             "rails_applied": True,
                             "pipeline": pipeline_source,
@@ -221,7 +231,10 @@ async def generate_offer_pipeline(request: GenerateOfferRequest) -> Any:
             agent_decision = None
 
     ocr_transit_effective = request.ocr_transit
-    if request.ocr_transit and request.ocr_transit.confidence < OCR_CONFIDENCE_THRESHOLD:
+    if (
+        request.ocr_transit
+        and request.ocr_transit.confidence < OCR_CONFIDENCE_THRESHOLD
+    ):
         # Low-confidence OCR should not hard-gate deterministic recommendations.
         ocr_transit_effective = None
 

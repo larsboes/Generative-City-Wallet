@@ -27,4 +27,3 @@ class MerchantGraphRepository:
             return True
 
         return await safe_execute(_run, fallback=False, op_name="upsert_merchant")
-

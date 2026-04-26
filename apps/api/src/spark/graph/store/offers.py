@@ -137,4 +137,3 @@ class OfferGraphRepository:
             ]
 
         return await safe_execute(_run, fallback=[], op_name="recent_offers")
-

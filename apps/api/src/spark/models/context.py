@@ -17,7 +17,9 @@ from spark.models.common import (
 
 
 class IntentVector(BaseModel):
-    grid_cell: str = Field(description="Canonical H3 cell ID (for example, resolution 9).")
+    grid_cell: str = Field(
+        description="Canonical H3 cell ID (for example, resolution 9)."
+    )
     movement_mode: MovementMode
     time_bucket: str = Field(description="e.g. tuesday_lunch, friday_evening")
     weather_need: WeatherNeed
@@ -28,7 +30,9 @@ class IntentVector(BaseModel):
     battery_low: bool = False
     session_id: str
     continuity_hint: str | None = None
-    activity_signal: Literal["none", "active_recently", "post_workout", "resting"] = "none"
+    activity_signal: Literal["none", "active_recently", "post_workout", "resting"] = (
+        "none"
+    )
     activity_source: Literal[
         "none", "strava", "native_health", "hybrid", "movement_inferred"
     ] = "none"
@@ -179,4 +183,3 @@ class DemoOverrides(BaseModel):
     current_dt: Optional[datetime] = None
     transit_delay_minutes: Optional[int] = Field(default=None, ge=1, le=180)
     must_return_by: Optional[str] = None
-

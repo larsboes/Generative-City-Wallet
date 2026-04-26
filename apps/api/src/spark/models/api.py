@@ -67,4 +67,3 @@ class GenerateOfferBlockedResponse(BaseModel):
     pipeline: Optional[str] = None
     recommendation: Optional[str] = None
     decision_trace: Optional[dict] = None
-

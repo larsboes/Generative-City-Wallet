@@ -30,4 +30,3 @@ class RecentOffer:
 class MerchantOfferStats:
     count: int
     last_unix: Optional[float]
-

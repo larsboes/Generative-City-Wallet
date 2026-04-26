@@ -22,6 +22,7 @@ from spark.services.vendor_metrics import (
 
 router = APIRouter(prefix="/api/vendors", tags=["vendors"])
 
+
 @router.get(
     "/{merchant_id}/transactions/daily", response_model=DailyTransactionsResponse
 )

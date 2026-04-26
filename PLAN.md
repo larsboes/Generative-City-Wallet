@@ -23,6 +23,7 @@ Use this as the execution checklist after the core deterministic offer-selection
 | Runtime distance signal | Implemented | Geographic distance estimation now powers decision scoring |
 | Dynamic transit gating | Implemented | Walking-time vs delay window check is live and merchant-specific |
 | TS/Python contract parity | Implemented | Boundary types are synchronized and guarded by CI checks |
+| Final demo data cleanup | Implemented | Munich fixture + README submission values are finalized |
 
 
 ---
@@ -49,14 +50,15 @@ Use this as the execution checklist after the core deterministic offer-selection
   - Replaced stubs with `estimate_distance_m` in `offer_decision.py` and `composite.py`.
 - **Identity continuity:**
   - Server-side `continuity_id` derivation and reset controls are live.
+  - Mobile now persists/reuses `continuity_hint` for continuity across app restarts.
+  - Opt-out path now triggers best-effort graph session clear-down/unlink.
+  - Source: `apps/mobile/src/api/continuity.ts`, `apps/mobile/src/api/spark.ts`, `apps/api/src/spark/routers/identity.py`, `apps/api/src/spark/graph/store/ops.py`
 - **Strava abstraction path:**
   - Mobile OAuth/token lifecycle helpers (`exchange`, `refresh`, `disconnect`) with secure token storage wrappers are live.
   - Mobile activity summarization maps Strava activity into abstracted intent fields only.
   - Backend advisory policy enforces source/signal consistency and confidence capping with provenance.
   - Decision trace now exposes activity confidence bands for explainability.
   - Source: `apps/mobile/src/api/strava.ts`, `apps/mobile/src/api/secureStore.ts`, `apps/mobile/src/local-llm/sourceSignals.ts`, `apps/api/src/spark/services/intent_trust.py`, `apps/api/src/spark/services/offer_decision.py`
-- **Identity continuity:**
-  - Server-side `continuity_id` derivation and reset controls are live.
 - **Dynamic Transit Gating:**
   - Replaced hardcoded blocks with merchant-specific round-trip viability checks.
   - Calculation: `(distance_m / 80m_min) * 2 + 5m buffer`.
@@ -70,14 +72,15 @@ Use this as the execution checklist after the core deterministic offer-selection
 ## 1) Long-horizon Identity Strategy
 
 - **Goal:** Support cross-session stable pseudonyms with documented retention and user opt-out controls beyond transient sessions.
-- **Current:** `identity_continuity.py` derives `continuity_id` but it is still largely session-bound in practice.
+- **Current:** `identity_continuity.py` derives HMAC-based `continuity_id`; mobile now persists/reuses `continuity_hint`; reset/opt-out controls are live with best-effort graph purge on opt-out.
 - **Required:**
-  - Implement stable hashing strategy for longer-term preference linkage.
-  - Add explicit "Identity Reset" clear-down in Neo4j.
+  - Complete end-to-end lifecycle wiring in product surfaces (explicit rotate/reset UX and callback handling of rotated hints).
+  - Verify/monitor graph clear-down semantics operationally (metrics/audit visibility and hardening under failure/retry paths).
+  - Document and enforce retention lifecycle (generation, reuse window, expiry, reset/opt-out semantics).
 - **Definition of done:**
-  - Stable pseudonymous identity links behavior across sessions within documented retention limits.
-  - Reset/opt-out fully clears graph-linkable continuity state for that user context.
-  - Identity lifecycle is documented end-to-end (generation, reuse, expiry, reset, retention).
+  - Identity lifecycle is wired end-to-end across backend + product surfaces, including explicit rotate/reset/opt-out user flows.
+  - Reset/opt-out behavior is operationally hardened with observable purge outcomes (logs/metrics) and reliable behavior under retry/failure scenarios.
+  - Retention lifecycle is documented and enforced end-to-end (generation, reuse window, expiry, reset, retention).
 - **Tests to run:**
   - `uv run pytest tests/unit/test_identity_continuity.py tests/unit/test_identity_continuity_reset.py tests/unit/test_identity_router.py`
   - `uv run pytest tests/integration/test_identity_continuity_endpoint.py tests/integration/test_composite_graph_integration.py`
@@ -88,24 +91,38 @@ Use this as the execution checklist after the core deterministic offer-selection
 
 - **Goal:** Finalize Munich merchant list and Hero Score scaling for the live demo.
 - **Touchpoint:** `README.md`, `resources/mock_venues_munich.json`.
-- **Status:** Munich fixture is available; `README.md` placeholders need replacing.
+- **Status:** Implemented.
 - **Definition of done:**
-  - Munich merchant fixture is the single source used by demo seed/load scripts.
-  - Hero Score scaling is explicitly documented with baseline and expected range.
-  - `README.md` has no placeholder submission/demo values.
+  - [x] Munich merchant fixture is the single source used by demo seed/load scripts.
+  - [x] Hero Score scaling is explicitly documented with baseline and expected range.
+  - [x] `README.md` has no placeholder submission/demo values.
 - **Tests to run:**
   - `uv run pytest tests/integration/test_smoke.py tests/integration/test_wave_flow.py`
   - Manual demo dry-run: load data, generate offer, redeem, confirm cashback and score output formatting.
 - **Demo impact:**
   - High: ensures all shown numbers and claims are consistent during judging.
 
+## 3) Product Surface Follow-ups (Deferred)
+
+- **Goal:** Track app-surface updates for the user mobile app and business web app after core backend gaps are closed.
+- **Current:** Core backend/runtime work is prioritized first; UI/UX and operational adjustments are intentionally deferred.
+- **Deferred scope (check later):**
+  - Mobile user app: expose identity controls (reset/opt-out), continuity lifecycle messaging, and final UX copy.
+  - Business web app: align business-facing views/actions with finalized Spark Wave + identity/retention behavior.
+  - End-to-end verification that mobile and web surfaces reflect final backend policies and docs.
+- **Trigger to resume:**
+  - Resume once the long-horizon identity strategy backlog item is complete or when prep starts for release hardening.
+- **Demo impact:**
+  - Low/medium now; high for post-demo product readiness and operational clarity.
+
 ---
 
 ## Suggested Build Order
 
-1. **Final Demo Data replacement** in `README.md`.
-2. **Long-horizon identity strategy refinement**.
+1. **Long-horizon identity strategy refinement**.
    - Treat this as post-demo unless judges explicitly require cross-session continuity proof.
+2. **Product surface follow-ups (deferred).**
+   - Mobile user app + business web app adjustments after backend policy finalization.
 
 
 ## Validation Commands (keep as release gate)

@@ -27,10 +27,14 @@ def test_parse_stored_offer_falls_back_for_malformed_payload() -> None:
     assert result.value.discount.value == 12
     assert result.value.genui.color_palette == "warm_amber"
     assert result.errors
-    assert any(action.reason == MappingReason.STORED_JSON_INVALID for action in result.actions)
+    assert any(
+        action.reason == MappingReason.STORED_JSON_INVALID for action in result.actions
+    )
 
 
-def test_canonicalize_venue_transaction_derives_fields_and_normalizes_category() -> None:
+def test_canonicalize_venue_transaction_derives_fields_and_normalizes_category() -> (
+    None
+):
     result = canonicalize_venue_transaction(
         {
             "transaction_id": "txn-1",

@@ -248,7 +248,9 @@ def _extract_python_exports(py_init_path: Path) -> set[str]:
                 if isinstance(target, ast.Name) and target.id == "__all__":
                     if isinstance(node.value, (ast.List, ast.Tuple)):
                         for elt in node.value.elts:
-                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                            if isinstance(elt, ast.Constant) and isinstance(
+                                elt.value, str
+                            ):
                                 exports.add(elt.value)
     return exports
 
@@ -263,7 +265,9 @@ def _extract_python_class_fields(models_dir: Path) -> dict[str, set[str]]:
             if isinstance(node, ast.ClassDef):
                 fields: set[str] = set()
                 for stmt in node.body:
-                    if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
+                    if isinstance(stmt, ast.AnnAssign) and isinstance(
+                        stmt.target, ast.Name
+                    ):
                         fields.add(stmt.target.id)
                 classes[node.name] = fields
     return classes

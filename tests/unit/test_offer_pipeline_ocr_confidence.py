@@ -68,9 +68,12 @@ def test_low_confidence_ocr_not_used_for_gating(monkeypatch):
             )
 
     monkeypatch.setattr(
-        "spark.services.offer_pipeline.build_composite_state", fake_build_composite_state
+        "spark.services.offer_pipeline.build_composite_state",
+        fake_build_composite_state,
     )
-    monkeypatch.setattr("spark.services.offer_pipeline.GraphValidationService", FakeRules)
+    monkeypatch.setattr(
+        "spark.services.offer_pipeline.GraphValidationService", FakeRules
+    )
 
     result = asyncio.run(generate_offer_pipeline(_request(confidence=0.4)))
     assert result["offer"] is None
@@ -108,9 +111,12 @@ def test_high_confidence_ocr_used_for_gating(monkeypatch):
             )
 
     monkeypatch.setattr(
-        "spark.services.offer_pipeline.build_composite_state", fake_build_composite_state
+        "spark.services.offer_pipeline.build_composite_state",
+        fake_build_composite_state,
     )
-    monkeypatch.setattr("spark.services.offer_pipeline.GraphValidationService", FakeRules)
+    monkeypatch.setattr(
+        "spark.services.offer_pipeline.GraphValidationService", FakeRules
+    )
 
     result = asyncio.run(generate_offer_pipeline(_request(confidence=0.95)))
     assert result["offer"] is None

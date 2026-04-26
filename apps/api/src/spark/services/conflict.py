@@ -7,6 +7,7 @@ The LLM runs AFTER this returns RECOMMEND — it only generates framing copy.
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from spark.models.common import ConflictRecommendation
 from spark.services.density import infer_occupancy_pct, predict_occupancy_at
 
 
@@ -56,7 +57,7 @@ BANNED_IF_EMPTY: list[str] = [
 
 @dataclass
 class ConflictResolution:
-    recommendation: str  # RECOMMEND | RECOMMEND_WITH_FRAMING | DO_NOT_RECOMMEND
+    recommendation: ConflictRecommendation
     framing_band: str | None
     coupon_mechanism: str | None
     reason: str
@@ -97,7 +98,7 @@ def resolve_conflict(
                 else _select_coupon(active_coupon, "soft")
             )
             return ConflictResolution(
-                recommendation="RECOMMEND",
+                recommendation=ConflictRecommendation.RECOMMEND,
                 framing_band=band,
                 coupon_mechanism=coupon,
                 reason=f"Social user, predicted occ at arrival {predicted_occ_pct:.0f}% — natural match",
@@ -109,7 +110,7 @@ def resolve_conflict(
         elif predicted_occ_pct >= 40:
             if active_coupon and active_coupon.get("type") == "MILESTONE":
                 return ConflictResolution(
-                    recommendation="RECOMMEND_WITH_FRAMING",
+                    recommendation=ConflictRecommendation.RECOMMEND_WITH_FRAMING,
                     framing_band="building_momentum",
                     coupon_mechanism="MILESTONE",
                     reason=f"Social + {predicted_occ_pct:.0f}% predicted + milestone active — honest social proof",
@@ -119,7 +120,7 @@ def resolve_conflict(
                 )
             elif active_coupon and active_coupon.get("type") in ("TIME_BOUND", "DRINK"):
                 return ConflictResolution(
-                    recommendation="RECOMMEND_WITH_FRAMING",
+                    recommendation=ConflictRecommendation.RECOMMEND_WITH_FRAMING,
                     framing_band="empty_but_filling",
                     coupon_mechanism=active_coupon["type"],
                     reason=f"Social + {predicted_occ_pct:.0f}% predicted + value coupon — worth the early arrival",
@@ -129,7 +130,7 @@ def resolve_conflict(
                 )
             else:
                 return ConflictResolution(
-                    recommendation="DO_NOT_RECOMMEND",
+                    recommendation=ConflictRecommendation.DO_NOT_RECOMMEND,
                     framing_band=None,
                     coupon_mechanism=None,
                     reason=f"Social + {predicted_occ_pct:.0f}% predicted + no coupon — insufficient",
@@ -140,7 +141,7 @@ def resolve_conflict(
 
         else:
             return ConflictResolution(
-                recommendation="DO_NOT_RECOMMEND",
+                recommendation=ConflictRecommendation.DO_NOT_RECOMMEND,
                 framing_band=None,
                 coupon_mechanism=None,
                 reason=f"Social user, predicted occ {predicted_occ_pct:.0f}% — won't be lively",
@@ -152,7 +153,7 @@ def resolve_conflict(
     elif user_social_pref == "quiet":
         if current_occ_pct <= 50:
             return ConflictResolution(
-                recommendation="RECOMMEND",
+                recommendation=ConflictRecommendation.RECOMMEND,
                 framing_band="quiet_intentional",
                 coupon_mechanism=None,
                 reason=f"Quiet user, current occ {current_occ_pct:.0f}% — natural match",
@@ -162,7 +163,7 @@ def resolve_conflict(
             )
         elif current_occ_pct <= 70:
             return ConflictResolution(
-                recommendation="RECOMMEND_WITH_FRAMING",
+                recommendation=ConflictRecommendation.RECOMMEND_WITH_FRAMING,
                 framing_band="quiet_intentional",
                 coupon_mechanism=_select_coupon(active_coupon, "soft"),
                 reason=f"Quiet user, current occ {current_occ_pct:.0f}% — some quiet spots remain",
@@ -172,7 +173,7 @@ def resolve_conflict(
             )
         else:
             return ConflictResolution(
-                recommendation="DO_NOT_RECOMMEND",
+                recommendation=ConflictRecommendation.DO_NOT_RECOMMEND,
                 framing_band=None,
                 coupon_mechanism=None,
                 reason=f"Quiet user, current occ {current_occ_pct:.0f}% — wrong vibe entirely",
@@ -183,7 +184,7 @@ def resolve_conflict(
 
     else:  # neutral
         return ConflictResolution(
-            recommendation="RECOMMEND",
+            recommendation=ConflictRecommendation.RECOMMEND,
             framing_band=None,
             coupon_mechanism=_select_coupon(active_coupon, "any"),
             reason="Neutral user — standard offer flow, no occupancy constraint",

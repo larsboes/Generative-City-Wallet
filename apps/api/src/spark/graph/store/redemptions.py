@@ -52,4 +52,3 @@ class RedemptionGraphRepository:
             return True
 
         return await safe_execute(_run, fallback=False, op_name="write_wallet_event")
-

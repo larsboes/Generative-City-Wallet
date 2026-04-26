@@ -52,6 +52,7 @@ Return ONLY valid JSON. No markdown, no explanation. Schema:
 - Do NOT use "packed"/"buzzing"/"voll" if occupancy is below 60%
 """
 
+
 def build_offer_agent_user_prompt(
     session_id: str,
     grid_cell: str,

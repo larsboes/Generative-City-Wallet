@@ -523,9 +523,10 @@ def test_wallet_seed_calibration_matrix_source_and_history_delta_bands(tmp_path)
         wallet_seed_module.get_repository = original_get_repo  # type: ignore[assignment]
 
     by_key = {
-        (call["source_type"].replace("wallet_seed:", ""), call["category"].rsplit("_", 1)[-1]): float(
-            call["delta"]
-        )
+        (
+            call["source_type"].replace("wallet_seed:", ""),
+            call["category"].rsplit("_", 1)[-1],
+        ): float(call["delta"])
         for call in captured_calls
     }
     wp0 = by_key[("wallet_pass", "0")]

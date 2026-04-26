@@ -102,7 +102,9 @@ def _hash_payload(payload: dict[str, Any] | None) -> str | None:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-def get_offer_audit_row(offer_id: str, db_path: str | None = None) -> dict[str, Any] | None:
+def get_offer_audit_row(
+    offer_id: str, db_path: str | None = None
+) -> dict[str, Any] | None:
     conn = get_connection(db_path)
     try:
         row = conn.execute(
@@ -274,9 +276,7 @@ def acquire_graph_event_idempotency_key(
         conn.close()
 
 
-def cleanup_graph_event_log(
-    retention_days: int, db_path: str | None = None
-) -> None:
+def cleanup_graph_event_log(retention_days: int, db_path: str | None = None) -> None:
     ensure_graph_learning_schema(db_path=db_path)
     cutoff = f"-{retention_days} days"
     conn = get_connection(db_path)
@@ -336,7 +336,12 @@ def count_recent_graph_events_for_category(
               AND event_type LIKE ?
               AND datetime(created_at) >= datetime('now', ?)
             """,
-            (session_id, category, f"{event_type_prefix}%", f"-{window_seconds} seconds"),
+            (
+                session_id,
+                category,
+                f"{event_type_prefix}%",
+                f"-{window_seconds} seconds",
+            ),
         ).fetchone()
         return int(row["c"]) if row else 0
     finally:
@@ -430,7 +435,14 @@ def record_learning_metric(
                 metric_name, metric_value, metric_group, session_id, category, source_type
             ) VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (metric_name, metric_value, metric_group, session_id, category, source_type),
+            (
+                metric_name,
+                metric_value,
+                metric_group,
+                session_id,
+                category,
+                source_type,
+            ),
         )
         conn.commit()
     finally:

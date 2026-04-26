@@ -33,4 +33,3 @@ class SessionGraphRepository:
             return int(row["count"]) if row else 0
 
         return await safe_execute(_run, fallback=0, op_name="session_offer_count")
-

@@ -37,7 +37,9 @@ def test_normalize_overrides_time_bucket_and_weather_need():
     assert result.intent.weather_need.value == "warmth_seeking"
 
     time_row = next(item for item in result.provenance if item.field == "time_bucket")
-    weather_row = next(item for item in result.provenance if item.field == "weather_need")
+    weather_row = next(
+        item for item in result.provenance if item.field == "weather_need"
+    )
     assert time_row.action == "overridden"
     assert time_row.policy == "authoritative"
     assert weather_row.action == "overridden"
@@ -51,7 +53,9 @@ def test_normalize_keeps_client_weather_need_when_server_signal_missing():
         derived_weather_need=None,
     )
 
-    weather_row = next(item for item in result.provenance if item.field == "weather_need")
+    weather_row = next(
+        item for item in result.provenance if item.field == "weather_need"
+    )
     assert result.intent.weather_need.value == "neutral"
     assert weather_row.action == "accepted"
     assert weather_row.source == "client_intent_fallback"

@@ -30,4 +30,3 @@ class OfferDecisionResult:
     trace: list[DecisionTraceStep]
     candidate_scores: list[dict[str, Any]]
     conflict_framing_band: str | None
-

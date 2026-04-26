@@ -45,9 +45,14 @@ async def graph_stats():
     return {"available": is_available(), "stats": await repo.stats()}
 
 
-@router.get("/sessions/{session_id}/preferences", response_model=SessionPreferencesResponse)
+@router.get(
+    "/sessions/{session_id}/preferences", response_model=SessionPreferencesResponse
+)
 async def session_preferences(
-    session_id: str, limit: int = 10, include_attribution: bool = False, event_limit: int = 10
+    session_id: str,
+    limit: int = 10,
+    include_attribution: bool = False,
+    event_limit: int = 10,
 ):
     """Top preference scores for a given user session — for explainability."""
     repo = get_repository()
@@ -76,7 +81,9 @@ async def session_preferences(
     return response
 
 
-@router.get("/sessions/{session_id}/recent-offers", response_model=SessionRecentOffersResponse)
+@router.get(
+    "/sessions/{session_id}/recent-offers", response_model=SessionRecentOffersResponse
+)
 async def session_recent_offers(session_id: str, limit: int = 10):
     """Most recent offers for a user (graph view, for debugging the rules engine)."""
     repo = get_repository()

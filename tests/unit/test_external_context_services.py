@@ -20,7 +20,9 @@ async def test_places_fallback_without_api_key(monkeypatch):
 @pytest.mark.asyncio
 async def test_luma_fallback_without_api_key(monkeypatch):
     monkeypatch.setattr(events, "LUMA_API_KEY", "")
-    monkeypatch.setattr(events, "LUMA_SEED_EVENTS_PATH", "resources/does-not-exist.json")
+    monkeypatch.setattr(
+        events, "LUMA_SEED_EVENTS_PATH", "resources/does-not-exist.json"
+    )
     events._cache = {}
     events._cache_ts = {}
     events._seed_events = None

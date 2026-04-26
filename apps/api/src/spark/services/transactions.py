@@ -27,6 +27,7 @@ CATEGORY_AVG_TICKET_EUR: dict[str, float] = {
     "retail": 32.00,
 }
 
+
 def floor_hour(dt: datetime) -> datetime:
     utc = ensure_utc(dt)
     return utc.replace(minute=0, second=0, microsecond=0)

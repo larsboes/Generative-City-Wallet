@@ -30,7 +30,5 @@ async def test_llm_retry_metrics_record_success_on_retry(monkeypatch):
     after = pipeline.get_offer_pipeline_metrics()
     assert after["llm_calls_total"] >= base["llm_calls_total"] + 2
     assert after["llm_retries_total"] >= base["llm_retries_total"] + 1
-    assert (
-        after["llm_success_on_retry_total"] >= base["llm_success_on_retry_total"] + 1
-    )
+    assert after["llm_success_on_retry_total"] >= base["llm_success_on_retry_total"] + 1
     assert after["llm_failures_total"] >= base["llm_failures_total"] + 1

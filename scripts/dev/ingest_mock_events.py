@@ -15,10 +15,18 @@ from uuid import uuid4
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Append one event into local seeded events JSON.")
+    parser = argparse.ArgumentParser(
+        description="Append one event into local seeded events JSON."
+    )
     parser.add_argument("--name", required=True, help="Event name")
-    parser.add_argument("--start-at", required=True, help="Event start timestamp in ISO-8601 (UTC), e.g. 2026-04-26T19:30:00Z")
-    parser.add_argument("--city", default="Stuttgart", help="Event city (default: Stuttgart)")
+    parser.add_argument(
+        "--start-at",
+        required=True,
+        help="Event start timestamp in ISO-8601 (UTC), e.g. 2026-04-26T19:30:00Z",
+    )
+    parser.add_argument(
+        "--city", default="Stuttgart", help="Event city (default: Stuttgart)"
+    )
     parser.add_argument(
         "--file",
         default="resources/mock_events_stuttgart.json",

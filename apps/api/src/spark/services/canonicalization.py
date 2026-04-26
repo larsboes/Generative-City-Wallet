@@ -303,7 +303,9 @@ def parse_stored_offer(raw_offer: str | None) -> CanonicalizationResult[OfferObj
     try:
         parsed = json.loads(raw_offer)
     except json.JSONDecodeError as exc:
-        return CanonicalizationResult(value=None, actions=actions, errors=errors + [str(exc)])
+        return CanonicalizationResult(
+            value=None, actions=actions, errors=errors + [str(exc)]
+        )
 
     merchant = parsed.get("merchant") or {}
     discount = parsed.get("discount") or {}

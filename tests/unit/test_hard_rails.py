@@ -54,7 +54,9 @@ def _build_state() -> CompositeContextState:
                 signal="PRIORITY",
                 offer_eligible=True,
             ),
-            active_coupon=ActiveCoupon(type="FLASH", max_discount_pct=15, valid_window_min=25),
+            active_coupon=ActiveCoupon(
+                type="FLASH", max_discount_pct=15, valid_window_min=25
+            ),
         ),
         environment=EnvironmentContext(
             weather_condition="clear",

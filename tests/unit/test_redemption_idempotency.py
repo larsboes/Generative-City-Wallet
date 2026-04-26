@@ -6,7 +6,6 @@ from spark.services.redemption import (
     confirm_redemption,
     project_offer_outcome_to_graph,
 )
-from spark.repositories.redemption import count_recent_graph_events_for_category
 
 
 def test_graph_projection_idempotency_key_insert_once(tmp_path):
@@ -56,7 +55,7 @@ def test_confirm_redemption_handles_malformed_stored_offer(tmp_path):
                 "sess-1",
                 "merchant-1",
                 "{}",
-                "{\"offer_id\":\"offer-1\",\"session_id\":\"sess-1\",\"merchant\":{\"name\":\"Cafe Broken\"},\"discount\":{\"value\":15},\"content\":{\"headline\":\"x\",\"subtext\":\"y\",\"cta_text\":\"z\"},\"genui\":{\"color_palette\":\"bad-value\"}}",
+                '{"offer_id":"offer-1","session_id":"sess-1","merchant":{"name":"Cafe Broken"},"discount":{"value":15},"content":{"headline":"x","subtext":"y","cta_text":"z"},"genui":{"color_palette":"bad-value"}}',
                 "{}",
                 "SENT",
             ),

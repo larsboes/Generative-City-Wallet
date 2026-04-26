@@ -48,7 +48,9 @@ def get_merchant_info(merchant_id: str, db_path: str | None = None) -> dict | No
     if not row:
         return None
 
-    coupon_row = get_active_coupon_for_merchant(merchant_id=merchant_id, db_path=db_path)
+    coupon_row = get_active_coupon_for_merchant(
+        merchant_id=merchant_id, db_path=db_path
+    )
     coupon = None
     if coupon_row:
         config = json.loads(coupon_row["config"])
@@ -113,7 +115,9 @@ def apply_demo_density_overrides(
 
     updated = density.copy()
     updated["current_occupancy_pct"] = demo_overrides.merchant_occupancy_pct / 100
-    updated["density_score"] = max(0.05, 1 - (demo_overrides.merchant_occupancy_pct / 100))
+    updated["density_score"] = max(
+        0.05, 1 - (demo_overrides.merchant_occupancy_pct / 100)
+    )
     updated["drop_pct"] = 1 - updated["density_score"]
     updated["offer_eligible"] = updated["drop_pct"] >= 0.30
     if updated["drop_pct"] >= 0.70:

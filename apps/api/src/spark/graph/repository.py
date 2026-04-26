@@ -173,6 +173,9 @@ class GraphRepository:
     async def migration_status(self) -> list[dict]:
         return await self._ops.migration_status()
 
+    async def purge_session_data(self, *, session_id: str) -> dict[str, int]:
+        return await self._ops.purge_session_data(session_id=session_id)
+
     @staticmethod
     def is_available() -> bool:
         return is_available()

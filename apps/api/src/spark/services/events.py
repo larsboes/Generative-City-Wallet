@@ -55,7 +55,9 @@ def _load_seed_events() -> list[dict[str, Any]]:
 
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        raw_events = payload.get("events", payload) if isinstance(payload, dict) else payload
+        raw_events = (
+            payload.get("events", payload) if isinstance(payload, dict) else payload
+        )
         if not isinstance(raw_events, list):
             _seed_events = []
             return _seed_events
@@ -116,7 +118,9 @@ async def get_luma_event_context(grid_cell: str) -> dict[str, Any]:
         return result
 
     try:
-        async with httpx.AsyncClient(timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(
+            timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS
+        ) as client:
             resp = await client.get(
                 f"{LUMA_BASE_URL}/events",
                 params={"city": city, "limit": 20},
@@ -140,7 +144,9 @@ async def get_luma_event_context(grid_cell: str) -> dict[str, Any]:
             "http_status": resp.status_code,
         }
     except Exception as exc:
-        status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+        status = (
+            exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+        )
         result = {
             **_FALLBACK,
             "error_reason": exc.__class__.__name__,

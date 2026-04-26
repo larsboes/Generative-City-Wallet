@@ -68,10 +68,10 @@ def iter_imports(tree: ast.AST, current_module: str) -> list[str]:
                 if node.level == 0:
                     imports.append(node.module)
                 else:
-                    base_parts = current_parts[:-node.level]
+                    base_parts = current_parts[: -node.level]
                     imports.append(".".join(base_parts + node.module.split(".")))
             elif node.level > 0:
-                imports.append(".".join(current_parts[:-node.level]))
+                imports.append(".".join(current_parts[: -node.level]))
     return imports
 
 
@@ -129,9 +129,7 @@ def main() -> int:
             forbidden, reason = is_forbidden(module, imported)
             if forbidden:
                 rel = py_file.relative_to(REPO_ROOT)
-                violations.append(
-                    f"{rel}: {module} imports {imported} ({reason})"
-                )
+                violations.append(f"{rel}: {module} imports {imported} ({reason})")
 
         expected_query_module = expected_graph_query_module_for(py_file)
         if (

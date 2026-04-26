@@ -121,8 +121,11 @@ def infer_occupancy_pct(
 def _get_merchant_type(merchant_id: str, db_path: str | None = None) -> str | None:
     try:
         from spark.db.connection import get_connection
+
         conn = get_connection(db_path)
-        row = conn.execute("SELECT type FROM merchants WHERE id = ?", (merchant_id,)).fetchone()
+        row = conn.execute(
+            "SELECT type FROM merchants WHERE id = ?", (merchant_id,)
+        ).fetchone()
         conn.close()
         return row["type"] if row else None
     except Exception:

@@ -18,6 +18,7 @@ _formatter = logging.Formatter(_LOG_FORMAT)
 _handler = logging.StreamHandler(sys.stdout)
 _handler.setFormatter(_formatter)
 
+
 def get_logger(name: str) -> logging.Logger:
     """Get a consistently formatted stdout logger."""
     logger = logging.getLogger(name)

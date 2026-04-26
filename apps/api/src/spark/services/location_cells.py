@@ -9,7 +9,9 @@ from spark.config import SPARK_H3_RESOLUTION
 DEFAULT_H3_RESOLUTION = SPARK_H3_RESOLUTION
 
 
-def latlon_to_h3(lat: float, lon: float, resolution: int = DEFAULT_H3_RESOLUTION) -> str:
+def latlon_to_h3(
+    lat: float, lon: float, resolution: int = DEFAULT_H3_RESOLUTION
+) -> str:
     return h3.latlng_to_cell(lat, lon, resolution)
 
 

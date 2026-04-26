@@ -6,7 +6,12 @@ from spark.repositories.signals import (
     get_current_transaction_count,
     get_historical_transaction_counts_by_day,
 )
-from spark.services.canonicalization import ensure_utc, hour_of_week, iso, normalize_category
+from spark.services.canonicalization import (
+    ensure_utc,
+    hour_of_week,
+    iso,
+    normalize_category,
+)
 
 
 BASE_HOURLY_RATES: dict[str, list[float]] = {
@@ -240,6 +245,7 @@ OCCUPANCY_CALIBRATION: dict[str, tuple[float, float]] = {
     "biergarten": (0.5, 28.0),
     "nightclub": (0.0, 35.0),
 }
+
 
 def fallback_historical_rate(category: str, dt: datetime) -> float:
     category = normalize_category(category)

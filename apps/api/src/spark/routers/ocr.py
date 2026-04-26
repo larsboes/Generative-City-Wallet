@@ -29,7 +29,9 @@ async def ingest_ocr_transit(payload: OCRTransitPayload):
         try:
             datetime.fromisoformat(payload.must_return_by.replace("Z", "+00:00"))
         except ValueError as exc:
-            raise HTTPException(status_code=422, detail="invalid_must_return_by") from exc
+            raise HTTPException(
+                status_code=422, detail="invalid_must_return_by"
+            ) from exc
 
     accepted = payload.confidence >= OCR_CONFIDENCE_THRESHOLD
     reason = None

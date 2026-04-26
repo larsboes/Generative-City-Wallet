@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, cast
 
 from neo4j import AsyncSession
 
@@ -39,12 +39,24 @@ class OpsGraphRepository:
 
             return {
                 "retention_days": int(retention_days),
-                "offers_deleted": int((offers_row and offers_row["offers_deleted"]) or 0),
-                "contexts_deleted": int((offers_row and offers_row["contexts_deleted"]) or 0),
-                "redemptions_deleted": int((offers_row and offers_row["redemptions_deleted"]) or 0),
-                "wallet_events_deleted": int((offers_row and offers_row["wallet_events_deleted"]) or 0),
-                "sessions_deleted": int((sessions_row and sessions_row["sessions_deleted"]) or 0),
-                "preference_edges_deleted": int((pref_row and pref_row["preference_edges_deleted"]) or 0),
+                "offers_deleted": int(
+                    cast(Any, (offers_row and offers_row["offers_deleted"])) or 0
+                ),
+                "contexts_deleted": int(
+                    cast(Any, (offers_row and offers_row["contexts_deleted"])) or 0
+                ),
+                "redemptions_deleted": int(
+                    cast(Any, (offers_row and offers_row["redemptions_deleted"])) or 0
+                ),
+                "wallet_events_deleted": int(
+                    cast(Any, (offers_row and offers_row["wallet_events_deleted"])) or 0
+                ),
+                "sessions_deleted": int(
+                    cast(Any, (sessions_row and sessions_row["sessions_deleted"])) or 0
+                ),
+                "preference_edges_deleted": int(
+                    cast(Any, (pref_row and pref_row["preference_edges_deleted"])) or 0
+                ),
             }
 
         return await safe_execute(
@@ -76,7 +88,38 @@ class OpsGraphRepository:
 
         return await safe_execute(_run, fallback=[], op_name="migration_status")
 
+    async def purge_session_data(self, *, session_id: str) -> dict[str, int]:
+        async def _run(s: AsyncSession) -> dict[str, int]:
+            res = await s.run(Q.PURGE_SESSION_DATA, session_id=session_id)
+            row = await res.single()
+            return {
+                "sessions_deleted": int(
+                    cast(Any, (row and row["sessions_deleted"])) or 0
+                ),
+                "offers_deleted": int(cast(Any, (row and row["offers_deleted"])) or 0),
+                "contexts_deleted": int(
+                    cast(Any, (row and row["contexts_deleted"])) or 0
+                ),
+                "redemptions_deleted": int(
+                    cast(Any, (row and row["redemptions_deleted"])) or 0
+                ),
+                "wallet_events_deleted": int(
+                    cast(Any, (row and row["wallet_events_deleted"])) or 0
+                ),
+            }
+
+        return await safe_execute(
+            _run,
+            fallback={
+                "sessions_deleted": 0,
+                "offers_deleted": 0,
+                "contexts_deleted": 0,
+                "redemptions_deleted": 0,
+                "wallet_events_deleted": 0,
+            },
+            op_name="purge_session_data",
+        )
+
     @staticmethod
     def is_available() -> bool:
         return is_available()
-

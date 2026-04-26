@@ -141,7 +141,10 @@ def create_wave(
             """,
             (created_by_session,),
         ).fetchone()
-        if int((active_waves and active_waves["c"]) or 0) >= MAX_ACTIVE_WAVES_PER_SESSION:
+        if (
+            int((active_waves and active_waves["c"]) or 0)
+            >= MAX_ACTIVE_WAVES_PER_SESSION
+        ):
             return None
 
         recent_creates = _recent_event_count(
@@ -484,7 +487,9 @@ def join_wave(
             return (existing, False) if existing else None
 
         next_count = int(row["participant_count"]) + 1
-        next_status = "COMPLETED" if next_count >= int(row["milestone_target"]) else "ACTIVE"
+        next_status = (
+            "COMPLETED" if next_count >= int(row["milestone_target"]) else "ACTIVE"
+        )
         conn.execute(
             "UPDATE spark_waves SET participant_count = ?, status = ? WHERE wave_id = ?",
             (next_count, next_status, wave_id),

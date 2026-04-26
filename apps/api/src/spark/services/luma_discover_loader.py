@@ -38,7 +38,11 @@ def _to_iso_utc(value: Any) -> str | None:
     if value is None:
         return None
     if isinstance(value, (int, float)):
-        return datetime.fromtimestamp(value, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+        return (
+            datetime.fromtimestamp(value, tz=timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
     text = str(value).strip()
     if not text:
         return None
@@ -47,8 +51,15 @@ def _to_iso_utc(value: Any) -> str | None:
 
 def _normalize_event(raw: dict[str, Any], fallback_city: str) -> dict[str, Any] | None:
     nested = raw.get("event") if isinstance(raw.get("event"), dict) else {}
-    event_id = raw.get("id") or raw.get("event_id") or raw.get("api_id") or nested.get("api_id")
-    name = raw.get("name") or raw.get("title") or nested.get("name") or nested.get("title")
+    event_id = (
+        raw.get("id")
+        or raw.get("event_id")
+        or raw.get("api_id")
+        or nested.get("api_id")
+    )
+    name = (
+        raw.get("name") or raw.get("title") or nested.get("name") or nested.get("title")
+    )
     start_at = (
         _to_iso_utc(raw.get("start_at"))
         or _to_iso_utc(nested.get("start_at"))
@@ -83,7 +94,9 @@ def _load_seed(path: Path) -> dict[str, Any]:
     return {"events": []}
 
 
-def _merge_events(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _merge_events(
+    existing: list[dict[str, Any]], incoming: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
     for event in existing:
         event_id = str(event.get("id", "")).strip()
@@ -163,7 +176,9 @@ def load_discover_seed_events(
     seed = _load_seed(seed_path)
     existing = seed["events"]
     if replace_discover:
-        existing = [e for e in existing if not str(e.get("id", "")).startswith("luma-discover-")]
+        existing = [
+            e for e in existing if not str(e.get("id", "")).startswith("luma-discover-")
+        ]
 
     merged = _merge_events(existing, dedup_incoming)
     summary = {
@@ -183,18 +198,50 @@ def load_discover_seed_events(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Load Luma Discover events into local seed JSON (demo-only).")
+    parser = argparse.ArgumentParser(
+        description="Load Luma Discover events into local seed JSON (demo-only)."
+    )
     parser.add_argument("--lat", required=True, type=float, help="Latitude")
     parser.add_argument("--lng", required=True, type=float, help="Longitude")
-    parser.add_argument("--radius", type=int, default=50000, help="Search radius in meters (default: 50000)")
-    parser.add_argument("--period", default="future", choices=["future", "past"], help="Event period (default: future)")
-    parser.add_argument("--pages", type=int, default=1, help="Number of pages to fetch (default: 1)")
-    parser.add_argument("--timeout", type=float, default=8.0, help="HTTP timeout seconds (default: 8.0)")
-    parser.add_argument("--city", default="Stuttgart", help="Fallback city for normalized events")
-    parser.add_argument("--seed-file", default="resources/mock_events_stuttgart.json", help="Seed JSON file path")
-    parser.add_argument("--replace-discover", action="store_true", help="Remove prior luma-discover-* events before merge")
-    parser.add_argument("--dry-run", action="store_true", help="Fetch and parse without writing file")
-    parser.add_argument("--cookie", default="", help="Optional Cookie header copied from browser session")
+    parser.add_argument(
+        "--radius",
+        type=int,
+        default=50000,
+        help="Search radius in meters (default: 50000)",
+    )
+    parser.add_argument(
+        "--period",
+        default="future",
+        choices=["future", "past"],
+        help="Event period (default: future)",
+    )
+    parser.add_argument(
+        "--pages", type=int, default=1, help="Number of pages to fetch (default: 1)"
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=8.0, help="HTTP timeout seconds (default: 8.0)"
+    )
+    parser.add_argument(
+        "--city", default="Stuttgart", help="Fallback city for normalized events"
+    )
+    parser.add_argument(
+        "--seed-file",
+        default="resources/mock_events_stuttgart.json",
+        help="Seed JSON file path",
+    )
+    parser.add_argument(
+        "--replace-discover",
+        action="store_true",
+        help="Remove prior luma-discover-* events before merge",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Fetch and parse without writing file"
+    )
+    parser.add_argument(
+        "--cookie",
+        default="",
+        help="Optional Cookie header copied from browser session",
+    )
     parser.add_argument(
         "--user-agent",
         default=(
@@ -204,8 +251,16 @@ def main() -> int:
         ),
         help="User-Agent header to mimic browser traffic",
     )
-    parser.add_argument("--origin", default="https://lu.ma", help="Origin header (default: https://lu.ma)")
-    parser.add_argument("--referer", default="https://lu.ma/discover", help="Referer header (default: https://lu.ma/discover)")
+    parser.add_argument(
+        "--origin",
+        default="https://lu.ma",
+        help="Origin header (default: https://lu.ma)",
+    )
+    parser.add_argument(
+        "--referer",
+        default="https://lu.ma/discover",
+        help="Referer header (default: https://lu.ma/discover)",
+    )
     args = parser.parse_args()
 
     summary = load_discover_seed_events(

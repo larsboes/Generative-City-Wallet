@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from spark.graph.repository import get_repository
 from spark.models.api import ContinuityResetRequest, ContinuityResetResponse
 from spark.services.identity_continuity import reset_continuity_identity
 
@@ -15,6 +16,12 @@ async def continuity_reset_endpoint(request: ContinuityResetRequest):
         continuity_hint=request.continuity_hint,
         opt_out=request.opt_out,
     )
+    if request.opt_out:
+        # Best-effort graph clear-down for opt-out; endpoint remains non-blocking
+        # if graph is unavailable.
+        repo = get_repository()
+        if repo.is_available():
+            await repo.purge_session_data(session_id=request.session_id)
     return ContinuityResetResponse(
         session_id=result.session_id,
         continuity_id=result.continuity_id,

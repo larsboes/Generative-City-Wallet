@@ -60,7 +60,9 @@ class OfferDecisionRepository:
         finally:
             conn.close()
 
-    def list_candidate_merchants(self, *, grid_cell: str) -> list[CandidateMerchantRecord]:
+    def list_candidate_merchants(
+        self, *, grid_cell: str
+    ) -> list[CandidateMerchantRecord]:
         conn = get_connection(self.db_path)
         try:
             rows: list[dict] = []

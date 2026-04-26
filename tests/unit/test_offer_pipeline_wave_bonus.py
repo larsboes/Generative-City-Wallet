@@ -6,7 +6,9 @@ from spark.services import offer_pipeline as pipeline
 
 
 def _offer_stub(value: float = 10.0):
-    return SimpleNamespace(discount=SimpleNamespace(value=value, source="merchant_rules_db"))
+    return SimpleNamespace(
+        discount=SimpleNamespace(value=value, source="merchant_rules_db")
+    )
 
 
 def test_apply_wave_bonus_to_offer_increases_discount(monkeypatch):

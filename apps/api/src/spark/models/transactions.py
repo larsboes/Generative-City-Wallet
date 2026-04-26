@@ -200,4 +200,3 @@ class PayoneMerchantDensityResponse(PayoneDensityResponse):
     lon: float
     address: Optional[str] = None
     grid_cell: Optional[str] = None
-

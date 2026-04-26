@@ -11,7 +11,9 @@ def ingest_payone_event(request: PayoneIngestRequest) -> PayoneIngestResponse:
     day_of_week = (
         request.day_of_week if request.day_of_week is not None else timestamp.weekday()
     )
-    hour_of_day = request.hour_of_day if request.hour_of_day is not None else timestamp.hour
+    hour_of_day = (
+        request.hour_of_day if request.hour_of_day is not None else timestamp.hour
+    )
     hour_of_week = (
         request.hour_of_week
         if request.hour_of_week is not None

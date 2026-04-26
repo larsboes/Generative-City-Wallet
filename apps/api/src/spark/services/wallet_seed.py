@@ -105,7 +105,9 @@ async def apply_wallet_seed_preferences(
             source_type,
             WALLET_SEED_SOURCE_GOVERNANCE[DEFAULT_SOURCE_TYPE],
         )
-        decay_rate = WALLET_SEED_DECAY_BY_SOURCE.get(source_type, WALLET_SEED_DECAY_RATE)
+        decay_rate = WALLET_SEED_DECAY_BY_SOURCE.get(
+            source_type, WALLET_SEED_DECAY_RATE
+        )
         history_count = count_graph_events_for_session(
             session_id=session_id,
             event_type_prefix=f"wallet_seed:{source_type}:",
@@ -264,7 +266,9 @@ async def apply_wallet_seed_preferences(
     )
 
 
-async def _get_current_category_weight(repo, *, session_id: str, category: str) -> float | None:
+async def _get_current_category_weight(
+    repo, *, session_id: str, category: str
+) -> float | None:
     scores = await repo.get_preference_scores(session_id, limit=25)
     for score in scores:
         if score.category == category:

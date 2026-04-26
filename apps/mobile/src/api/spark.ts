@@ -8,6 +8,7 @@ import {
   loadStravaTokenSet,
   type DerivedStravaSignal,
 } from "./strava";
+import { getOrCreateContinuityHint } from "./continuity";
 
 const defaultBase = "http://127.0.0.1:8000";
 
@@ -17,10 +18,16 @@ function apiBase(): string {
 }
 
 export async function postComposite(intent: IntentVector): Promise<unknown> {
+  const continuityHint = intent.continuity_hint ?? (await getOrCreateContinuityHint());
+  const payload: IntentVector = {
+    ...intent,
+    continuity_hint: continuityHint,
+  };
+
   const r = await fetch(`${apiBase()}/api/context/composite`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(intent),
+    body: JSON.stringify(payload),
   });
   if (!r.ok) {
     const t = await r.text();

@@ -62,7 +62,9 @@ def _ensure_seeded_database() -> None:
         )
     if legacy_cells > 0:
         raise AssertionError("Legacy non-H3 grid_cell prefixes detected in merchants.")
-    invalid_h3_merchants = [row["id"] for row in bad_cells if not is_valid_h3(row["grid_cell"])]
+    invalid_h3_merchants = [
+        row["id"] for row in bad_cells if not is_valid_h3(row["grid_cell"])
+    ]
     if invalid_h3_merchants:
         raise AssertionError(
             f"Non-H3 merchant grid_cell values found: {invalid_h3_merchants[:5]}"
@@ -87,7 +89,9 @@ def _osm_merchants_for_sweep(limit: int = 7) -> list[dict[str, str]]:
 
     merchants = [{"id": row["id"], "grid_cell": row["grid_cell"]} for row in rows]
     if not merchants:
-        raise AssertionError("Expected OSM merchant IDs in merchants table, found none.")
+        raise AssertionError(
+            "Expected OSM merchant IDs in merchants table, found none."
+        )
     return merchants
 
 

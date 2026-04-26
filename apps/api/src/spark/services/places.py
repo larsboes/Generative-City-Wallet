@@ -29,6 +29,7 @@ _MUNICH_CENTER = (48.137154, 11.576124)
 def _grid_to_lat_lon(grid_cell: str) -> tuple[float, float]:
     try:
         import h3
+
         return h3.cell_to_latlng(grid_cell)
     except Exception:
         return _MUNICH_CENTER
@@ -78,7 +79,9 @@ async def get_places_context(grid_cell: str) -> dict[str, Any]:
 
     lat, lon = _grid_to_lat_lon(grid_cell)
     try:
-        async with httpx.AsyncClient(timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS) as client:
+        async with httpx.AsyncClient(
+            timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS
+        ) as client:
             resp = await client.post(
                 "https://places.googleapis.com/v1/places:searchNearby",
                 headers={

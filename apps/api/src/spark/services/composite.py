@@ -64,7 +64,11 @@ async def build_composite_state(
     Assemble all signals into a CompositeContextState.
     Supports demo overrides for the Context Slider.
     """
-    now = demo_overrides.current_dt if demo_overrides and demo_overrides.current_dt else datetime.now()
+    now = (
+        demo_overrides.current_dt
+        if demo_overrides and demo_overrides.current_dt
+        else datetime.now()
+    )
     repo = graph_repo or get_repository()
 
     effective_transit_delay = transit_delay_minutes
@@ -130,10 +134,11 @@ async def build_composite_state(
         db_path=db_path,
         now=now,
     )
-    if merchant_id is None:
-        merchant_id = decision.selected_merchant_id
     if not merchant_id:
         merchant_id = select_best_merchant(intent.grid_cell, db_path, current_dt=now)
+
+    if not merchant_id:
+        raise ValueError("Could not determine merchant_id for composite state.")
 
     # ── Merchant info ──────────────────────────────────────────────────────────
     merchant_info = get_merchant_info(merchant_id, db_path)
@@ -267,7 +272,9 @@ async def build_composite_state(
                         "place_source": places_context.get("source"),
                         "place_count": places_context.get("nearby_place_count"),
                         "events_source": event_context.get("source"),
-                        "events_tonight_count": event_context.get("events_tonight_count"),
+                        "events_tonight_count": event_context.get(
+                            "events_tonight_count"
+                        ),
                     },
                 ),
                 *[

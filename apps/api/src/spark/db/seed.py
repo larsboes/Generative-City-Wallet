@@ -15,8 +15,13 @@ from spark.services.transaction_generation import generate_history
 _FIXTURE_PATH = Path(__file__).parents[5] / "resources" / "mock_venues_munich.json"
 
 EXCLUDED_MERCHANT_NAME_TOKENS = {
-    "casino", "sportcasino", "sportsbet", "sportsbook",
-    "bookmaker", "betting", "gambling",
+    "casino",
+    "sportcasino",
+    "sportsbet",
+    "sportsbook",
+    "bookmaker",
+    "betting",
+    "gambling",
 }
 
 
@@ -48,8 +53,11 @@ def seed_database(db_path: str | None = None) -> None:
         venues = json.load(f)
 
     filtered = [
-        v for v in venues
-        if not any(t in str(v.get("name") or "").lower() for t in EXCLUDED_MERCHANT_NAME_TOKENS)
+        v
+        for v in venues
+        if not any(
+            t in str(v.get("name") or "").lower() for t in EXCLUDED_MERCHANT_NAME_TOKENS
+        )
     ]
     imported = upsert_venues(db_path, filtered)
 
@@ -72,8 +80,15 @@ def seed_database(db_path: str | None = None) -> None:
         conn.executemany(
             "INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell) VALUES (?,?,?,?,?,?,?)",
             [
-                (r["merchant_id"], r["name"], r["category"], r["lat"], r["lon"],
-                 r["address"], latlon_to_h3(float(r["lat"]), float(r["lon"])))
+                (
+                    r["merchant_id"],
+                    r["name"],
+                    r["category"],
+                    r["lat"],
+                    r["lon"],
+                    r["address"],
+                    latlon_to_h3(float(r["lat"]), float(r["lon"])),
+                )
                 for r in venue_rows
             ],
         )
@@ -102,7 +117,9 @@ def seed_database(db_path: str | None = None) -> None:
     finally:
         conn.close()
 
-    print(f"✅ Seeded {imported} Munich venues → {merchants} merchants, {history.inserted} transactions")
+    print(
+        f"✅ Seeded {imported} Munich venues → {merchants} merchants, {history.inserted} transactions"
+    )
 
 
 if __name__ == "__main__":

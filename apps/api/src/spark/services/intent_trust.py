@@ -159,7 +159,9 @@ def _normalize_activity_fields(
             policy="advisory",
             client_value=activity_confidence,
             final_value=final_confidence,
-            action="accepted" if activity_confidence == final_confidence else "overridden",
+            action="accepted"
+            if activity_confidence == final_confidence
+            else "overridden",
             reason=(
                 "Activity confidence is clamped by source-specific trust caps and signal/source consistency rules."
                 if activity_confidence != final_confidence

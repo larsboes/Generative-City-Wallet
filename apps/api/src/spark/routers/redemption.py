@@ -2,6 +2,8 @@
 Redemption and wallet endpoints.
 """
 
+from typing import Any, cast
+
 from fastapi import APIRouter
 
 from spark.models.conflict import ConflictResolveRequest, ConflictResolveResponse
@@ -26,9 +28,11 @@ router = APIRouter(prefix="/api", tags=["redemption"])
 
 
 @router.post("/redemption/validate", response_model=RedemptionValidationResponse)
-async def validate_endpoint(request: RedemptionValidationRequest) -> RedemptionValidationResponse:
+async def validate_endpoint(
+    request: RedemptionValidationRequest,
+) -> RedemptionValidationResponse:
     """Merchant scans QR — validate and return discount info."""
-    return validate_qr(request.qr_payload, request.merchant_id)
+    return cast(Any, validate_qr(request.qr_payload, request.merchant_id))
 
 
 @router.post("/redemption/confirm", response_model=RedemptionConfirmResponse)
@@ -70,7 +74,9 @@ async def offer_outcome_endpoint(
         merchant_category=category,
     )
     if not updated:
-        return OfferOutcomeResponse(success=False, offer_id=offer_id, error="OFFER_NOT_FOUND")
+        return OfferOutcomeResponse(
+            success=False, offer_id=offer_id, error="OFFER_NOT_FOUND"
+        )
     return OfferOutcomeResponse(success=True, offer_id=offer_id, status=status)
 
 

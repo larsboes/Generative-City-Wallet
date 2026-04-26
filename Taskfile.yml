@@ -30,6 +30,11 @@ tasks:
     cmds:
       - PYTHONPATH={{.PYTHONPATH}} uv run python infra/pipeline/graph-maintenance.py
 
+  dev:events:
+    desc: Run Payone synthetic transaction generator
+    cmds:
+      - PYTHONPATH={{.PYTHONPATH}} uv run python infra/pipeline/event_generator.py
+
   smoke:intent:
     desc: Smoke-test IntentVector API contract without generation
     cmds:

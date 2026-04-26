@@ -2,6 +2,8 @@
 Payone density endpoints.
 """
 
+from typing import Any, cast
+
 from fastapi import APIRouter
 from fastapi import HTTPException
 
@@ -15,7 +17,9 @@ from spark.services.density import (
     compute_density_signal,
     get_all_merchants_density,
 )
-from spark.services.payone_ingest import ingest_payone_event as ingest_payone_event_service
+from spark.services.payone_ingest import (
+    ingest_payone_event as ingest_payone_event_service,
+)
 
 router = APIRouter(prefix="/api/payone", tags=["payone"])
 
@@ -23,13 +27,13 @@ router = APIRouter(prefix="/api/payone", tags=["payone"])
 @router.get("/density/{merchant_id}", response_model=PayoneDensityResponse)
 async def density_endpoint(merchant_id: str) -> PayoneDensityResponse:
     """Get current density signal for a merchant."""
-    return compute_density_signal(merchant_id)
+    return cast(Any, compute_density_signal(merchant_id))
 
 
 @router.get("/merchants", response_model=list[PayoneMerchantDensityResponse])
 async def merchants_endpoint() -> list[PayoneMerchantDensityResponse]:
     """List all merchants with current density signals."""
-    return get_all_merchants_density()
+    return cast(Any, get_all_merchants_density())
 
 
 @router.post("/ingest", response_model=PayoneIngestResponse)
