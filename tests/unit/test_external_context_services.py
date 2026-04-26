@@ -10,6 +10,8 @@ from spark.services import events, places, weather
 @pytest.mark.asyncio
 async def test_places_fallback_without_api_key(monkeypatch):
     monkeypatch.setattr(places, "GOOGLE_MAPS_API_KEY", "")
+    places._cache.clear()
+    places._cache_ts.clear()
     result = await places.get_places_context("STR-MITTE-047")
     assert result["source"] == "fallback_defaults"
     assert result["provider_available"] is False
