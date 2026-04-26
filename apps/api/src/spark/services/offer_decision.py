@@ -18,6 +18,8 @@ from spark.services.distance import distance_points, estimate_distance_m
 from spark.services.density import compute_density_signal
 
 MIN_SCORE_THRESHOLD = 30.0
+WALKING_SPEED_METERS_PER_MINUTE = 80.0
+PURCHASE_BUFFER_MINUTES = 5.0
 POST_WORKOUT_RECOVERY_CATEGORIES = {
     "healthy_cafe",
     "juice_bar",
@@ -103,6 +105,7 @@ def decide_offer(
             social_preference=social_preference,
             weather_need=weather_need,
             preference_scores=preference_scores,
+            transit_delay_minutes=transit_delay_minutes,
             activity_signal=activity_signal,
             activity_source=activity_source,
             activity_confidence=activity_confidence,
@@ -115,17 +118,21 @@ def decide_offer(
             merchant_decisions.append(merchant_decision)
 
     if not merchant_decisions:
+        recheck_minutes = _movement_recheck_minutes(
+            movement_mode=movement_mode, default_minutes=30
+        )
+        if transit_delay_minutes is not None:
+            recheck_minutes = max(3, transit_delay_minutes)
+
         return OfferDecisionResult(
             recommendation="DO_NOT_RECOMMEND",
             selected_merchant_id=None,
             selected_merchant_score=0.0,
-            recheck_in_minutes=_movement_recheck_minutes(
-                movement_mode=movement_mode, default_minutes=30
-            ),
+            recheck_in_minutes=recheck_minutes,
             trace=[
                 DecisionTraceStep(
                     code="all_candidates_filtered",
-                    reason="All candidate merchants failed conflict or anti-spam rules.",
+                    reason="All candidate merchants failed conflict, transit, or anti-spam rules.",
                 )
             ],
             candidate_scores=[],
@@ -204,22 +211,6 @@ def _check_hard_blocks(
             metadata={"movement_mode": movement_mode, "recheck_in_minutes": 10},
         )
 
-    if transit_delay_minutes is not None:
-        # Conservative deterministic gate for OCR transit window:
-        # require enough time to walk + purchase + return.
-        min_round_trip_minutes = 14
-        if transit_delay_minutes < min_round_trip_minutes:
-            return DecisionTraceStep(
-                code="transit_window_block",
-                reason="Transit delay window is too short for safe round-trip purchase.",
-                metadata={
-                    "transit_delay_minutes": transit_delay_minutes,
-                    "min_round_trip_minutes": min_round_trip_minutes,
-                    "must_return_by": must_return_by,
-                    "recheck_in_minutes": max(3, transit_delay_minutes),
-                },
-            )
-
     session_state = repo.get_session_state(
         session_id=session_id, now=now
     )
@@ -257,6 +248,7 @@ def _score_merchant_candidate(
     social_preference: str,
     weather_need: str,
     preference_scores: dict[str, float],
+    transit_delay_minutes: int | None,
     activity_signal: str,
     activity_source: str,
     activity_confidence: float,
@@ -265,6 +257,22 @@ def _score_merchant_candidate(
     current_dt: datetime,
     db_path: str | None,
 ) -> MerchantDecision | None:
+    distance_m = estimate_distance_m(
+        user_grid_cell=user_grid_cell,
+        merchant_grid_cell=merchant_grid_cell,
+        merchant_id=merchant_id,
+        merchant_lat=merchant_lat,
+        merchant_lon=merchant_lon,
+    )
+
+    if transit_delay_minutes is not None:
+        # Dynamic round-trip viability check:
+        # time = (distance / speed) * 2 [there and back] + interaction buffer
+        walking_time_one_way = distance_m / WALKING_SPEED_METERS_PER_MINUTE
+        required_time_min = (walking_time_one_way * 2) + PURCHASE_BUFFER_MINUTES
+        if required_time_min > transit_delay_minutes:
+            return None
+
     density = compute_density_signal(
         merchant_id, current_dt=current_dt, db_path=db_path
     )
@@ -295,13 +303,6 @@ def _score_merchant_candidate(
         )
     )
 
-    distance_m = estimate_distance_m(
-        user_grid_cell=user_grid_cell,
-        merchant_grid_cell=merchant_grid_cell,
-        merchant_id=merchant_id,
-        merchant_lat=merchant_lat,
-        merchant_lon=merchant_lon,
-    )
     distance_score = distance_points(distance_m)
     score += distance_score
     trace.append(
