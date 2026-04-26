@@ -24,8 +24,8 @@ def _seed_minimal_merchants(db_path: str) -> None:
             """
             INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
             VALUES
-                ('MERCHANT_001', 'Cafe One', 'cafe', 48.77, 9.18, 'A', ?),
-                ('MERCHANT_002', 'Bar Two', 'bar', 48.77, 9.18, 'B', ?)
+                ('MERCHANT_001', 'Cafe One', 'cafe', 48.1372, 11.5762, 'A', ?),
+                ('MERCHANT_002', 'Bar Two', 'bar', 48.1372, 11.5762, 'B', ?)
             """,
             (TEST_CELL, TEST_CELL),
         )

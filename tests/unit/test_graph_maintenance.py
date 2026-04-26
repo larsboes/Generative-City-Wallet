@@ -5,7 +5,7 @@ import importlib.util
 from pathlib import Path
 
 MODULE_PATH = (
-    Path(__file__).resolve().parents[2] / "scripts" / "ops" / "run_graph_maintenance.py"
+    Path(__file__).resolve().parents[2] / "infra" / "pipeline" / "graph-maintenance.py"
 )
 SPEC = importlib.util.spec_from_file_location("run_graph_maintenance", MODULE_PATH)
 assert SPEC and SPEC.loader
