@@ -17,7 +17,7 @@ from spark.models.common import (
 
 
 class IntentVector(BaseModel):
-    grid_cell: str = Field(description="e.g. STR-MITTE-047 — 50m quantization")
+    grid_cell: str = Field(description="Canonical H3 cell ID (for example, resolution 9).")
     movement_mode: MovementMode
     time_bucket: str = Field(description="e.g. tuesday_lunch, friday_evening")
     weather_need: WeatherNeed

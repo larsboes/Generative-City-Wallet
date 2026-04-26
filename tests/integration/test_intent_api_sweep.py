@@ -19,6 +19,7 @@ from spark.config import DB_PATH
 from spark.db.connection import get_connection
 from spark.main import app
 from spark.models.common import MovementMode, PriceTier, SocialPreference, WeatherNeed
+from spark.services.location_cells import is_valid_h3, latlon_to_h3
 
 
 SWEEP_HOUR_OF_WEEK = 117  # Friday 21:00, present in the synthetic 28-day seed.
@@ -37,12 +38,17 @@ def _ensure_seeded_database() -> None:
             """
             SELECT
               COUNT(*) AS merchant_count,
-              SUM(CASE WHEN id LIKE 'MERCHANT_%' THEN 1 ELSE 0 END) AS legacy_count
+              SUM(CASE WHEN id LIKE 'MERCHANT_%' THEN 1 ELSE 0 END) AS legacy_count,
+              SUM(CASE WHEN substr(grid_cell, 1, 3) IN ('STR', 'MUC') THEN 1 ELSE 0 END) AS legacy_cells
             FROM merchants
             """
         ).fetchone()
         merchant_count = int(row["merchant_count"]) if row else 0
         legacy_count = int(row["legacy_count"]) if row and row["legacy_count"] else 0
+        legacy_cells = int(row["legacy_cells"]) if row and row["legacy_cells"] else 0
+        bad_cells = conn.execute(
+            "SELECT id, grid_cell FROM merchants ORDER BY id"
+        ).fetchall()
     finally:
         conn.close()
 
@@ -53,6 +59,13 @@ def _ensure_seeded_database() -> None:
     if legacy_count > 0:
         raise AssertionError(
             "Legacy MERCHANT_* rows detected. Reset with scripts/ops/load_munich_demo.py."
+        )
+    if legacy_cells > 0:
+        raise AssertionError("Legacy non-H3 grid_cell prefixes detected in merchants.")
+    invalid_h3_merchants = [row["id"] for row in bad_cells if not is_valid_h3(row["grid_cell"])]
+    if invalid_h3_merchants:
+        raise AssertionError(
+            f"Non-H3 merchant grid_cell values found: {invalid_h3_merchants[:5]}"
         )
 
 
@@ -119,7 +132,7 @@ def _seeded_sweep_current_dt() -> str:
 def _intent(
     *,
     name: str,
-    grid_cell: str = "STR-MITTE-047",
+    grid_cell: str = latlon_to_h3(48.137154, 11.576124),
     movement_mode: str = MovementMode.BROWSING.value,
     time_bucket: str = "tuesday_lunch",
     weather_need: str = WeatherNeed.NEUTRAL.value,
@@ -321,9 +334,36 @@ def _summarize_result(name: str, status_code: int, data: dict[str, Any]) -> str:
     )
 
 
+def _debug_candidate_summary(data: dict[str, Any]) -> str:
+    """
+    Build a compact candidate diagnostics string from decision_trace.
+    """
+    decision_trace = data.get("decision_trace") or {}
+    candidate_scores = decision_trace.get("candidate_scores") or []
+    trace_items = decision_trace.get("trace") or []
+    first_trace = trace_items[0] if trace_items else {}
+    first_trace_code = first_trace.get("code", "-")
+
+    if not candidate_scores:
+        return f"candidate_debug trace={first_trace_code} candidates=none"
+
+    top = sorted(
+        candidate_scores,
+        key=lambda item: float(item.get("score", 0.0)),
+        reverse=True,
+    )[:3]
+    compact = ", ".join(
+        f"{item.get('merchant_id')}:{float(item.get('score', 0.0)):.1f}:{item.get('recommendation')}"
+        for item in top
+    )
+    return f"candidate_debug trace={first_trace_code} top3=[{compact}]"
+
+
 def test_intent_api_sweep(client, capsys):
     osm_merchants = _osm_merchants_for_sweep()
-    default_grid_cell = osm_merchants[0]["grid_cell"]
+    merchant_cells = sorted({m["grid_cell"] for m in osm_merchants if m["grid_cell"]})
+    if len(merchant_cells) < 2:
+        raise AssertionError("Expected seeded OSM merchants to span multiple H3 cells.")
     scenarios = FOCUSED_SCENARIOS + _enum_matrix_scenarios(
         [m["id"] for m in osm_merchants]
     )
@@ -337,9 +377,9 @@ def test_intent_api_sweep(client, capsys):
     print("-" * 120)
 
     failures: list[str] = []
-    for scenario in scenarios:
+    for idx, scenario in enumerate(scenarios):
         intent = scenario["intent"].copy()
-        intent["grid_cell"] = default_grid_cell
+        intent["grid_cell"] = merchant_cells[idx % len(merchant_cells)]
         intent["session_id"] = f"{intent['session_id']}-{run_id}"
         demo_overrides = {
             **(scenario.get("demo_overrides") or {}),
@@ -361,6 +401,9 @@ def test_intent_api_sweep(client, capsys):
             continue
 
         print(_summarize_result(scenario["name"], response.status_code, data))
+        if response.status_code == 200 and not data.get("offer_id"):
+            print(_debug_candidate_summary(data))
+        print("")
 
         if response.status_code != 200:
             failures.append(

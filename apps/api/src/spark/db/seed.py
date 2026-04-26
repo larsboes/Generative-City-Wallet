@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 from spark.db.connection import get_connection, init_database
+from spark.services.location_cells import latlon_to_h3
 
 # ── Base rate profiles (transactions per hour, indexed by hour 0-23) ───────────
 # These are "typical Friday" shapes — calibrated to Stuttgart venue sizes.
@@ -149,7 +150,6 @@ DEMO_MERCHANTS = [
         "lat": 48.7758,
         "lon": 9.1829,
         "address": "Königstraße 40, 70173 Stuttgart",
-        "grid_cell": "STR-MITTE-047",
     },
     {
         "id": "MERCHANT_002",
@@ -158,7 +158,6 @@ DEMO_MERCHANTS = [
         "lat": 48.7771,
         "lon": 9.1793,
         "address": "Marktplatz 6, 70173 Stuttgart",
-        "grid_cell": "STR-MITTE-047",
     },
     {
         "id": "MERCHANT_003",
@@ -167,7 +166,6 @@ DEMO_MERCHANTS = [
         "lat": 48.7748,
         "lon": 9.1795,
         "address": "Eberhardstraße 35, 70173 Stuttgart",
-        "grid_cell": "STR-MITTE-047",
     },
     {
         "id": "MERCHANT_004",
@@ -176,7 +174,6 @@ DEMO_MERCHANTS = [
         "lat": 48.7780,
         "lon": 9.1812,
         "address": "Dorotheenstraße 4, 70173 Stuttgart",
-        "grid_cell": "STR-MITTE-047",
     },
     {
         "id": "MERCHANT_005",
@@ -185,7 +182,6 @@ DEMO_MERCHANTS = [
         "lat": 48.7731,
         "lon": 9.1820,
         "address": "Hirschstraße 20, 70173 Stuttgart",
-        "grid_cell": "STR-MITTE-047",
     },
 ]
 
@@ -302,7 +298,7 @@ def seed_database(db_path: str | None = None) -> None:
                 m["lat"],
                 m["lon"],
                 m["address"],
-                m["grid_cell"],
+                latlon_to_h3(float(m["lat"]), float(m["lon"])),
             ),
         )
 

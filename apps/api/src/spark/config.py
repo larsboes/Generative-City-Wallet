@@ -118,3 +118,6 @@ GRAPH_PREF_DECAY_STALE_AFTER_DAYS = int(
 GRAPH_PREF_DECAY_DEFAULT_RATE = float(
     os.getenv("GRAPH_PREF_DECAY_DEFAULT_RATE", "0.01")
 )
+
+# ── Location Grid (H3) ─────────────────────────────────────────────────────────
+SPARK_H3_RESOLUTION = int(os.getenv("SPARK_H3_RESOLUTION", "9"))

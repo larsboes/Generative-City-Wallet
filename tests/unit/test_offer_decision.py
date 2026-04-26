@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 
 from spark.db.connection import get_connection, init_database
+from spark.services.location_cells import latlon_to_h3
 from spark.services.offer_decision import decide_offer
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 def _seed_minimal_merchants(db_path: str) -> None:
@@ -13,9 +16,11 @@ def _seed_minimal_merchants(db_path: str) -> None:
             """
             INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
             VALUES
-                ('MERCHANT_001', 'Cafe One', 'cafe', 48.77, 9.18, 'A', 'STR-MITTE-047'),
-                ('MERCHANT_002', 'Bar Two', 'bar', 48.77, 9.18, 'B', 'STR-MITTE-047')
+                ('MERCHANT_001', 'Cafe One', 'cafe', 48.77, 9.18, 'A', ?),
+                ('MERCHANT_002', 'Bar Two', 'bar', 48.77, 9.18, 'B', ?)
             """
+            ,
+            (TEST_CELL, TEST_CELL),
         )
         conn.commit()
     finally:
@@ -29,7 +34,7 @@ def test_decision_blocks_exercising(tmp_path):
 
     result = decide_offer(
         session_id="sess-1",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="exercising",
         social_preference="neutral",
         weather_need="neutral",
@@ -68,7 +73,7 @@ def test_decision_selects_highest_scoring_candidate(tmp_path, monkeypatch):
 
     result = decide_offer(
         session_id="sess-1",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="neutral",
         weather_need="warmth_seeking",
@@ -119,7 +124,7 @@ def test_decision_enforces_single_offer_guard(tmp_path, monkeypatch):
 
     result = decide_offer(
         session_id="sess-blocked",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="quiet",
         weather_need="warmth_seeking",
@@ -153,7 +158,7 @@ def test_post_workout_prefers_recovery_categories(tmp_path, monkeypatch):
 
     result = decide_offer(
         session_id="sess-post-workout",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="post_workout",
         social_preference="neutral",
         weather_need="neutral",
@@ -207,7 +212,7 @@ def test_post_workout_shortens_single_offer_guard_recheck(tmp_path, monkeypatch)
 
     result = decide_offer(
         session_id="sess-post-guard",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="post_workout",
         social_preference="quiet",
         weather_need="warmth_seeking",
@@ -242,7 +247,7 @@ def test_transit_delay_short_window_blocks_offer(tmp_path, monkeypatch):
 
     result = decide_offer(
         session_id="sess-transit-block",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="quiet",
         weather_need="neutral",
@@ -279,7 +284,7 @@ def test_transit_delay_14m_allows_regular_decision(tmp_path, monkeypatch):
 
     result = decide_offer(
         session_id="sess-transit-allow",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="quiet",
         weather_need="neutral",
@@ -301,8 +306,9 @@ def test_social_mid_occupancy_uses_active_coupon(tmp_path, monkeypatch):
         conn.execute(
             """
             INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
-            VALUES ('MERCHANT_005', 'Club Five', 'club', 48.77, 9.18, 'C', 'STR-MITTE-047')
-            """
+            VALUES ('MERCHANT_005', 'Club Five', 'club', 48.77, 9.18, 'C', ?)
+            """,
+            (TEST_CELL,),
         )
         conn.execute(
             """
@@ -321,7 +327,7 @@ def test_social_mid_occupancy_uses_active_coupon(tmp_path, monkeypatch):
 
     result = decide_offer(
         session_id="sess-social-coupon",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="social",
         weather_need="neutral",

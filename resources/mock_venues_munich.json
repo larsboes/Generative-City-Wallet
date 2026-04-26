@@ -2041,33 +2041,6 @@
     }
   },
   {
-    "merchant_id": "osm_node_10665513510",
-    "osm_type": "node",
-    "osm_id": "10665513510",
-    "name": "Allianz Sportcasino",
-    "category": "restaurant",
-    "lat": 48.1755764,
-    "lon": 11.6084735,
-    "city": "München",
-    "address": "Osterwaldstraße 144, 80805 München",
-    "website": "https://www.allianz-sportcasino.de/",
-    "phone": "+49 89 3614363",
-    "opening_hours": null,
-    "source": "openstreetmap",
-    "raw_tags": {
-      "addr:city": "München",
-      "addr:housenumber": "144",
-      "addr:postcode": "80805",
-      "addr:street": "Osterwaldstraße",
-      "amenity": "restaurant",
-      "cuisine": "bavarian",
-      "name": "Allianz Sportcasino",
-      "outdoor_seating": "yes",
-      "phone": "+49 89 3614363",
-      "website": "https://www.allianz-sportcasino.de/"
-    }
-  },
-  {
     "merchant_id": "osm_node_264004572",
     "osm_type": "node",
     "osm_id": "264004572",
@@ -3106,6 +3079,32 @@
       "payment:debit_cards": "yes",
       "wheelchair": "yes",
       "wheelchair:description": "Rollstuhlrampe vorhanden"
+    }
+  },
+  {
+    "merchant_id": "osm_node_3398575537",
+    "osm_type": "node",
+    "osm_id": "3398575537",
+    "name": "Ambar Bistro",
+    "category": "bar",
+    "lat": 48.1177646,
+    "lon": 11.5825252,
+    "city": "München",
+    "address": null,
+    "website": null,
+    "phone": "+498995426658",
+    "opening_hours": "Mo-Sa 18:00-23:00",
+    "source": "openstreetmap",
+    "raw_tags": {
+      "amenity": "bar",
+      "check_date": "2022-11-16",
+      "cuisine": "italian",
+      "indoor_seating": "yes",
+      "name": "Ambar Bistro",
+      "opening_hours": "Mo-Sa 18:00-23:00",
+      "outdoor_seating": "yes",
+      "phone": "+498995426658",
+      "wheelchair": "limited"
     }
   }
 ]

@@ -20,11 +20,13 @@ from typing import Any
 
 import httpx
 
+from spark.services.location_cells import latlon_to_h3
+
 
 def _payload(index: int) -> dict[str, Any]:
     return {
         "intent": {
-            "grid_cell": "STR-MITTE-047",
+            "grid_cell": latlon_to_h3(48.137154, 11.576124),
             "movement_mode": "browsing",
             "time_bucket": "tuesday_lunch",
             "weather_need": "warmth_seeking",

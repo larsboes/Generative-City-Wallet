@@ -86,6 +86,8 @@ def decide_offer(
             merchant_category=candidate.merchant_category,
             user_grid_cell=grid_cell,
             merchant_grid_cell=candidate.merchant_grid_cell,
+            merchant_lat=candidate.merchant_lat,
+            merchant_lon=candidate.merchant_lon,
             movement_mode=movement_mode,
             social_preference=social_preference,
             weather_need=weather_need,
@@ -233,6 +235,8 @@ def _score_merchant_candidate(
     merchant_category: str,
     user_grid_cell: str,
     merchant_grid_cell: str | None,
+    merchant_lat: float | None,
+    merchant_lon: float | None,
     movement_mode: str,
     social_preference: str,
     weather_need: str,
@@ -274,13 +278,15 @@ def _score_merchant_candidate(
         user_grid_cell=user_grid_cell,
         merchant_grid_cell=merchant_grid_cell,
         merchant_id=merchant_id,
+        merchant_lat=merchant_lat,
+        merchant_lon=merchant_lon,
     )
     distance_score = distance_points(distance_m)
     score += distance_score
     trace.append(
         DecisionTraceStep(
             code="distance_proxy",
-            reason="Estimated distance contributes deterministic distance points.",
+            reason="Estimated geographic distance contributes distance points.",
             score=distance_score,
             metadata={
                 "distance_m_estimated": round(distance_m, 1),

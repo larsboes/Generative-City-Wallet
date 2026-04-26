@@ -21,6 +21,9 @@ from spark.graph.repository import (
 )
 from spark.models.context import IntentVector
 from spark.services import composite as composite_module
+from spark.services.location_cells import latlon_to_h3
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 class StubRepository:
@@ -57,7 +60,7 @@ class StubRepository:
 @pytest.fixture
 def intent() -> IntentVector:
     return IntentVector(
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         time_bucket="tuesday_lunch",
         weather_need="warmth_seeking",
@@ -123,7 +126,7 @@ def test_offer_endpoint_works_without_neo4j(monkeypatch):
     with TestClient(app) as client:
         payload = {
             "intent": {
-                "grid_cell": "STR-MITTE-047",
+                "grid_cell": TEST_CELL,
                 "movement_mode": "browsing",
                 "time_bucket": "tuesday_lunch",
                 "weather_need": "warmth_seeking",

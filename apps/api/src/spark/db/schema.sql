@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS merchants (
     lat         REAL NOT NULL,
     lon         REAL NOT NULL,
     address     TEXT NOT NULL DEFAULT '',
-    grid_cell   TEXT NOT NULL DEFAULT 'STR-MITTE-047'
+    grid_cell   TEXT NOT NULL DEFAULT '891f8d7a49bffff'
 );
 
 -- ── Payone Transactions (hourly buckets) ──────────────────────────────────────

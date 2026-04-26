@@ -6,7 +6,18 @@ from pathlib import Path
 
 from spark.db.connection import get_connection, init_database
 from spark.repositories.venues import upsert_venues
+from spark.services.location_cells import is_valid_h3, latlon_to_h3
 from spark.services.transaction_generation import generate_history
+
+EXCLUDED_MERCHANT_NAME_TOKENS = {
+    "casino",
+    "sportcasino",
+    "sportsbet",
+    "sportsbook",
+    "bookmaker",
+    "betting",
+    "gambling",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,7 +75,15 @@ def main() -> None:
     # 2) Import Munich venues.
     with fixture_path.open(encoding="utf-8") as handle:
         venues = json.load(handle)
-    imported_venues = upsert_venues(None, venues)
+    filtered_venues = [
+        venue
+        for venue in venues
+        if not any(
+            token in str(venue.get("name") or "").lower()
+            for token in EXCLUDED_MERCHANT_NAME_TOKENS
+        )
+    ]
+    imported_venues = upsert_venues(None, filtered_venues)
 
     # 3) Generate venue transactions from imported venues.
     history = generate_history(
@@ -81,12 +100,29 @@ def main() -> None:
     # 4) Build legacy merchant/payone tables from venue pipeline data.
     conn = get_connection()
     try:
-        conn.execute(
+        venue_rows = conn.execute(
+            """
+            SELECT merchant_id, name, category, lat, lon, COALESCE(address, '') AS address
+            FROM venues
+            """
+        ).fetchall()
+        conn.executemany(
             """
             INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
-            SELECT v.merchant_id, v.name, v.category, v.lat, v.lon, COALESCE(v.address, ''), 'MUC-DEMO-001'
-            FROM venues v
-            """
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    row["merchant_id"],
+                    row["name"],
+                    row["category"],
+                    row["lat"],
+                    row["lon"],
+                    row["address"],
+                    latlon_to_h3(float(row["lat"]), float(row["lon"])),
+                )
+                for row in venue_rows
+            ],
         )
         conn.execute(
             """
@@ -120,8 +156,24 @@ def main() -> None:
                 "SELECT COUNT(*) FROM payone_transactions"
             ).fetchone()[0],
         }
+        legacy_patterns = conn.execute(
+            """
+            SELECT COUNT(*) AS c
+            FROM merchants
+            WHERE substr(grid_cell, 1, 3) IN ('STR', 'MUC')
+            """
+        ).fetchone()
+        invalid_h3 = conn.execute("SELECT grid_cell FROM merchants").fetchall()
+        invalid_cells = [
+            row["grid_cell"] for row in invalid_h3 if not is_valid_h3(row["grid_cell"])
+        ]
     finally:
         conn.close()
+
+    if legacy_patterns and int(legacy_patterns["c"]) > 0:
+        raise RuntimeError("Legacy non-H3 grid_cell prefixes detected after load_munich_demo run.")
+    if invalid_cells:
+        raise RuntimeError(f"Invalid H3 grid_cell values detected: {invalid_cells[:5]}")
 
     print("Munich demo data loaded.")
     print(f"fixture={fixture_path}")
