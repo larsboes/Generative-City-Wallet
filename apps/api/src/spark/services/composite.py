@@ -13,6 +13,9 @@ from spark.models.contracts import (
     ActiveCoupon,
     CompositeContextState,
     ConflictResolutionContext,
+    ConflictRecommendation,
+    DecisionTraceItem,
+    OfferDecisionTrace,
     EnvironmentContext,
     IntentVector,
     MerchantContext,
@@ -22,6 +25,7 @@ from spark.models.contracts import (
 )
 from spark.services.density import compute_density_signal
 from spark.services.conflict import resolve_conflict
+from spark.services.offer_decision import decide_offer
 from spark.services.weather import get_stuttgart_weather
 
 
@@ -157,11 +161,24 @@ async def build_composite_state(
     # Touch the user session in the graph (idempotent, fail-soft).
     await repo.ensure_session(intent.session_id)
 
-    # Auto-select merchant if not specified
+    # ── Preference scores from the user knowledge graph ─────────────────────
+    preference_scores = await _load_preference_scores(intent.session_id, repo)
+
+    # Auto-select merchant through deterministic decision pipeline.
+    decision = decide_offer(
+        session_id=intent.session_id,
+        grid_cell=intent.grid_cell,
+        movement_mode=intent.movement_mode.value,
+        social_preference=intent.social_preference.value,
+        weather_need=intent.weather_need.value,
+        preference_scores=preference_scores,
+        db_path=db_path,
+        now=now,
+    )
+    if merchant_id is None:
+        merchant_id = decision.selected_merchant_id
     if not merchant_id:
-        merchant_id = _select_best_merchant(intent.grid_cell, db_path)
-    if not merchant_id:
-        merchant_id = "MERCHANT_001"  # ultimate fallback
+        merchant_id = _select_best_merchant(intent.grid_cell, db_path) or "MERCHANT_001"
 
     # ── Merchant info ──────────────────────────────────────────────────────────
     merchant_info = _get_merchant_info(merchant_id, db_path)
@@ -243,9 +260,15 @@ async def build_composite_state(
         db_path=db_path,
     )
 
-    # ── Time bucket ────────────────────────────────────────────────────────────
-    if demo_overrides and demo_overrides.time_bucket:
-        pass
+    # Keep decision recommendation as the canonical gate. Conflict resolver
+    # provides framing vocab for LLM rails.
+    recommendation = decision.recommendation
+    if recommendation not in {
+        ConflictRecommendation.RECOMMEND.value,
+        ConflictRecommendation.RECOMMEND_WITH_FRAMING.value,
+        ConflictRecommendation.DO_NOT_RECOMMEND.value,
+    }:
+        recommendation = conflict.recommendation
 
     # ── Assemble ───────────────────────────────────────────────────────────────
     # Simple distance estimate (stub — in production, use Haversine from user grid cell)
@@ -257,9 +280,6 @@ async def build_composite_state(
         valid_window_min=coupon.get("valid_window_min", 20) if coupon else 20,
         config=coupon.get("config") if coupon else None,
     )
-
-    # ── Preference scores from the user knowledge graph ─────────────────────
-    preference_scores = await _load_preference_scores(intent.session_id, repo)
 
     return CompositeContextState(
         timestamp=now.isoformat(),
@@ -295,9 +315,25 @@ async def build_composite_state(
             vibe_signal=weather["vibe_signal"],
         ),
         conflict_resolution=ConflictResolutionContext(
-            recommendation=conflict.recommendation,  # type: ignore[reportArgumentType]
+            recommendation=recommendation,  # type: ignore[reportArgumentType]
             framing_band=conflict.framing_band,
             allowed_vocabulary=conflict.allowed_vocabulary,
             banned_vocabulary=conflict.banned_vocabulary,
+        ),
+        decision_trace=OfferDecisionTrace(
+            recommendation=recommendation,  # type: ignore[reportArgumentType]
+            selected_merchant_id=decision.selected_merchant_id,
+            selected_merchant_score=decision.selected_merchant_score,
+            recheck_in_minutes=decision.recheck_in_minutes,
+            candidate_scores=decision.candidate_scores,
+            trace=[
+                DecisionTraceItem(
+                    code=step.code,
+                    reason=step.reason,
+                    score=step.score,
+                    metadata=step.metadata,
+                )
+                for step in decision.trace
+            ],
         ),
     )

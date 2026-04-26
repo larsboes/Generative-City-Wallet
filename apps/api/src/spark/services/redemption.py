@@ -24,6 +24,7 @@ logger = logging.getLogger("spark.redemption")
 PREFERENCE_DELTA_REDEEM = 0.08
 PREFERENCE_DELTA_DECLINE = -0.03
 PREFERENCE_DELTA_EXPIRE = -0.01
+GRAPH_EVENT_RETENTION_DAYS = 45
 
 
 def generate_qr_payload(offer_id: str, session_id: str) -> str:
@@ -184,6 +185,13 @@ async def project_redemption_to_graph(
 
     Always returns. Never raises.
     """
+    if not _acquire_graph_event_idempotency_key(
+        event_type="redemption_confirmed",
+        session_id=session_id,
+        offer_id=offer_id,
+    ):
+        return
+
     repo = get_repository()
     if not repo.is_available():
         return
@@ -205,6 +213,7 @@ async def project_redemption_to_graph(
                 source_type="redemption",
                 decay_rate=GRAPH_PREF_DECAY_DEFAULT_RATE,
             )
+        _cleanup_graph_event_log()
     except Exception as exc:  # defensive — never fail the redemption flow
         logger.warning("Graph projection of redemption failed: %s", exc)
 
@@ -222,6 +231,13 @@ async def project_offer_outcome_to_graph(
     For DECLINED/EXPIRED we apply a small negative reinforcement on the
     associated category — the user signalled the offer wasn't compelling.
     """
+    if not _acquire_graph_event_idempotency_key(
+        event_type=f"offer_outcome_{status.lower()}",
+        session_id=session_id,
+        offer_id=offer_id,
+    ):
+        return
+
     repo = get_repository()
     if not repo.is_available():
         return
@@ -248,6 +264,7 @@ async def project_offer_outcome_to_graph(
                 source_type="expire",
                 decay_rate=GRAPH_PREF_DECAY_DEFAULT_RATE,
             )
+        _cleanup_graph_event_log()
     except Exception as exc:
         logger.warning("Graph projection of outcome failed: %s", exc)
 
@@ -307,3 +324,57 @@ def _compute_token(offer_id: str, session_id: str, expiry_unix: int) -> str:
     """HMAC token for QR payload."""
     msg = f"{offer_id}:{session_id}:{expiry_unix}"
     return hmac.new(HMAC_SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()[:16]
+
+
+def _acquire_graph_event_idempotency_key(
+    *,
+    event_type: str,
+    session_id: str | None,
+    offer_id: str | None,
+    db_path: str | None = None,
+) -> bool:
+    """Insert-once guard for graph side-effects."""
+    token = f"{event_type}:{session_id or '-'}:{offer_id or '-'}"
+    key = hashlib.sha256(token.encode()).hexdigest()
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS graph_event_log (
+                idempotency_key TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                session_id TEXT,
+                offer_id TEXT,
+                source TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        result = conn.execute(
+            """
+            INSERT OR IGNORE INTO graph_event_log (
+                idempotency_key, event_type, session_id, offer_id, source
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (key, event_type, session_id, offer_id, "kg_projection"),
+        )
+        conn.commit()
+        return result.rowcount > 0
+    finally:
+        conn.close()
+
+
+def _cleanup_graph_event_log(db_path: str | None = None) -> None:
+    """Best-effort retention cleanup for projection idempotency rows."""
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            """
+            DELETE FROM graph_event_log
+            WHERE datetime(created_at) < datetime('now', ?)
+            """,
+            (f"-{GRAPH_EVENT_RETENTION_DAYS} days",),
+        )
+        conn.commit()
+    finally:
+        conn.close()

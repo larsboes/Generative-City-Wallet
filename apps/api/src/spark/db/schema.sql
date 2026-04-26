@@ -111,6 +111,20 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     FOREIGN KEY (offer_id) REFERENCES offer_audit_log(offer_id)
 );
 
+-- ── Graph Projection Idempotency / Retention ─────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS graph_event_log (
+    idempotency_key      TEXT PRIMARY KEY,
+    event_type           TEXT NOT NULL,
+    session_id           TEXT,
+    offer_id             TEXT,
+    source               TEXT NOT NULL,
+    created_at           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_graph_event_log_created_at
+    ON graph_event_log(created_at);
+
 -- ── Venue Occupancy (Finn's transaction-based demand system) ──────────────────
 
 CREATE TABLE IF NOT EXISTS venues (
