@@ -95,6 +95,66 @@ npm run typecheck
 npm run test
 ```
 
+### Docker run instructions (backend stack)
+
+Run from repo root:
+
+```bash
+# 1) Build and start services in background
+docker compose up -d --build
+
+# 2) Follow backend logs (optional)
+docker compose logs -f backend
+
+# 3) Stop stack
+docker compose down
+```
+
+Services exposed by `docker-compose.yml`:
+
+- backend API: `http://localhost:8000`
+- Redis: `localhost:6379`
+- Neo4j Browser: `http://localhost:7474`
+- Neo4j Bolt: `localhost:7687`
+- Fluent Bit HTTP input: `localhost:8889` (container `8888`)
+- Fluent Bit metrics/API: `http://localhost:2021` (container `2020`)
+
+If `8889`/`2021` are already in use, override host ports at startup:
+
+```bash
+FLUENTBIT_HTTP_PORT=8890 FLUENTBIT_METRICS_PORT=2022 docker compose up -d --build
+```
+
+Reset everything including named volumes:
+
+```bash
+docker compose down -v
+```
+
+Graph behavior in Docker:
+
+- full stack includes Neo4j by default (`spark-neo4j` service)
+- backend waits for Neo4j health before startup
+- backend graph client is wired to compose DNS (`bolt://neo4j:7687`)
+
+### Localhost services and credentials
+
+After `docker compose up -d --build`, use these local endpoints:
+
+| Service | URL / Address | Default credentials |
+|---|---|---|
+| FastAPI base | `http://localhost:8000` | none |
+| Swagger UI | `http://localhost:8000/docs` | none |
+| ReDoc | `http://localhost:8000/redoc` | none |
+| OpenAPI JSON | `http://localhost:8000/openapi.json` | none |
+| API health | `http://localhost:8000/api/health` | none |
+| Graph health | `http://localhost:8000/api/graph/health` | none |
+| Neo4j Browser | `http://localhost:7474` | user `neo4j`, password `spark-neo4j-dev` |
+| Neo4j Bolt | `localhost:7687` | user `neo4j`, password `spark-neo4j-dev` |
+| Redis | `localhost:6379` | none (no auth in local compose) |
+| Fluent Bit HTTP input | `http://localhost:8889` | none |
+| Fluent Bit metrics/API | `http://localhost:2021` | none |
+
 ### Submission data still required from final demo run
 
 - `UNKNOWN_YET`: Final Stuttgart merchant list used during demo.

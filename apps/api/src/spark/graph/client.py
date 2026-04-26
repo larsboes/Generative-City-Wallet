@@ -155,6 +155,8 @@ async def safe_execute(
         elapsed_ms = (time.perf_counter() - start) * 1000.0
         _metrics["total_latency_ms"] += elapsed_ms
         _metrics["last_success_at"] = time.time()
+        # Clear stale error once a graph op succeeds.
+        _metrics["last_error"] = None
         return result
     except Exception as exc:
         _metrics["queries_failed"] += 1

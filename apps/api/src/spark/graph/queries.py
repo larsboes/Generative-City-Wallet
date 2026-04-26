@@ -224,8 +224,10 @@ RETURN size(users) AS sessions_deleted
 """
 
 CLEANUP_OLD_PREFERENCE_EDGES = """
-MATCH (:UserSession)-[p:PREFERS|AVOIDS]->(:MerchantCategory|:Attribute)
-WHERE coalesce(p.last_reinforced_unix, p.created_at_unix, 0) < $cutoff_unix
+MATCH (:UserSession)-[p]->(target)
+WHERE type(p) IN ['PREFERS', 'AVOIDS']
+  AND any(lbl IN labels(target) WHERE lbl IN ['MerchantCategory', 'Attribute'])
+  AND coalesce(p.last_reinforced_unix, p.created_at_unix, 0) < $cutoff_unix
 WITH collect(p) AS edges
 FOREACH (e IN edges | DELETE e)
 RETURN size(edges) AS preference_edges_deleted

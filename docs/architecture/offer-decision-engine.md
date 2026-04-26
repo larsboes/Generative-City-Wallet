@@ -25,6 +25,7 @@ flowchart TD
 
 - Exactly one unresolved offer per session at a time.
 - `movement_mode=exercising` always blocks offer generation.
+- `movement_mode=post_workout` applies deterministic recovery boosts and nightlife suppression.
 - If no candidate reaches threshold, return `DO_NOT_RECOMMEND`.
 - LLM does not change selection outcome.
 
@@ -40,6 +41,11 @@ Current hard-block checks:
 
 When blocked, result includes `recheck_in_minutes` and trace metadata.
 
+Movement-aware retry behavior:
+
+- `post_workout` shortens retry windows for negative decisions to keep recommendations aligned with short-lived recovery context.
+- unresolved-offer guard recheck is movement-aware (`post_workout` rechecks sooner than default browsing flow).
+
 ---
 
 ## Scoring model
@@ -50,6 +56,9 @@ Current weighted components:
 - distance proxy: `0..25` (currently fixed proxy value in backend)
 - preference match: `0..20`
 - weather alignment: `0..10`
+- movement-category adjustment:
+  - `post_workout` recovery boost: `+18`
+  - `post_workout` nightlife suppression: `-14`
 
 Minimum threshold:
 
@@ -89,7 +98,12 @@ This is stored in `CompositeContextState.decision_trace`.
     {"code": "density_drop", "score": 28.0},
     {"code": "distance_proxy", "score": 25.0},
     {"code": "preference_match", "score": 9.5},
-    {"code": "weather_alignment", "score": 5.0}
+    {"code": "weather_alignment", "score": 5.0},
+    {
+      "code": "movement_category_adjustment",
+      "score": 18.0,
+      "metadata": {"movement_mode": "post_workout", "merchant_category": "cafe"}
+    }
   ]
 }
 ```
@@ -112,6 +126,8 @@ No exception path should be required for expected negative decisions.
   - exercising hard block
   - candidate ranking and selection
   - single-offer guard behavior
+  - post-workout recovery preference boost
+  - post-workout movement-aware recheck timing
 
 ---
 
@@ -141,9 +157,12 @@ Example no-offer response shape when blocked:
 
 1. Check unresolved offer guard:
    - verify session has rows in `offer_audit_log` with `status in ('SENT','ACCEPTED')`.
+   - check movement-specific `recheck_in_minutes` in decision response.
 2. Check candidate pool:
    - verify merchants in session `grid_cell`.
 3. Check threshold misses:
    - inspect `decision_trace.candidate_scores`.
 4. Check conflict filtering:
    - inspect `decision_trace.trace` entries and conflict reason.
+5. Check movement rollout behavior:
+   - inspect `decision_trace.trace` for `movement_category_adjustment` and associated metadata.

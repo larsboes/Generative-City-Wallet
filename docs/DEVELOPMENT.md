@@ -16,7 +16,7 @@ For architecture and data flows, see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 
 1. **Mobile and dashboard** must take boundary types from **`@spark/shared`**, not by copying shapes into each app.
 2. **Python** must not import `packages/shared`; parity is enforced by **review** + **`scripts/dev/check_contract_symbols.py`** in CI (extend the symbol list when you add cross-boundary types).
-3. **Known gap:** `CompositeContextState` exists in **`spark.models.contracts`** but is not yet exported from **`packages/shared/src/contracts.ts`**. Add it to shared when the mobile/dashboard surfaces need it, then add the name to the guard script list.
+3. Keep `packages/shared/src/contracts.ts` aligned with `apps/api/src/spark/models/contracts.py` for all cross-boundary types consumed by mobile/dashboard.
 
 ---
 
@@ -71,8 +71,36 @@ For architecture and data flows, see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 
 ### Docker
 - **`Dockerfile`:** Python 3.12 slim, `uv sync --frozen`, copies `apps/api/src/spark`, sets `PYTHONPATH`, runs uvicorn `spark.main:app` on `8000`.
-- **`docker-compose.yml`:** single `backend` service, `.env`, mounts `./data` → `/app/data` (SQLite + optional Neo4j host data).
-  *Note: Neo4j is **not** defined in compose in-repo; run it separately or extend compose.*
+- **`docker-compose.yml`:** `backend` + `redis` + `fluentbit` + `neo4j` services, `.env` for backend, mounts `./data` → `/app/data`.
+- Backend graph env is pinned for container networking (`NEO4J_URI=bolt://neo4j:7687`) and waits for Neo4j health (`depends_on: condition: service_healthy`).
+
+Run the Docker stack from repo root:
+
+```bash
+docker compose up -d --build
+docker compose logs -f backend
+docker compose down
+```
+
+Default Fluent Bit host bindings are `8889 -> 8888` and `2021 -> 2020`.
+If those host ports are occupied, override them at startup:
+
+```bash
+FLUENTBIT_HTTP_PORT=8890 FLUENTBIT_METRICS_PORT=2022 docker compose up -d --build
+```
+
+Verify full system (including graph):
+
+```bash
+curl -s http://localhost:8000/api/health | jq .graph
+curl -s http://localhost:8000/api/graph/health | jq .
+```
+
+Full reset (including volumes):
+
+```bash
+docker compose down -v
+```
 
 ### CI Workflow (`.github/workflows/ci.yml`)
 Runs, in order: Python ruff + format + pyright → **Node** `npm ci` → **`npm run typecheck`** → **`npm run test:contracts`** → pytest (test job) → Docker.
@@ -94,9 +122,73 @@ Keep **root `package-lock.json`** committed so `npm ci` is reproducible.
   - **Tracking note:** address in a dedicated typing pass.
 
 - **Contract parity drift (Python vs TS)**
-  - `CompositeContextState.decision_trace` now exists in Python contracts.
-  - Mirror this field in `packages/shared/src/contracts.ts` before mobile/dashboard consumes it.
+  - Enforce parity through `scripts/dev/check_contract_symbols.py` and review when adding new boundary contracts.
 
 - **Planning-to-implementation deltas**
   - Advanced signals from planning (`OCR transit scan`, `wallet seed`, `Spark Wave`) are still mostly design-stage.
   - Track these as explicit implementation epics instead of implicit planning carry-over.
+
+---
+
+## Release Note: Post-workout deterministic rollout
+
+The deterministic decision engine now includes movement-aware scoring and retry behavior for `post_workout`:
+
+- recovery-category boost (e.g. `cafe`, `bakery`, `juice_bar`, `smoothie_bar`, `healthy_cafe`)
+- nightlife suppression (`bar`, `club`, `nightclub`)
+- shorter `recheck_in_minutes` for `DO_NOT_RECOMMEND` in post-workout context
+
+### Manual verification (API)
+
+Assumes API is running on `http://localhost:8000`.
+
+1) **Positive path (post-workout should favor recovery categories)**
+
+```bash
+curl -s -X POST http://localhost:8000/api/offers/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent": {
+      "grid_cell": "STR-MITTE-047",
+      "movement_mode": "post_workout",
+      "time_bucket": "sunday_morning_coffee",
+      "weather_need": "neutral",
+      "social_preference": "quiet",
+      "price_tier": "mid",
+      "recent_categories": ["healthy_cafe"],
+      "dwell_signal": true,
+      "battery_low": false,
+      "session_id": "verify-post-workout-001"
+    }
+  }'
+```
+
+Expected:
+- `recommendation` is `RECOMMEND` or `RECOMMEND_WITH_FRAMING`
+- `decision_trace.trace` includes `movement_category_adjustment`
+
+2) **Blocked path (`exercising` still hard-blocks)**
+
+```bash
+curl -s -X POST http://localhost:8000/api/offers/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent": {
+      "grid_cell": "STR-MITTE-047",
+      "movement_mode": "exercising",
+      "time_bucket": "sunday_morning_coffee",
+      "weather_need": "neutral",
+      "social_preference": "quiet",
+      "price_tier": "mid",
+      "recent_categories": [],
+      "dwell_signal": false,
+      "battery_low": false,
+      "session_id": "verify-exercising-block-001"
+    }
+  }'
+```
+
+Expected:
+- `recommendation` is `DO_NOT_RECOMMEND`
+- top trace code is `movement_hard_block`
+- response includes `recheck_in_minutes`

@@ -6,6 +6,17 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # Always wire backend graph client to the compose Neo4j service.
+      NEO4J_ENABLED: "${NEO4J_ENABLED:-true}"
+      NEO4J_URI: "bolt://neo4j:7687"
+      NEO4J_USER: "${NEO4J_USER:-neo4j}"
+      NEO4J_PASSWORD: "${NEO4J_PASSWORD:-spark-neo4j-dev}"
+      NEO4J_DATABASE: "${NEO4J_DATABASE:-neo4j}"
+      NEO4J_STARTUP_TIMEOUT_S: "${NEO4J_STARTUP_TIMEOUT_S:-10.0}"
+    depends_on:
+      neo4j:
+        condition: service_healthy
     volumes:
       - ./data:/app/data
     restart: unless-stopped
@@ -14,8 +25,8 @@ services:
     image: fluent/fluent-bit:4.2.2
     container_name: spark-fluentbit
     ports:
-      - "8888:8888"
-      - "2020:2020"
+      - "${FLUENTBIT_HTTP_PORT:-8889}:8888"
+      - "${FLUENTBIT_METRICS_PORT:-2021}:2020"
     volumes:
       - ./src/pipeline/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
       - ./src/pipeline/scripts:/fluent-bit/scripts:ro
@@ -29,5 +40,24 @@ services:
       - "6379:6379"
     restart: unless-stopped
 
+  neo4j:
+    image: neo4j:5
+    container_name: spark-neo4j
+    environment:
+      NEO4J_AUTH: "${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-spark-neo4j-dev}"
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u ${NEO4J_USER:-neo4j} -p ${NEO4J_PASSWORD:-spark-neo4j-dev} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
 volumes:
   fluentbit-data:
+  neo4j-data:

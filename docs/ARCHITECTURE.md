@@ -97,3 +97,4 @@ When behavior is unexpected, check in this order:
 2. `POST /api/offers/generate` rejection metadata (`decision_trace`, `graph_decision`)
 3. Rails output in `offer_audit_log.rails_audit`
 4. Graph health and session preference state (`/api/graph/health`, `/api/graph/sessions/{id}/preferences`)
+5. Movement rollout traces in decision metadata (`movement_hard_block`, `movement_category_adjustment`, movement-aware `recheck_in_minutes`)
