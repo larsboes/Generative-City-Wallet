@@ -12,6 +12,7 @@
     "lint": "npm run typecheck"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.82",
     "@spark/shared": "*",
     "expo": "~54.0.33",
     "expo-secure-store": "~14.2.3",

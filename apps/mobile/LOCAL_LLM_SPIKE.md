@@ -10,8 +10,9 @@ keeping current backend integration unchanged.
   - optional `query_preference_graph` stub (not executed yet).
 - `src/local-llm/intentMapper.ts`
   - deterministic map from tool arguments to `IntentVector`.
-- `src/local-llm/nativeBridge.ts`
-  - bridge contract for `NativeModules.SparkLocalLLM.runIntentInference`.
+- `src/local-llm/inferenceBridge.ts`
+  - Fully implements pure PWA/WebGPU local inference via `@mlc-ai/web-llm`.
+  - Maintains bridge fallback for `NativeModules.SparkLocalLLM.runIntentInference` on iOS/Android.
 
 ## Native work expected after `expo prebuild`
 
