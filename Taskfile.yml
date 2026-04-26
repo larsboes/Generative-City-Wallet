@@ -25,6 +25,11 @@ tasks:
     cmds:
       - PYTHONPATH={{.PYTHONPATH}} uv run python -m spark.db.seed
 
+  maintenance:graph:
+    desc: Run graph cleanup and preference decay
+    cmds:
+      - PYTHONPATH={{.PYTHONPATH}} uv run python infra/pipeline/graph-maintenance.py
+
   smoke:intent:
     desc: Smoke-test IntentVector API contract without generation
     cmds:
