@@ -46,8 +46,8 @@ Built for the **DSV Gruppe Hackathon** — HackNation 2025.
 flowchart LR
     device(📱 Device Context) -. "No PII" .-> server
     density(📊 Payone Density) --> server(⚙️ Spark Python Backend)
-    server -- "Deterministic Safety Gates" --> graph[("🌐 Neo4j Graph")]
-    graph -- Preference Weights --> server
+    server -- "Deterministic Safety Gates" --> kg[("🌐 Neo4j Graph")]
+    kg -- Preference Weights --> server
     server -- "Abstract Vector" --> llm(🧠 Gemini Flash)
     llm -- "GenUI Output" --> device
 ```
