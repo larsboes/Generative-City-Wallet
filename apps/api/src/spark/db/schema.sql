@@ -251,3 +251,17 @@ CREATE INDEX IF NOT EXISTS idx_venue_txn_merchant_category_timestamp
     ON venue_transactions(merchant_id, category, timestamp);
 CREATE INDEX IF NOT EXISTS idx_venue_txn_merchant_hour_of_week
     ON venue_transactions(merchant_id, hour_of_week, timestamp);
+
+-- ── Identity Links (cross-session continuity) ───────────────────────────────
+
+CREATE TABLE IF NOT EXISTS identity_links (
+    continuity_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    linked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (continuity_id, session_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_identity_links_continuity
+    ON identity_links(continuity_id);
+CREATE INDEX IF NOT EXISTS idx_identity_links_session
+    ON identity_links(session_id);

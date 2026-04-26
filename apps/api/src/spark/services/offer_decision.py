@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
+from spark.domain.interfaces import IOfferDecisionRepository
 from spark.models.decision import (
     DecisionTraceStep,
     MerchantDecision,
@@ -20,24 +21,17 @@ from spark.repositories.offer_decision import OfferDecisionRepository
 from spark.services.conflict import resolve_conflict
 from spark.services.distance import distance_points, estimate_distance_m
 from spark.services.density import compute_density_signal
+from spark.services.scoring_rules import (
+    weather_alignment,
+    movement_category_adjustment,
+    movement_recheck_minutes,
+    activity_alignment_points,
+    confidence_band,
+)
 
 MIN_SCORE_THRESHOLD = 30.0
 WALKING_SPEED_METERS_PER_MINUTE = 80.0
 PURCHASE_BUFFER_MINUTES = 5.0
-POST_WORKOUT_RECOVERY_CATEGORIES = {
-    "healthy_cafe",
-    "juice_bar",
-    "smoothie_bar",
-    "cafe",
-    "bakery",
-}
-POST_WORKOUT_SUPPRESSED_CATEGORIES = {"bar", "club", "nightclub"}
-CYCLING_RECOVERY_CATEGORIES = {"juice_bar", "smoothie_bar", "healthy_cafe", "cafe"}
-CYCLING_SUPPRESSED_CATEGORIES = {"club", "nightclub"}
-TRANSIT_WAITING_FAST_CATEGORIES = {"cafe", "bakery", "juice_bar"}
-TRANSIT_WAITING_SUPPRESSED_CATEGORIES = {"club", "nightclub", "restaurant"}
-COMMUTING_FAST_CATEGORIES = {"cafe", "bakery", "juice_bar", "healthy_cafe"}
-COMMUTING_SUPPRESSED_CATEGORIES = {"restaurant", "bar", "club", "nightclub"}
 
 
 def decide_offer(
@@ -57,9 +51,11 @@ def decide_offer(
     place_busyness: float | None = None,
     db_path: str | None = None,
     now: datetime | None = None,
+    repo: IOfferDecisionRepository | None = None,
 ) -> OfferDecisionResult:
     current_dt = now or datetime.now()
-    repo = OfferDecisionRepository(db_path)
+    if repo is None:
+        repo = OfferDecisionRepository(db_path)
     hard_block = _check_hard_blocks(
         session_id=session_id,
         movement_mode=movement_mode,
@@ -122,7 +118,7 @@ def decide_offer(
             merchant_decisions.append(merchant_decision)
 
     if not merchant_decisions:
-        recheck_minutes = _movement_recheck_minutes(
+        recheck_minutes = movement_recheck_minutes(
             movement_mode=movement_mode, default_minutes=30
         )
         if transit_delay_minutes is not None:
@@ -160,7 +156,7 @@ def decide_offer(
             recommendation="DO_NOT_RECOMMEND",
             selected_merchant_id=None,
             selected_merchant_score=round(best.score, 3),
-            recheck_in_minutes=_movement_recheck_minutes(
+            recheck_in_minutes=movement_recheck_minutes(
                 movement_mode=movement_mode, default_minutes=30
             ),
             trace=[
@@ -184,7 +180,7 @@ def decide_offer(
     recheck_minutes = (
         None
         if final_recommendation != "DO_NOT_RECOMMEND"
-        else _movement_recheck_minutes(movement_mode=movement_mode, default_minutes=30)
+        else movement_recheck_minutes(movement_mode=movement_mode, default_minutes=30)
     )
     return OfferDecisionResult(
         recommendation=final_recommendation,
@@ -206,7 +202,7 @@ def _check_hard_blocks(
     transit_delay_minutes: int | None,
     must_return_by: str | None,
     now: datetime,
-    repo: OfferDecisionRepository,
+    repo: IOfferDecisionRepository,
 ) -> DecisionTraceStep | None:
     if movement_mode == "exercising":
         return DecisionTraceStep(
@@ -217,7 +213,7 @@ def _check_hard_blocks(
 
     session_state = repo.get_session_state(session_id=session_id, now=now)
     if session_state.unresolved_offer_id:
-        recheck_in_minutes = _movement_recheck_minutes(
+        recheck_in_minutes = movement_recheck_minutes(
             movement_mode=movement_mode, default_minutes=20
         )
         return DecisionTraceStep(
@@ -332,21 +328,21 @@ def _score_merchant_candidate(
         )
     )
 
-    weather_alignment = _weather_alignment(
+    weather_align = weather_alignment(
         weather_need=weather_need, merchant_category=merchant_category
     )
-    weather_points = weather_alignment * 10.0
+    weather_points = weather_align * 10.0
     score += weather_points
     trace.append(
         DecisionTraceStep(
             code="weather_alignment",
             reason="Weather-category alignment contribution.",
             score=round(weather_points, 3),
-            metadata={"alignment": round(weather_alignment, 3)},
+            metadata={"alignment": round(weather_align, 3)},
         )
     )
 
-    movement_points, movement_reason = _movement_category_adjustment(
+    movement_points, movement_reason = movement_category_adjustment(
         movement_mode=movement_mode,
         merchant_category=merchant_category,
     )
@@ -364,7 +360,7 @@ def _score_merchant_candidate(
             )
         )
 
-    activity_points = _activity_alignment_points(
+    activity_points = activity_alignment_points(
         activity_signal=activity_signal,
         activity_source=activity_source,
         activity_confidence=activity_confidence,
@@ -384,7 +380,7 @@ def _score_merchant_candidate(
                         max(0.0, min(1.0, activity_confidence)), 3
                     ),
                     "source_present": activity_source != "none",
-                    "confidence_band": _confidence_band(activity_confidence),
+                    "confidence_band": confidence_band(activity_confidence),
                 },
             )
         )
@@ -462,115 +458,3 @@ def _active_coupon_for_conflict(
         "max_discount_pct": config.get("discount_pct", 0),
         "valid_window_min": config.get("duration_minutes", 20),
     }
-
-
-def _weather_alignment(*, weather_need: str, merchant_category: str) -> float:
-    warm_categories = {"cafe", "bakery"}
-    cool_categories = {"smoothie_bar", "juice_bar", "healthy_cafe"}
-    nightlife_categories = {"bar", "club", "nightclub"}
-    if weather_need == "warmth_seeking":
-        return 1.0 if merchant_category in warm_categories else 0.4
-    if weather_need == "refreshment_seeking":
-        return 1.0 if merchant_category in cool_categories else 0.4
-    if weather_need == "shelter_seeking":
-        return (
-            0.9 if merchant_category in warm_categories | nightlife_categories else 0.5
-        )
-    return 0.5
-
-
-def _movement_category_adjustment(
-    *, movement_mode: str, merchant_category: str
-) -> tuple[float, str]:
-    """
-    Deterministic movement-aware weighting.
-
-    Post-workout users should see recovery-oriented options and avoid nightlife.
-    """
-    if movement_mode == "post_workout":
-        if merchant_category in POST_WORKOUT_RECOVERY_CATEGORIES:
-            return 18.0, "Post-workout recovery category boost applied."
-        if merchant_category in POST_WORKOUT_SUPPRESSED_CATEGORIES:
-            return -14.0, "Post-workout nightlife suppression applied."
-        return 0.0, "Post-workout neutral category."
-
-    if movement_mode == "cycling":
-        if merchant_category in CYCLING_RECOVERY_CATEGORIES:
-            return 10.0, "Cycling recovery category boost applied."
-        if merchant_category in CYCLING_SUPPRESSED_CATEGORIES:
-            return -8.0, "Cycling nightlife suppression applied."
-        return 0.0, "Cycling neutral category."
-
-    if movement_mode == "transit_waiting":
-        if merchant_category in TRANSIT_WAITING_FAST_CATEGORIES:
-            return 8.0, "Transit-waiting quick-stop category boost applied."
-        if merchant_category in TRANSIT_WAITING_SUPPRESSED_CATEGORIES:
-            return -10.0, "Transit-waiting long-visit category suppression applied."
-        return 0.0, "Transit-waiting neutral category."
-
-    if movement_mode == "commuting":
-        if merchant_category in COMMUTING_FAST_CATEGORIES:
-            return 6.0, "Commuting quick-stop category boost applied."
-        if merchant_category in COMMUTING_SUPPRESSED_CATEGORIES:
-            return -12.0, "Commuting long-visit category suppression applied."
-        return 0.0, "Commuting neutral category."
-
-    return 0.0, "No movement-specific category adjustment."
-
-
-def _movement_recheck_minutes(*, movement_mode: str, default_minutes: int) -> int:
-    """
-    Adapt retry cadence to movement transitions.
-
-    Post-workout windows are short-lived, so recheck sooner than default.
-    """
-    if movement_mode == "post_workout":
-        return max(5, min(default_minutes, 12))
-    if movement_mode == "cycling":
-        return max(7, min(default_minutes, 15))
-    if movement_mode == "transit_waiting":
-        return max(3, min(default_minutes, 8))
-    if movement_mode == "commuting":
-        return max(4, min(default_minutes, 9))
-    return default_minutes
-
-
-def _activity_alignment_points(
-    *,
-    activity_signal: str,
-    activity_source: str,
-    activity_confidence: float,
-    merchant_category: str,
-) -> float:
-    confidence = max(0.0, min(1.0, activity_confidence))
-    recovery_categories = {
-        "healthy_cafe",
-        "juice_bar",
-        "smoothie_bar",
-        "cafe",
-        "bakery",
-    }
-    if activity_signal in {"active_recently", "post_workout"}:
-        if merchant_category in recovery_categories:
-            return round(6.0 * confidence, 3)
-        if merchant_category in {"bar", "club", "nightclub"}:
-            return round(-4.0 * confidence, 3)
-    if activity_signal == "resting" and activity_source in {
-        "strava",
-        "native_health",
-        "hybrid",
-    }:
-        if merchant_category in {"cafe", "bakery"}:
-            return round(2.0 * confidence, 3)
-    return 0.0
-
-
-def _confidence_band(confidence: float) -> str:
-    bounded = max(0.0, min(1.0, confidence))
-    if bounded >= 0.8:
-        return "high"
-    if bounded >= 0.5:
-        return "medium"
-    if bounded > 0.0:
-        return "low"
-    return "none"

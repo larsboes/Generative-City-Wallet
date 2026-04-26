@@ -7,7 +7,7 @@ from typing import Any, cast
 from fastapi import APIRouter
 from fastapi import HTTPException
 
-from spark.models.transactions import (
+from spark.models.demand import (
     PayoneDensityResponse,
     PayoneIngestRequest,
     PayoneIngestResponse,
@@ -21,7 +21,7 @@ from spark.services.payone_ingest import (
     ingest_payone_event as ingest_payone_event_service,
 )
 
-router = APIRouter(prefix="/api/payone", tags=["payone"])
+router = APIRouter(prefix="/api/v1/payone", tags=["payone"])
 
 
 @router.get("/density/{merchant_id}", response_model=PayoneDensityResponse)

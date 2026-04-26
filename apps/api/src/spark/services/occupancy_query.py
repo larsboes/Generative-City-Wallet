@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from spark.db.connection import get_connection
 from spark.services.contracts import OccupancyMerchantData, OccupancyQueryData
-from spark.services.signals import compute_demand_context
+from spark.services.demand import compute_demand_context
 from spark.services.venues import get_venue, list_venues
 
 

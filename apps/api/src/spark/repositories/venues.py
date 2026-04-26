@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from spark.db.connection import get_connection, init_database
+from spark.domain.interfaces import IVenueRepository
 
 
 def upsert_venue(conn: sqlite3.Connection, venue: dict[str, Any]) -> None:
@@ -96,3 +97,32 @@ def list_venue_rows(
         f"SELECT * FROM venues {where} ORDER BY name LIMIT ?",
         (*params, bounded_limit),
     ).fetchall()
+
+
+class VenueRepository(IVenueRepository):
+    """Concrete IVenueRepository backed by SQLite, wrapping existing functions."""
+
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = db_path
+
+    def get_venue_row(self, merchant_id: str) -> sqlite3.Row | None:
+        conn = get_connection(self.db_path)
+        try:
+            return get_venue_row(conn, merchant_id)
+        finally:
+            conn.close()
+
+    def list_venue_rows(
+        self,
+        *,
+        categories: list[str] | None = None,
+        city: str | None = None,
+        query_limit: int = 100,
+    ) -> list[sqlite3.Row]:
+        conn = get_connection(self.db_path)
+        try:
+            return list_venue_rows(
+                conn, categories=categories, city=city, query_limit=query_limit
+            )
+        finally:
+            conn.close()

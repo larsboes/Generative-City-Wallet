@@ -8,7 +8,7 @@ from spark.main import app
 def test_identity_continuity_reset_rotate_endpoint():
     with TestClient(app) as client:
         response = client.post(
-            "/api/identity/continuity/reset",
+            "/api/v1/identity/continuity/reset",
             json={
                 "session_id": "sess-int-identity-001",
                 "continuity_hint": "old-hint",
@@ -29,7 +29,7 @@ def test_identity_continuity_reset_rotate_endpoint():
 def test_identity_continuity_reset_opt_out_endpoint():
     with TestClient(app) as client:
         response = client.post(
-            "/api/identity/continuity/reset",
+            "/api/v1/identity/continuity/reset",
             json={
                 "session_id": "sess-int-identity-002",
                 "continuity_hint": "old-hint",

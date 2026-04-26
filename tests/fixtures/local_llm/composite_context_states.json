@@ -27,7 +27,7 @@
       "name": "Kaffeehaus Mitte",
       "category": "cafe",
       "distance_m": 180,
-      "address": "Musterstr. 1, Stuttgart",
+      "address": "Musterstr. 1, München",
       "demand": {
         "density_score": 0.22,
         "drop_pct": 0.44,
@@ -89,7 +89,7 @@
       "name": "Westside Bar",
       "category": "bar",
       "distance_m": 320,
-      "address": "Beispielallee 12, Stuttgart",
+      "address": "Beispielallee 12, München",
       "demand": {
         "density_score": 0.51,
         "drop_pct": 0.27,

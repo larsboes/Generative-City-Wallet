@@ -3,7 +3,7 @@ Append a local seeded event used by the Spark events provider.
 
 Usage:
   python scripts/dev/ingest_mock_events.py --name "Founder Meetup" --start-at "2026-04-26T19:30:00Z"
-  python scripts/dev/ingest_mock_events.py --name "Afterwork" --start-at "2026-04-26T18:00:00Z" --city Stuttgart --file resources/mock_events_stuttgart.json
+  python scripts/dev/ingest_mock_events.py --name "Afterwork" --start-at "2026-04-26T18:00:00Z" --city Munich --file resources/mock_events_munich.json
 """
 
 from __future__ import annotations
@@ -25,12 +25,12 @@ def main() -> int:
         help="Event start timestamp in ISO-8601 (UTC), e.g. 2026-04-26T19:30:00Z",
     )
     parser.add_argument(
-        "--city", default="Stuttgart", help="Event city (default: Stuttgart)"
+        "--city", default="Munich", help="Event city (default: Munich)"
     )
     parser.add_argument(
         "--file",
-        default="resources/mock_events_stuttgart.json",
-        help="Seed events JSON path (default: resources/mock_events_stuttgart.json)",
+        default="resources/mock_events_munich.json",
+        help="Seed events JSON path (default: resources/mock_events_munich.json)",
     )
     args = parser.parse_args()
 

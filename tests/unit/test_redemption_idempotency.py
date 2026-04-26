@@ -1,8 +1,8 @@
 import asyncio
 
 from spark.db.connection import get_connection, init_database
+from spark.repositories.graph_event import acquire_graph_event_idempotency_key
 from spark.services.redemption import (
-    _acquire_graph_event_idempotency_key,
     confirm_redemption,
     project_offer_outcome_to_graph,
 )
@@ -12,13 +12,13 @@ def test_graph_projection_idempotency_key_insert_once(tmp_path):
     db_path = str(tmp_path / "idempotency.db")
     init_database(db_path)
 
-    first = _acquire_graph_event_idempotency_key(
+    first = acquire_graph_event_idempotency_key(
         event_type="offer_outcome_declined",
         session_id="sess-1",
         offer_id="offer-1",
         db_path=db_path,
     )
-    second = _acquire_graph_event_idempotency_key(
+    second = acquire_graph_event_idempotency_key(
         event_type="offer_outcome_declined",
         session_id="sess-1",
         offer_id="offer-1",

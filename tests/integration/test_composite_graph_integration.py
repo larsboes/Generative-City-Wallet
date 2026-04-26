@@ -161,7 +161,7 @@ def test_offer_endpoint_works_without_neo4j(monkeypatch):
             },
             "merchant_id": "MERCHANT_001",
         }
-        resp = client.post("/api/offers/generate", json=payload)
+        resp = client.post("/api/v1/offers/generate", json=payload)
         assert resp.status_code == 200
         data = resp.json()
         # Either a real offer or a structured DO_NOT_RECOMMEND, never a 500.

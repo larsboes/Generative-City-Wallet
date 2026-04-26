@@ -5,10 +5,10 @@ import random
 import sqlite3
 from typing import Iterable
 
-from spark.models.transactions import Venue
+from spark.models.demand import Venue
 from spark.repositories.transactions import insert_venue_transactions
 from spark.services.canonicalization import ensure_utc, hour_of_week, normalize_category
-from spark.services.signals import (
+from spark.services.demand import (
     BASE_HOURLY_RATES,
     DAY_MULTIPLIERS,
 )

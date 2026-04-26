@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from spark.config import HMAC_SECRET
-from spark.repositories.redemption import acquire_graph_event_idempotency_key
+from spark.repositories.identity import link_session_to_continuity, unlink_session
+from spark.repositories.graph_event import acquire_graph_event_idempotency_key
 
 CONTINUITY_RETENTION_DAYS = 30
 
@@ -35,6 +36,8 @@ def resolve_continuity_identity(
     session_id: str,
     continuity_hint: str | None,
     now: datetime | None = None,
+    db_path: str | None = None,
+    persist: bool = True,
 ) -> ContinuityIdentity:
     ts = now or datetime.now(timezone.utc)
     identity_source = "hinted_pseudonym" if continuity_hint else "session_fallback"
@@ -45,8 +48,14 @@ def resolve_continuity_identity(
         hashlib.sha256,
     ).hexdigest()[:16]
     expires = ts + timedelta(days=CONTINUITY_RETENTION_DAYS)
+    cid = f"cid_{digest}"
+    if persist:
+        try:
+            link_session_to_continuity(cid, session_id, db_path=db_path)
+        except Exception:
+            pass
     return ContinuityIdentity(
-        continuity_id=f"cid_{digest}",
+        continuity_id=cid,
         source=identity_source,
         expires_at_iso=expires.replace(microsecond=0)
         .isoformat()
@@ -62,8 +71,14 @@ def reset_continuity_identity(
     now: datetime | None = None,
     db_path: str | None = None,
 ) -> ContinuityResetResult:
+    import sqlite3
+
     ts = now or datetime.now(timezone.utc)
     if opt_out:
+        try:
+            unlink_session(session_id, db_path=db_path)
+        except sqlite3.OperationalError:
+            pass
         event_applied = acquire_graph_event_idempotency_key(
             event_type="continuity_reset:opt_out",
             session_id=session_id,
@@ -93,6 +108,7 @@ def reset_continuity_identity(
         session_id=session_id,
         continuity_hint=new_hint,
         now=ts,
+        db_path=db_path,
     )
     event_applied = acquire_graph_event_idempotency_key(
         event_type="continuity_reset:rotate",

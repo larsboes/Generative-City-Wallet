@@ -120,6 +120,28 @@ class OpsGraphRepository:
             op_name="purge_session_data",
         )
 
+    async def clear_session_data(self, session_id: str) -> dict[str, Any]:
+        """Delete all graph nodes and edges for a session."""
+
+        async def _run(s: AsyncSession) -> dict[str, Any]:
+            result = await s.run(Q.CLEAR_SESSION_DATA, session_id=session_id)
+            summary = await result.consume()
+            return {
+                "session_id": session_id,
+                "nodes_deleted": summary.counters.nodes_deleted,
+                "relationships_deleted": summary.counters.relationships_deleted,
+            }
+
+        return await safe_execute(
+            _run,
+            fallback={
+                "session_id": session_id,
+                "nodes_deleted": 0,
+                "relationships_deleted": 0,
+            },
+            op_name="clear_session_data",
+        )
+
     @staticmethod
     def is_available() -> bool:
         return is_available()

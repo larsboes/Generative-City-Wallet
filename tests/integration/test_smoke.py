@@ -18,13 +18,13 @@ def client():
 
 
 def test_health(client):
-    resp = client.get("/api/health")
+    resp = client.get("/api/v1/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
 
 
 def test_merchants_list(client):
-    resp = client.get("/api/payone/merchants")
+    resp = client.get("/api/v1/payone/merchants")
     assert resp.status_code == 200
     merchants = resp.json()
     assert len(merchants) >= 1
@@ -33,7 +33,7 @@ def test_merchants_list(client):
 
 
 def test_density_endpoint(client):
-    resp = client.get("/api/payone/density/MERCHANT_001")
+    resp = client.get("/api/v1/payone/density/MERCHANT_001")
     assert resp.status_code == 200
     data = resp.json()
     assert "density_score" in data
@@ -57,7 +57,7 @@ def test_offer_generation(client):
         },
         "merchant_id": "MERCHANT_001",
     }
-    resp = client.post("/api/offers/generate", json=payload)
+    resp = client.post("/api/v1/offers/generate", json=payload)
     assert resp.status_code == 200
     data = resp.json()
 
@@ -114,8 +114,8 @@ def test_offer_genui_vibe_shift(client):
         "demo_overrides": {"temp_celsius": 32, "weather_condition": "sunny"},
     }
 
-    cold_resp = client.post("/api/offers/generate", json=cold_payload).json()
-    hot_resp = client.post("/api/offers/generate", json=hot_payload).json()
+    cold_resp = client.post("/api/v1/offers/generate", json=cold_payload).json()
+    hot_resp = client.post("/api/v1/offers/generate", json=hot_payload).json()
 
     # Both should return offers (not DO_NOT_RECOMMEND)
     if cold_resp.get("offer_id") and hot_resp.get("offer_id"):
@@ -129,7 +129,7 @@ def test_conflict_resolution(client):
         "current_txn_rate": 2.8,
         "current_dt": "2025-06-14T21:14:00",
     }
-    resp = client.post("/api/conflict/resolve", json=payload)
+    resp = client.post("/api/v1/conflict/resolve", json=payload)
     assert resp.status_code == 200
     data = resp.json()
     assert data["recommendation"] in [
@@ -141,7 +141,7 @@ def test_conflict_resolution(client):
 
 
 def test_context_provider_status(client):
-    resp = client.get("/api/context/provider-status")
+    resp = client.get("/api/v1/context/provider-status")
     assert resp.status_code == 200
     data = resp.json()
     assert data["grid_cell"] == "891f8d7a49bffff"

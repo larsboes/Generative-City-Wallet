@@ -7,10 +7,12 @@ from spark.config import (
 )
 from spark.graph.repository import get_repository
 from spark.models.api import WalletSeedItem, WalletSeedResponse
-from spark.repositories.redemption import (
+from spark.repositories.graph_event import (
     acquire_graph_event_idempotency_key,
     count_graph_events_for_session,
     count_recent_graph_events_for_category,
+)
+from spark.repositories.preference_event import (
     log_preference_update_event,
     record_learning_metric,
 )

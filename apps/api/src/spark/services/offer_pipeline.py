@@ -185,50 +185,62 @@ def _apply_wave_bonus_to_offer(*, offer, session_id: str, merchant_id: str) -> f
     return bonus_pct
 
 
-async def generate_offer_pipeline(request: GenerateOfferRequest) -> Any:
-    agent_decision = None
-    agent_reasoning = None
-    pipeline_source = "deterministic"
+async def _run_agent_step(
+    request: GenerateOfferRequest,
+) -> tuple[Any | None, str | None, str]:
+    """
+    Run the Strands agent decision step if enabled.
+    Returns (agent_decision, agent_reasoning, pipeline_source).
+    """
+    if not AGENT_ENABLED:
+        return None, None, "deterministic"
 
-    if AGENT_ENABLED:
-        try:
-            from spark.agents.agent import run_offer_agent
+    try:
+        from spark.agents.agent import run_offer_agent
 
-            agent_decision = await run_offer_agent(
-                session_id=request.intent.session_id,
-                grid_cell=request.intent.grid_cell,
-                movement_mode=request.intent.movement_mode.value,
-                social_preference=request.intent.social_preference.value,
-                price_tier=request.intent.price_tier.value,
-                weather_need=request.intent.weather_need.value,
-                time_bucket=request.intent.time_bucket,
-                recent_categories=request.intent.recent_categories,
-                merchant_id=request.merchant_id,
+        agent_decision = await run_offer_agent(
+            session_id=request.intent.session_id,
+            grid_cell=request.intent.grid_cell,
+            movement_mode=request.intent.movement_mode.value,
+            social_preference=request.intent.social_preference.value,
+            price_tier=request.intent.price_tier.value,
+            weather_need=request.intent.weather_need.value,
+            time_bucket=request.intent.time_bucket,
+            recent_categories=request.intent.recent_categories,
+            merchant_id=request.merchant_id,
+        )
+
+        if agent_decision and not agent_decision.skip:
+            request.merchant_id = agent_decision.merchant_id or request.merchant_id
+            agent_reasoning = agent_decision.reasoning
+            logger.info(
+                "agent_selected_merchant",
+                extra={
+                    "merchant_id": request.merchant_id,
+                    "reasoning": agent_reasoning,
+                },
             )
+            return agent_decision, agent_reasoning, "agent"
 
-            if agent_decision and not agent_decision.skip:
-                request.merchant_id = agent_decision.merchant_id or request.merchant_id
-                agent_reasoning = agent_decision.reasoning
-                pipeline_source = "agent"
-                logger.info(
-                    "agent_selected_merchant",
-                    extra={
-                        "merchant_id": request.merchant_id,
-                        "reasoning": agent_reasoning,
-                    },
-                )
-            elif agent_decision and agent_decision.skip:
-                return {
-                    "offer": None,
-                    "reason": agent_decision.reason
-                    or "Agent determined no suitable merchant.",
-                    "pipeline": "agent",
-                    "recheck_in_minutes": 30,
-                }
-        except Exception as e:
-            logger.warning("agent_fallback: %s", e)
-            pipeline_source = "deterministic"
-            agent_decision = None
+        if agent_decision and agent_decision.skip:
+            return agent_decision, None, "agent"
+
+    except Exception as e:
+        logger.warning("agent_fallback: %s", e)
+
+    return None, None, "deterministic"
+
+
+async def generate_offer_pipeline(request: GenerateOfferRequest) -> Any:
+    agent_decision, agent_reasoning, pipeline_source = await _run_agent_step(request)
+    if agent_decision and agent_decision.skip:
+        return {
+            "offer": None,
+            "reason": agent_decision.reason
+            or "Agent determined no suitable merchant.",
+            "pipeline": "agent",
+            "recheck_in_minutes": 30,
+        }
 
     ocr_transit_effective = request.ocr_transit
     if (

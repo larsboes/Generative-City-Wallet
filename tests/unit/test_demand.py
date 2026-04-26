@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 from spark.db.connection import get_connection
 from spark.repositories.transactions import insert_venue_transactions
 from spark.repositories.venues import upsert_venues
-from spark.services.signals import (
+from spark.services.canonicalization import normalize_category
+from spark.services.demand import (
     classify_density,
     compute_demand_context,
     infer_occupancy_pct,
-    normalize_category,
 )
 from spark.services.venues import get_venue
 

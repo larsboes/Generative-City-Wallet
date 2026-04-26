@@ -13,7 +13,7 @@ from spark.models.ocr import (
 )
 from spark.services.ocr_transit import parse_ocr_transit_with_policy
 
-router = APIRouter(prefix="/api/ocr", tags=["ocr"])
+router = APIRouter(prefix="/api/v1/ocr", tags=["ocr"])
 OCR_CONFIDENCE_THRESHOLD = 0.6
 
 
@@ -53,7 +53,7 @@ async def parse_ocr_transit(request: OCRTransitParseRequest):
     Parse raw OCR text into structured transit delay payload.
 
     This endpoint applies adapter policy (timeout + retries) and returns a
-    deterministic shape for downstream `/api/ocr/transit` and offer pipelines.
+    deterministic shape for downstream `/api/v1/ocr/transit` and offer pipelines.
     """
     result, attempts = await parse_ocr_transit_with_policy(request)
     return OCRTransitParseResponse(

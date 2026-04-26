@@ -65,7 +65,7 @@ else:
     AGENT_ENABLED = AGENT_ENABLED in ("1", "true", "yes")
 
 # ── OpenWeatherMap ─────────────────────────────────────────────────────────────
-STUTTGART_CITY_ID = "2825297"
+CITY_ID = "2867714"  # Munich OpenWeather city ID
 WEATHER_CACHE_TTL_SECONDS = 300  # 5 min
 CONTEXT_PROVIDER_TIMEOUT_SECONDS = float(
     os.getenv("CONTEXT_PROVIDER_TIMEOUT_SECONDS", "4.0")
@@ -77,6 +77,11 @@ LUMA_CACHE_TTL_SECONDS = int(os.getenv("LUMA_CACHE_TTL_SECONDS", "300"))
 DEFAULT_OFFER_VALID_MINUTES = 20
 DEFAULT_QR_VALID_MINUTES = 15
 HMAC_SECRET = os.getenv("SPARK_HMAC_SECRET", "spark-hackathon-secret-change-me")
+
+# ── Admin API ──────────────────────────────────────────────────────────────────
+# Set SPARK_ADMIN_SECRET to a non-empty value to require X-Admin-Secret header
+# on destructive admin endpoints. Empty string disables the guard (dev default).
+ADMIN_SECRET = os.getenv("SPARK_ADMIN_SECRET", "")
 
 # ── Neo4j (User Knowledge Graph) ───────────────────────────────────────────────
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")

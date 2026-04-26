@@ -103,7 +103,7 @@ def client():
     _ensure_seeded_database()
     try:
         with TestClient(app) as c:
-            merchants_resp = c.get("/api/payone/merchants")
+            merchants_resp = c.get("/api/v1/payone/merchants")
             assert merchants_resp.status_code == 200
             assert len(merchants_resp.json()) >= 5
             yield c
@@ -395,7 +395,7 @@ def test_intent_api_sweep(client, capsys):
             "demo_overrides": demo_overrides,
         }
 
-        response = client.post("/api/offers/generate", json=payload)
+        response = client.post("/api/v1/offers/generate", json=payload)
         try:
             data = response.json()
         except ValueError:

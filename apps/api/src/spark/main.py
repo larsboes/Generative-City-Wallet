@@ -2,11 +2,13 @@
 Spark Backend — FastAPI application.
 """
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from spark.config import (
     DB_PATH,
@@ -70,10 +72,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow Lovable frontend, local dev, and any demo origins
+# CORS — restrict in production via SPARK_CORS_ORIGINS env var (comma-separated)
+_cors_origins_raw = os.getenv("SPARK_CORS_ORIGINS", "")
+_cors_origins: list[str] = (
+    [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+    if _cors_origins_raw
+    else ["*"]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Wide open for hackathon — lock down in prod
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -93,7 +101,12 @@ app.include_router(vendors.router)
 app.include_router(wave.router)
 
 
-@app.get("/api/health")
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
+    return JSONResponse(status_code=500, content={"error": "internal_error"})
+
+
+@app.get("/api/v1/health")
 async def health():
     return {
         "status": "ok",
@@ -104,3 +117,9 @@ async def health():
             "metrics": get_metrics(),
         },
     }
+
+
+@app.get("/api/health")
+async def health_legacy_redirect():
+    """Legacy redirect — clients should migrate to /api/v1/health."""
+    return RedirectResponse(url="/api/v1/health", status_code=307)

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from spark.models.transactions import DemandContext, Venue
+from spark.models.demand import DemandContext, Venue
 
 
 @dataclass(frozen=True)

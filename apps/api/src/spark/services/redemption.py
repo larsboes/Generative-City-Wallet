@@ -16,18 +16,22 @@ from spark.config import (
 )
 from spark.graph.repository import get_repository
 from spark.repositories.wave import get_completed_wave_bonus_for_offer
-from spark.repositories.redemption import (
+from spark.repositories.graph_event import (
     acquire_graph_event_idempotency_key,
     cleanup_graph_event_log,
     count_recent_graph_events_for_category,
+)
+from spark.repositories.preference_event import (
+    log_preference_update_event,
+    record_learning_metric,
+)
+from spark.repositories.redemption import (
     credit_wallet_transaction,
     get_offer_audit_row,
     get_wallet_snapshot,
-    log_preference_update_event,
     lookup_merchant_category_for_offer as lookup_merchant_category_for_offer_repo,
     mark_offer_outcome,
     mark_offer_redeemed,
-    record_learning_metric,
 )
 from spark.utils.logger import get_logger
 from spark.services.canonicalization import parse_stored_offer
@@ -185,12 +189,13 @@ async def project_redemption_to_graph(
     """
     event_type = "redemption_confirmed"
     source_event_id = f"{session_id}:{offer_id}:redeemed"
-    if not _acquire_graph_event_idempotency_key(
+    if not acquire_graph_event_idempotency_key(
         event_type=event_type,
         session_id=session_id,
         offer_id=offer_id,
+        source="kg_projection",
         source_event_id=source_event_id,
-        event_payload={
+        payload={
             "discount_value": round(float(discount_value), 4),
             "discount_type": discount_type,
             "amount_eur": round(float(amount_eur), 4),
@@ -283,7 +288,7 @@ async def project_redemption_to_graph(
                 category=merchant_category,
                 source_type="redemption",
             )
-        _cleanup_graph_event_log()
+        cleanup_graph_event_log(retention_days=GRAPH_EVENT_RETENTION_DAYS)
     except Exception as exc:  # defensive — never fail the redemption flow
         logger.warning("Graph projection of redemption failed: %s", exc)
 
@@ -313,14 +318,15 @@ async def project_offer_outcome_to_graph(
 
     event_type = f"offer_outcome_{status.lower()}"
     source_event_id = f"{session_id}:{offer_id}:{status.lower()}"
-    if not _acquire_graph_event_idempotency_key(
+    if not acquire_graph_event_idempotency_key(
         event_type=event_type,
         session_id=session_id,
         offer_id=offer_id,
+        source="kg_projection",
         db_path=db_path,
         category=merchant_category,
         source_event_id=source_event_id,
-        event_payload={"status": status},
+        payload={"status": status},
     ):
         record_learning_metric(
             metric_name="learning_duplicate_suppression",
@@ -418,7 +424,7 @@ async def project_offer_outcome_to_graph(
                 delta=PREFERENCE_DELTA_EXPIRE,
                 after_weight=after_weight,
             )
-        _cleanup_graph_event_log()
+        cleanup_graph_event_log(retention_days=GRAPH_EVENT_RETENTION_DAYS)
     except Exception as exc:
         logger.warning("Graph projection of outcome failed: %s", exc)
     return True
@@ -456,40 +462,7 @@ def _compute_token(offer_id: str, session_id: str, expiry_unix: int) -> str:
     return hmac.new(HMAC_SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()[:16]
 
 
-def _acquire_graph_event_idempotency_key(
-    *,
-    event_type: str,
-    session_id: str | None,
-    offer_id: str | None,
-    category: str | None = None,
-    source_event_id: str | None = None,
-    event_payload: dict | None = None,
-    db_path: str | None = None,
-) -> bool:
-    """Insert-once guard for graph side-effects."""
-    return acquire_graph_event_idempotency_key(
-        event_type=event_type,
-        session_id=session_id,
-        offer_id=offer_id,
-        source="kg_projection",
-        category=category,
-        source_event_id=source_event_id,
-        payload=event_payload,
-        db_path=db_path,
-    )
-
-
-def _cleanup_graph_event_log(db_path: str | None = None) -> None:
-    """Best-effort retention cleanup for projection idempotency rows."""
-    cleanup_graph_event_log(
-        retention_days=GRAPH_EVENT_RETENTION_DAYS,
-        db_path=db_path,
-    )
-
-
-async def _get_current_category_weight(
-    repo, *, session_id: str, category: str
-) -> float | None:
+async def _get_current_category_weight(repo, *, session_id: str, category: str) -> float | None:
     scores = await repo.get_preference_scores(session_id, limit=25)
     for score in scores:
         if score.category == category:

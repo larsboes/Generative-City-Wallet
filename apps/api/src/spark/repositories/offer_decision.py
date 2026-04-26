@@ -1,28 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from spark.db.connection import get_connection
+from spark.domain.interfaces import (
+    CandidateMerchant,
+    IOfferDecisionRepository,
+    SessionState,
+)
 from spark.services.location_cells import is_valid_h3, neighbor_cells
 
-
-@dataclass(frozen=True)
-class CandidateMerchantRecord:
-    merchant_id: str
-    merchant_category: str
-    merchant_grid_cell: str | None = None
-    merchant_lat: float | None = None
-    merchant_lon: float | None = None
+# Backwards-compatible aliases for any external code that imported these names.
+CandidateMerchantRecord = CandidateMerchant
+OfferDecisionSessionState = SessionState
 
 
-@dataclass(frozen=True)
-class OfferDecisionSessionState:
-    unresolved_offer_id: str | None
-    offers_last_24h: int
-
-
-class OfferDecisionRepository:
+class OfferDecisionRepository(IOfferDecisionRepository):
     LOCAL_CANDIDATE_LIMIT = 5
     GLOBAL_FALLBACK_LIMIT = 5
 

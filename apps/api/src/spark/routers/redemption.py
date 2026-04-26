@@ -24,7 +24,7 @@ from spark.services.redemption import (
     validate_qr,
 )
 
-router = APIRouter(prefix="/api", tags=["redemption"])
+router = APIRouter(prefix="/api/v1", tags=["redemption"])
 
 
 @router.post("/redemption/validate", response_model=RedemptionValidationResponse)
