@@ -6,6 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from spark.main import app
+from spark.services.location_cells import latlon_to_h3
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 @pytest.fixture(scope="module")
@@ -41,7 +44,7 @@ def test_density_endpoint(client):
 def test_offer_generation(client):
     payload = {
         "intent": {
-            "grid_cell": "STR-MITTE-047",
+            "grid_cell": TEST_CELL,
             "movement_mode": "browsing",
             "time_bucket": "tuesday_lunch",
             "weather_need": "warmth_seeking",
@@ -80,7 +83,7 @@ def test_offer_genui_vibe_shift(client):
     """Verify different contexts produce different GenUI palettes."""
     cold_payload = {
         "intent": {
-            "grid_cell": "STR-MITTE-047",
+            "grid_cell": TEST_CELL,
             "movement_mode": "browsing",
             "time_bucket": "tuesday_lunch",
             "weather_need": "warmth_seeking",
@@ -96,7 +99,7 @@ def test_offer_genui_vibe_shift(client):
     }
     hot_payload = {
         "intent": {
-            "grid_cell": "STR-MITTE-047",
+            "grid_cell": TEST_CELL,
             "movement_mode": "browsing",
             "time_bucket": "tuesday_lunch",
             "weather_need": "refreshment_seeking",

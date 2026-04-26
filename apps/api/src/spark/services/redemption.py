@@ -25,6 +25,7 @@ from spark.repositories.redemption import (
     get_wallet_snapshot,
     log_preference_update_event,
     lookup_merchant_category_for_offer as lookup_merchant_category_for_offer_repo,
+    mark_offer_outcome,
     mark_offer_redeemed,
     record_learning_metric,
 )
@@ -293,19 +294,30 @@ async def project_offer_outcome_to_graph(
     offer_id: str,
     status: str,
     merchant_category: str | None = None,
-) -> None:
+    db_path: str | None = None,
+) -> bool:
     """
-    Project a non-redemption outcome (DECLINED / EXPIRED / ACCEPTED) into the graph.
+    Persist and project a non-redemption outcome (DECLINED / EXPIRED / ACCEPTED).
 
     For DECLINED/EXPIRED we apply a small negative reinforcement on the
     associated category — the user signalled the offer wasn't compelling.
     """
+    updated = mark_offer_outcome(
+        offer_id=offer_id,
+        status=status,
+        occurred_at_iso=datetime.now().isoformat(),
+        db_path=db_path,
+    )
+    if not updated:
+        return False
+
     event_type = f"offer_outcome_{status.lower()}"
     source_event_id = f"{session_id}:{offer_id}:{status.lower()}"
     if not _acquire_graph_event_idempotency_key(
         event_type=event_type,
         session_id=session_id,
         offer_id=offer_id,
+        db_path=db_path,
         category=merchant_category,
         source_event_id=source_event_id,
         event_payload={"status": status},
@@ -318,11 +330,11 @@ async def project_offer_outcome_to_graph(
             category=merchant_category,
             source_type=status.lower(),
         )
-        return
+        return True
 
     repo = get_repository()
     if not repo.is_available():
-        return
+        return True
 
     try:
         await repo.record_offer_outcome(
@@ -409,6 +421,7 @@ async def project_offer_outcome_to_graph(
         _cleanup_graph_event_log()
     except Exception as exc:
         logger.warning("Graph projection of outcome failed: %s", exc)
+    return True
 
 
 def lookup_merchant_category_for_offer(

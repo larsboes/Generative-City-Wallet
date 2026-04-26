@@ -3,7 +3,7 @@ import type { IntentVector } from "@spark/shared";
 import type { IntentToolArgs } from "./toolSchema";
 
 export const DEFAULT_INTENT_VECTOR: IntentVector = {
-  grid_cell: "STR-MITTE-047",
+  grid_cell: "891f8d7a49bffff",
   movement_mode: "browsing",
   time_bucket: "unknown",
   weather_need: "neutral",

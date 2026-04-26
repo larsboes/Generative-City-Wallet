@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 from spark.db.connection import get_connection, init_database
 from spark.repositories.payone import insert_payone_transaction
 from spark.services.density import compute_density_signal
+from spark.services.location_cells import latlon_to_h3
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 def test_payone_ingest_event_impacts_density_read_path(tmp_path) -> None:
@@ -25,7 +28,7 @@ def test_payone_ingest_event_impacts_density_read_path(tmp_path) -> None:
                 48.1,
                 9.1,
                 "Teststrasse 1",
-                "STR-MITTE-047",
+                TEST_CELL,
             ),
         )
         conn.commit()

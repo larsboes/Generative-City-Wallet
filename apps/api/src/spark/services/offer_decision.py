@@ -7,9 +7,11 @@ hard blocks -> candidate scoring -> threshold -> anti-spam checks -> decision tr
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from spark.models.decision import DecisionTraceStep, MerchantDecision, OfferDecisionResult
+from spark.repositories.merchants import get_active_coupon_for_merchant
 from spark.repositories.offer_decision import OfferDecisionRepository
 from spark.services.conflict import resolve_conflict
 from spark.services.distance import distance_points, estimate_distance_m
@@ -95,6 +97,8 @@ def decide_offer(
             merchant_category=candidate.merchant_category,
             user_grid_cell=grid_cell,
             merchant_grid_cell=candidate.merchant_grid_cell,
+            merchant_lat=candidate.merchant_lat,
+            merchant_lon=candidate.merchant_lon,
             movement_mode=movement_mode,
             social_preference=social_preference,
             weather_need=weather_need,
@@ -247,6 +251,8 @@ def _score_merchant_candidate(
     merchant_category: str,
     user_grid_cell: str,
     merchant_grid_cell: str | None,
+    merchant_lat: float | None,
+    merchant_lon: float | None,
     movement_mode: str,
     social_preference: str,
     weather_need: str,
@@ -262,12 +268,13 @@ def _score_merchant_candidate(
     density = compute_density_signal(
         merchant_id, current_dt=current_dt, db_path=db_path
     )
+    active_coupon = _active_coupon_for_conflict(merchant_id, db_path)
     conflict = resolve_conflict(
         merchant_id=merchant_id,
         user_social_pref=social_preference,
         current_txn_rate=density["current_rate"],
         current_dt=current_dt,
-        active_coupon=None,
+        active_coupon=active_coupon,
         db_path=db_path,
     )
     if conflict.recommendation == "DO_NOT_RECOMMEND":
@@ -292,13 +299,15 @@ def _score_merchant_candidate(
         user_grid_cell=user_grid_cell,
         merchant_grid_cell=merchant_grid_cell,
         merchant_id=merchant_id,
+        merchant_lat=merchant_lat,
+        merchant_lon=merchant_lon,
     )
     distance_score = distance_points(distance_m)
     score += distance_score
     trace.append(
         DecisionTraceStep(
             code="distance_proxy",
-            reason="Estimated distance contributes deterministic distance points.",
+            reason="Estimated geographic distance contributes distance points.",
             score=distance_score,
             metadata={
                 "distance_m_estimated": round(distance_m, 1),
@@ -411,6 +420,7 @@ def _score_merchant_candidate(
             metadata={
                 "recommendation": conflict.recommendation,
                 "framing_band": conflict.framing_band,
+                "coupon_type": active_coupon.get("type") if active_coupon else None,
             },
         )
     )
@@ -422,6 +432,25 @@ def _score_merchant_candidate(
         conflict_framing_band=conflict.framing_band,
         trace=trace,
     )
+
+
+def _active_coupon_for_conflict(
+    merchant_id: str,
+    db_path: str | None,
+) -> dict | None:
+    coupon_row = get_active_coupon_for_merchant(merchant_id=merchant_id, db_path=db_path)
+    if not coupon_row:
+        return None
+    try:
+        config = json.loads(coupon_row["config"])
+    except (TypeError, json.JSONDecodeError):
+        config = {}
+    return {
+        "type": coupon_row["coupon_type"],
+        "config": config,
+        "max_discount_pct": config.get("discount_pct", 0),
+        "valid_window_min": config.get("duration_minutes", 20),
+    }
 
 
 def _weather_alignment(*, weather_need: str, merchant_category: str) -> float:

@@ -35,6 +35,20 @@ OVERPASS_HEADERS = {
     "Accept": "application/json",
     "User-Agent": "SparkOccupancyAPI/0.1 (local venue import script)",
 }
+EXCLUDED_NAME_TOKENS = {
+    "casino",
+    "sportcasino",
+    "sportsbet",
+    "sportsbook",
+    "bookmaker",
+    "betting",
+    "gambling",
+}
+EXCLUDED_TAG_PAIRS = {
+    ("amenity", "casino"),
+    ("amenity", "gambling"),
+    ("shop", "bookmaker"),
+}
 
 
 def parse_categories(raw: str) -> list[str]:
@@ -112,6 +126,15 @@ def normalize_element(element: dict[str, Any], city: str) -> dict[str, Any] | No
     }
 
 
+def is_excluded_venue(element: dict[str, Any], venue: dict[str, Any]) -> bool:
+    tags = element.get("tags", {})
+    for key, value in EXCLUDED_TAG_PAIRS:
+        if (tags.get(key) or "").strip().lower() == value:
+            return True
+    name = str(venue.get("name") or "").lower()
+    return any(token in name for token in EXCLUDED_NAME_TOKENS)
+
+
 def fetch_venues(
     city: str, categories: list[str], include_unnamed: bool, timeout: int
 ) -> list[dict[str, Any]]:
@@ -136,7 +159,7 @@ def fetch_venues(
         if not include_unnamed and not tags.get("name"):
             continue
         venue = normalize_element(element, overpass_city_name(city))
-        if venue:
+        if venue and not is_excluded_venue(element, venue):
             venues.append(venue)
     venues.sort(key=lambda item: (item["name"].lower(), item["merchant_id"]))
     return venues

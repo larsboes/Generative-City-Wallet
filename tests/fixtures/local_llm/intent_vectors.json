@@ -1,6 +1,6 @@
 [
   {
-    "grid_cell": "STR-MITTE-047",
+    "grid_cell": "891f8d7a49bffff",
     "movement_mode": "browsing",
     "time_bucket": "tuesday_lunch",
     "weather_need": "warmth_seeking",
@@ -12,7 +12,7 @@
     "session_id": "fixture-intent-001"
   },
   {
-    "grid_cell": "STR-WEST-112",
+    "grid_cell": "891f8d44a37ffff",
     "movement_mode": "commuting",
     "time_bucket": "weekday_evening",
     "weather_need": "refreshment_seeking",
@@ -24,7 +24,7 @@
     "session_id": "fixture-intent-002"
   },
   {
-    "grid_cell": "STR-SUED-031",
+    "grid_cell": "891f8d45923ffff",
     "movement_mode": "post_workout",
     "time_bucket": "saturday_afternoon",
     "weather_need": "neutral",

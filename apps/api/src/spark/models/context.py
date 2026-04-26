@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -16,7 +17,7 @@ from spark.models.common import (
 
 
 class IntentVector(BaseModel):
-    grid_cell: str = Field(description="e.g. STR-MITTE-047 — 50m quantization")
+    grid_cell: str = Field(description="Canonical H3 cell ID (for example, resolution 9).")
     movement_mode: MovementMode
     time_bucket: str = Field(description="e.g. tuesday_lunch, friday_evening")
     weather_need: WeatherNeed
@@ -175,6 +176,7 @@ class DemoOverrides(BaseModel):
     merchant_occupancy_pct: Optional[float] = None
     social_preference: Optional[SocialPreference] = None
     time_bucket: Optional[str] = None
+    current_dt: Optional[datetime] = None
     transit_delay_minutes: Optional[int] = Field(default=None, ge=1, le=180)
     must_return_by: Optional[str] = None
 

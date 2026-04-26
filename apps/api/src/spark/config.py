@@ -140,3 +140,6 @@ GRAPH_PREF_RETENTION_WALLET_SEED_DAYS = int(
 GRAPH_PREF_RETENTION_INTERACTION_DAYS = int(
     os.getenv("GRAPH_PREF_RETENTION_INTERACTION_DAYS", "90")
 )
+
+# ── Location Grid (H3) ─────────────────────────────────────────────────────────
+SPARK_H3_RESOLUTION = int(os.getenv("SPARK_H3_RESOLUTION", "9"))

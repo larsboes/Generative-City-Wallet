@@ -4,14 +4,17 @@ import asyncio
 from types import SimpleNamespace
 
 from spark.models.api import GenerateOfferRequest
+from spark.services.location_cells import latlon_to_h3
 from spark.services.offer_pipeline import generate_offer_pipeline
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 def _request(confidence: float) -> GenerateOfferRequest:
     return GenerateOfferRequest.model_validate(
         {
             "intent": {
-                "grid_cell": "STR-MITTE-047",
+                "grid_cell": TEST_CELL,
                 "movement_mode": "browsing",
                 "time_bucket": "tuesday_lunch",
                 "weather_need": "neutral",
