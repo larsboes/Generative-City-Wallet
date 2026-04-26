@@ -10,7 +10,6 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY apps/api/src/spark apps/api/src/spark
-COPY .env .env
 
 ENV PYTHONPATH=/app/apps/api/src
 
