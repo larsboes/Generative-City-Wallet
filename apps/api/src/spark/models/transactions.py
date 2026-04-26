@@ -79,6 +79,28 @@ class LiveUpdateRequest(BaseModel):
     seed: Optional[int] = None
 
 
+class PayoneIngestRequest(BaseModel):
+    merchant_id: str
+    category: Optional[str] = None
+    merchant_type: Optional[str] = None
+    amount: Optional[float] = Field(default=None, ge=0)
+    txn_count: int = Field(default=1, ge=0)
+    total_volume_eur: Optional[float] = Field(default=None, ge=0)
+    timestamp: Optional[datetime] = None
+    hour_of_day: Optional[int] = Field(default=None, ge=0, le=23)
+    day_of_week: Optional[int] = Field(default=None, ge=0, le=6)
+    hour_of_week: Optional[int] = Field(default=None, ge=0, le=167)
+
+
+class PayoneIngestResponse(BaseModel):
+    success: bool
+    merchant_id: str
+    hour_of_week: int
+    txn_count: int = Field(ge=0)
+    total_volume_eur: float = Field(ge=0)
+    timestamp: datetime
+
+
 class TransactionGenerationResponse(BaseModel):
     inserted_count: int
     venue_count: int
@@ -156,4 +178,26 @@ class VendorDashboardTodayResponse(BaseModel):
     hourly: list[DashboardHourlyBucket]
     demand: DemandContext
     revenue_last_7_days: RevenueLast7DaysResponse
+
+
+class PayoneDensityResponse(BaseModel):
+    merchant_id: str
+    density_score: float = Field(ge=0)
+    drop_pct: float = Field(ge=0, le=1)
+    signal: str
+    offer_eligible: bool
+    historical_avg: float = Field(ge=0)
+    current_rate: float = Field(ge=0)
+    current_occupancy_pct: Optional[float] = Field(default=None, ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+    timestamp: str
+
+
+class PayoneMerchantDensityResponse(PayoneDensityResponse):
+    name: str
+    type: str
+    lat: float
+    lon: float
+    address: Optional[str] = None
+    grid_cell: Optional[str] = None
 

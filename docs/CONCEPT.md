@@ -121,5 +121,5 @@ Use these for runtime truth:
 
 Planning context and strategic narrative remain in:
 
-- `docs/planning/BACKGROUND.md`
-- `docs/planning/18-DSV-GAP-ANALYSIS.md`
+- `docs/pitch/BACKGROUND.md`
+- `docs/pitch/DSV-GAP-ANALYSIS.md`

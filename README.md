@@ -87,6 +87,24 @@ npm run dev:mobile
 npm run dev:dashboard
 ```
 
+Taskfile workflow (recommended):
+
+```bash
+# Show all tasks
+task --list
+
+# API
+task dev:api
+
+# Load Munich demo data (both venue + legacy payone pipelines)
+task demo:load-munich
+
+# Quality gates
+task lint:api
+task test:contracts
+task test:api
+```
+
 Optional quality checks:
 
 ```bash

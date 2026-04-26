@@ -1,0 +1,10 @@
+{
+  "source": "ocr_ticket_scan",
+  "city": "Berlin",
+  "district": "Kreuzberg",
+  "line": "U1",
+  "station": "Gorlitzer Bahnhof",
+  "transit_delay_minutes": 16,
+  "must_return_by": "2026-04-26T10:23:00Z",
+  "confidence": 0.89
+}

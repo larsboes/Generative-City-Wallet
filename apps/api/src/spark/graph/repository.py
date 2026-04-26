@@ -11,12 +11,12 @@ from typing import Optional
 
 from spark.graph.client import is_available
 from spark.graph.models import MerchantOfferStats, PreferenceScore, RecentOffer
-from spark.graph.repositories.merchants import MerchantGraphRepository
-from spark.graph.repositories.offers import OfferGraphRepository
-from spark.graph.repositories.ops import OpsGraphRepository
-from spark.graph.repositories.preferences import PreferenceGraphRepository
-from spark.graph.repositories.redemptions import RedemptionGraphRepository
-from spark.graph.repositories.sessions import SessionGraphRepository
+from spark.graph.store.merchants import MerchantGraphRepository
+from spark.graph.store.offers import OfferGraphRepository
+from spark.graph.store.ops import OpsGraphRepository
+from spark.graph.store.preferences import PreferenceGraphRepository
+from spark.graph.store.redemptions import RedemptionGraphRepository
+from spark.graph.store.sessions import SessionGraphRepository
 
 
 class GraphRepository:

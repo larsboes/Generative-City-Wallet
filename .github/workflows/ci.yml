@@ -38,6 +38,15 @@ jobs:
       - name: Type check (pyright)
         run: uv run pyright apps/api/src/spark/
 
+      - name: Architecture boundary guard (Python)
+        run: uv run python scripts/dev/check_architecture_boundaries.py
+
+      - name: Service SQL boundary guard (Python)
+        run: uv run python scripts/dev/check_service_sql_boundaries.py
+
+      - name: Router boundary guard (Python)
+        run: uv run python scripts/dev/check_router_boundaries.py
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

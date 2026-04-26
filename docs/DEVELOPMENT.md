@@ -43,6 +43,21 @@ Examples:
 | `npm run dev:mobile` | Expo dev server |
 | `npm run dev:dashboard` | Vite dev server on `:3000` |
 
+### Taskfile quick reference
+
+`Taskfile.yml` provides shortcut wrappers for common demo/test workflows.
+
+| Command | What |
+|---------|------|
+| `task --list` | List all available tasks |
+| `task dev:api` | FastAPI + uvicorn reload on `:8000` |
+| `task demo:load-munich` | Reset DB and load Munich demo data into both pipelines |
+| `task demo:seed-legacy` | Run legacy Stuttgart seed path |
+| `task lint:api` | Ruff lint + format check |
+| `task test:contracts` | Contract symbol parity check |
+| `task test:api` | Python test suite |
+| `task verify` | Run core local gates (`test:contracts`, `test:api`) |
+
 ### Quality gates
 
 | Command | What |
@@ -57,6 +72,8 @@ Examples:
 | `npm run test` | pytest **+** contract symbol guard |
 | `npm run test:api` | pytest only (set `SPARK_DB_PATH=:memory:` locally or in CI for isolation) |
 | `npm run test:contracts` | `check_contract_symbols.py` |
+| `uv run python scripts/dev/check_architecture_boundaries.py` | CI/local architecture import-boundary guard |
+| `uv run python scripts/dev/check_service_sql_boundaries.py` | CI/local guard: prevent new direct SQL in services |
 | `npm run build` | `turbo run build` |
 
 ### Python-only (when you prefer `uv` directly)
@@ -77,6 +94,8 @@ Examples:
 | `scripts/dev/smoke_intent_vector.py` | POST sample intent to running API |
 | `scripts/dev/smoke_local_llm.py` | Validates local-LLM fixtures + parser rates |
 | `scripts/dev/check_contract_symbols.py` | CI: TS/Python contract name alignment |
+| `scripts/dev/check_architecture_boundaries.py` | CI: clean-architecture import boundary enforcement |
+| `scripts/dev/check_service_sql_boundaries.py` | CI: blocks new direct SQL usage in services (incremental rollout) |
 
 ---
 
@@ -116,7 +135,7 @@ docker compose down -v
 ```
 
 ### CI Workflow (`.github/workflows/ci.yml`)
-Runs, in order: Python ruff + format + pyright → **Node** `npm ci` → **`npm run typecheck`** → **`npm run test:contracts`** → pytest (test job) → Docker.
+Runs, in order: Python ruff + format + pyright + architecture boundary guard + service SQL boundary guard → **Node** `npm ci` → **`npm run typecheck`** → **`npm run test:contracts`** → pytest (test job) → Docker.
 Keep **root `package-lock.json`** committed so `npm ci` is reproducible.
 
 ### Turbo notes

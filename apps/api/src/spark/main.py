@@ -25,11 +25,13 @@ from spark.routers import (
     context,
     graph,
     occupancy,
+    ocr,
     offers,
     payone,
     redemption,
     transactions,
     vendors,
+    wave,
 )
 
 
@@ -83,8 +85,10 @@ app.include_router(offers.router)
 app.include_router(redemption.router)
 app.include_router(graph.router)
 app.include_router(occupancy.router)
+app.include_router(ocr.router)
 app.include_router(transactions.router)
 app.include_router(vendors.router)
+app.include_router(wave.router)
 
 
 @app.get("/api/health")

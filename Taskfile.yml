@@ -1,0 +1,68 @@
+version: "3"
+
+vars:
+  PYTHONPATH: apps/api/src
+  API_BASE: http://127.0.0.1:8000
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  dev:api:
+    desc: Run FastAPI dev server on port 8000
+    cmds:
+      - PYTHONPATH={{.PYTHONPATH}} uv run uvicorn spark.main:app --reload --port 8000
+
+  demo:load-munich:
+    desc: Reset DB and load Munich demo data into both pipelines
+    cmds:
+      - PYTHONPATH={{.PYTHONPATH}} uv run python scripts/ops/load_munich_demo.py
+
+  demo:seed-legacy:
+    desc: Seed legacy Stuttgart demo merchants and payone buckets
+    cmds:
+      - PYTHONPATH={{.PYTHONPATH}} uv run python -m spark.db.seed
+
+  smoke:intent:
+    desc: Smoke-test IntentVector API contract without generation
+    cmds:
+      - uv run python scripts/dev/smoke_intent_vector.py
+
+  smoke:intent-generate:
+    desc: Smoke-test IntentVector with /generate call
+    cmds:
+      - SPARK_API_BASE={{.API_BASE}} uv run python scripts/dev/smoke_intent_vector.py --generate
+
+  lint:api:
+    desc: Run Python lint + formatting checks
+    cmds:
+      - uv run ruff check apps/api/src/spark tests scripts
+      - uv run ruff format --check apps/api/src/spark tests scripts
+
+  test:contracts:
+    desc: Run contract symbol parity guard
+    cmds:
+      - uv run python scripts/dev/check_contract_symbols.py
+
+  test:api:
+    desc: Run Python test suite
+    cmds:
+      - uv run pytest tests/ -v --tb=short
+
+  test:unit:
+    desc: Run only unit tests
+    cmds:
+      - uv run pytest tests/unit -v --tb=short
+
+  test:integration:
+    desc: Run only integration tests
+    cmds:
+      - uv run pytest tests/integration -v --tb=short
+
+  verify:
+    desc: Run core local quality gates
+    cmds:
+      - task test:contracts
+      - task test:api

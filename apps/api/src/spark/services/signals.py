@@ -2,6 +2,10 @@ from datetime import datetime, timedelta, timezone
 import sqlite3
 
 from spark.models.transactions import DemandContext, Venue
+from spark.repositories.signals import (
+    get_current_transaction_count,
+    get_historical_transaction_counts_by_day,
+)
 from spark.services.canonicalization import ensure_utc, hour_of_week, iso, normalize_category
 
 
@@ -278,17 +282,12 @@ def infer_occupancy_pct(category: str, current_txn_rate: float) -> float | None:
 def get_historical_rate(
     conn: sqlite3.Connection, merchant_id: str, category: str, dt: datetime
 ) -> tuple[float, int]:
-    rows = conn.execute(
-        """
-        SELECT substr(timestamp, 1, 10) AS day, COUNT(*) AS transaction_count
-        FROM venue_transactions
-        WHERE merchant_id = ?
-          AND hour_of_week = ?
-          AND timestamp < ?
-        GROUP BY substr(timestamp, 1, 10)
-        """,
-        (merchant_id, hour_of_week(dt), iso(dt)),
-    ).fetchall()
+    rows = get_historical_transaction_counts_by_day(
+        conn=conn,
+        merchant_id=merchant_id,
+        hour_of_week=hour_of_week(dt),
+        before_iso=iso(dt),
+    )
     if rows:
         sample_count = len(rows)
         avg = sum(float(row["transaction_count"]) for row in rows) / sample_count
@@ -302,15 +301,14 @@ def get_current_rate(
     del historical_avg
     end = ensure_utc(dt)
     start = end - timedelta(hours=1)
-    row = conn.execute(
-        """
-        SELECT COUNT(*) AS transaction_count
-        FROM venue_transactions
-        WHERE merchant_id = ? AND timestamp >= ? AND timestamp < ?
-        """,
-        (merchant_id, iso(start), iso(end)),
-    ).fetchone()
-    return float(row["transaction_count"] or 0)
+    return float(
+        get_current_transaction_count(
+            conn=conn,
+            merchant_id=merchant_id,
+            start_iso=iso(start),
+            end_iso=iso(end),
+        )
+    )
 
 
 def predict_occupancy_pct(

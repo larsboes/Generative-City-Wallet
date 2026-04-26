@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from spark.db.connection import get_connection
 from spark.repositories.transactions import insert_venue_transactions
 from spark.repositories.venues import upsert_venues
-from spark.services.transaction_stats import (
+from spark.repositories.transaction_stats import (
     get_daily_transactions,
     get_fastest_slowest_hours,
     get_hourly_average_by_weekday,

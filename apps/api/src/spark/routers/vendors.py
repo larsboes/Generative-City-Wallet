@@ -1,8 +1,8 @@
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
-from spark.db.connection import get_connection
+from spark.routers.errors import as_not_found
 from spark.models.transactions import (
     DailyTransactionsResponse,
     DashboardHourlyBucket,
@@ -12,26 +12,15 @@ from spark.models.transactions import (
     TransactionAveragesResponse,
     VendorDashboardTodayResponse,
 )
-from spark.services.signals import compute_demand_context
-from spark.services.transaction_stats import (
-    get_daily_average,
-    get_daily_transactions,
-    get_fastest_slowest_hours,
-    get_hourly_average_by_weekday,
-    get_last_7_days_revenue,
+from spark.services.vendor_metrics import (
+    fetch_daily_transactions,
+    fetch_hour_rankings,
+    fetch_last_7_days_revenue,
+    fetch_transaction_averages,
+    fetch_vendor_dashboard_today,
 )
-from spark.services.transactions import ensure_utc, floor_hour
-from spark.services.venues import get_venue
 
 router = APIRouter(prefix="/api/vendors", tags=["vendors"])
-
-
-def _require_venue(conn, merchant_id: str):
-    venue = get_venue(conn, merchant_id)
-    if not venue:
-        raise HTTPException(status_code=404, detail="Venue not found")
-    return venue
-
 
 @router.get(
     "/{merchant_id}/transactions/daily", response_model=DailyTransactionsResponse
@@ -41,12 +30,10 @@ def api_daily_transactions(
     day: date | None = Query(default=None, alias="date"),
 ) -> DailyTransactionsResponse:
     target_day = day or datetime.now(timezone.utc).date()
-    conn = get_connection()
     try:
-        _require_venue(conn, merchant_id)
-        data = get_daily_transactions(conn, merchant_id, target_day)
-    finally:
-        conn.close()
+        data = fetch_daily_transactions(merchant_id, target_day)
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
     return DailyTransactionsResponse(merchant_id=merchant_id, **data)
 
 
@@ -57,16 +44,10 @@ def api_transaction_averages(
     merchant_id: str,
     lookback_days: int = Query(default=28, ge=1, le=365),
 ) -> TransactionAveragesResponse:
-    today = datetime.now(timezone.utc).date()
-    conn = get_connection()
     try:
-        _require_venue(conn, merchant_id)
-        daily = get_daily_average(conn, merchant_id, lookback_days, today)
-        hourly = get_hourly_average_by_weekday(
-            conn, merchant_id, today.weekday(), lookback_days, today
-        )
-    finally:
-        conn.close()
+        daily, hourly = fetch_transaction_averages(merchant_id, lookback_days)
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
     return TransactionAveragesResponse(
         merchant_id=merchant_id,
         hourly=[HourlyAverageBucket(**b) for b in hourly],
@@ -78,12 +59,10 @@ def api_transaction_averages(
     "/{merchant_id}/revenue/last-7-days", response_model=RevenueLast7DaysResponse
 )
 def api_last_7_days_revenue(merchant_id: str) -> RevenueLast7DaysResponse:
-    conn = get_connection()
     try:
-        _require_venue(conn, merchant_id)
-        data = get_last_7_days_revenue(conn, merchant_id)
-    finally:
-        conn.close()
+        data = fetch_last_7_days_revenue(merchant_id)
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
     return RevenueLast7DaysResponse(**data)
 
 
@@ -94,12 +73,10 @@ def api_hour_rankings(
     merchant_id: str,
     lookback_days: int = Query(default=28, ge=1, le=365),
 ) -> HourRankingsResponse:
-    conn = get_connection()
     try:
-        _require_venue(conn, merchant_id)
-        data = get_fastest_slowest_hours(conn, merchant_id, lookback_days)
-    finally:
-        conn.close()
+        data = fetch_hour_rankings(merchant_id, lookback_days)
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
     return HourRankingsResponse(merchant_id=merchant_id, **data)
 
 
@@ -111,21 +88,16 @@ def api_vendor_dashboard_today(
     timestamp: datetime | None = None,
     lookback_days: int = Query(default=28, ge=1, le=365),
 ) -> VendorDashboardTodayResponse:
-    dt = ensure_utc(timestamp or datetime.now(timezone.utc))
-    target_day = dt.date()
-    conn = get_connection()
     try:
-        venue = _require_venue(conn, merchant_id)
-        daily = get_daily_transactions(conn, merchant_id, target_day)
-        comparison = get_hourly_average_by_weekday(
-            conn, merchant_id, dt.weekday(), lookback_days, target_day
-        )
-        demand = compute_demand_context(
-            conn, venue, floor_hour(dt), arrival_offset_minutes=10
-        )
-        revenue = get_last_7_days_revenue(conn, merchant_id, target_day)
-    finally:
-        conn.close()
+        payload = fetch_vendor_dashboard_today(merchant_id, timestamp, lookback_days)
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
+    target_day = payload.target_day
+    daily = payload.daily
+    comparison = payload.comparison
+    demand = payload.demand
+    revenue = payload.revenue
+    current_hour = payload.current_hour
 
     comparison_by_hour = {b["hour"]: b for b in comparison}
     hourly = [
@@ -144,7 +116,7 @@ def api_vendor_dashboard_today(
     return VendorDashboardTodayResponse(
         merchant_id=merchant_id,
         date=target_day,
-        current_hour=dt.hour,
+        current_hour=current_hour,
         hourly=[DashboardHourlyBucket(**b) for b in hourly],
         demand=demand,
         revenue_last_7_days=RevenueLast7DaysResponse(**revenue),

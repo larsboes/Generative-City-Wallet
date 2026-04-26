@@ -10,8 +10,9 @@ from __future__ import annotations
 from datetime import datetime
 
 from spark.models.decision import DecisionTraceStep, MerchantDecision, OfferDecisionResult
-from spark.services.offer_decision_repository import OfferDecisionRepository
+from spark.repositories.offer_decision import OfferDecisionRepository
 from spark.services.conflict import resolve_conflict
+from spark.services.distance import distance_points, estimate_distance_m
 from spark.services.density import compute_density_signal
 
 MIN_SCORE_THRESHOLD = 30.0
@@ -33,6 +34,8 @@ def decide_offer(
     social_preference: str,
     weather_need: str,
     preference_scores: dict[str, float],
+    transit_delay_minutes: int | None = None,
+    must_return_by: str | None = None,
     db_path: str | None = None,
     now: datetime | None = None,
 ) -> OfferDecisionResult:
@@ -41,6 +44,8 @@ def decide_offer(
     hard_block = _check_hard_blocks(
         session_id=session_id,
         movement_mode=movement_mode,
+        transit_delay_minutes=transit_delay_minutes,
+        must_return_by=must_return_by,
         now=current_dt,
         repo=repo,
     )
@@ -77,6 +82,8 @@ def decide_offer(
         merchant_decision = _score_merchant_candidate(
             merchant_id=candidate.merchant_id,
             merchant_category=candidate.merchant_category,
+            user_grid_cell=grid_cell,
+            merchant_grid_cell=candidate.merchant_grid_cell,
             movement_mode=movement_mode,
             social_preference=social_preference,
             weather_need=weather_need,
@@ -165,6 +172,8 @@ def _check_hard_blocks(
     *,
     session_id: str,
     movement_mode: str,
+    transit_delay_minutes: int | None,
+    must_return_by: str | None,
     now: datetime,
     repo: OfferDecisionRepository,
 ) -> DecisionTraceStep | None:
@@ -174,6 +183,22 @@ def _check_hard_blocks(
             reason="Offers are blocked while user is exercising.",
             metadata={"movement_mode": movement_mode, "recheck_in_minutes": 10},
         )
+
+    if transit_delay_minutes is not None:
+        # Conservative deterministic gate for OCR transit window:
+        # require enough time to walk + purchase + return.
+        min_round_trip_minutes = 14
+        if transit_delay_minutes < min_round_trip_minutes:
+            return DecisionTraceStep(
+                code="transit_window_block",
+                reason="Transit delay window is too short for safe round-trip purchase.",
+                metadata={
+                    "transit_delay_minutes": transit_delay_minutes,
+                    "min_round_trip_minutes": min_round_trip_minutes,
+                    "must_return_by": must_return_by,
+                    "recheck_in_minutes": max(3, transit_delay_minutes),
+                },
+            )
 
     session_state = repo.get_session_state(
         session_id=session_id, now=now
@@ -204,6 +229,8 @@ def _score_merchant_candidate(
     *,
     merchant_id: str,
     merchant_category: str,
+    user_grid_cell: str,
+    merchant_grid_cell: str | None,
     movement_mode: str,
     social_preference: str,
     weather_need: str,
@@ -240,16 +267,23 @@ def _score_merchant_candidate(
         )
     )
 
-    # In current MVP we don't have precise per-session distance in backend;
-    # keep deterministic default for ranking stability.
-    distance_points = 25.0
-    score += distance_points
+    distance_m = estimate_distance_m(
+        user_grid_cell=user_grid_cell,
+        merchant_grid_cell=merchant_grid_cell,
+        merchant_id=merchant_id,
+    )
+    distance_score = distance_points(distance_m)
+    score += distance_score
     trace.append(
         DecisionTraceStep(
             code="distance_proxy",
-            reason="Default in-range distance contributes 25 points.",
-            score=distance_points,
-            metadata={"distance_m_assumed": 80},
+            reason="Estimated distance contributes deterministic distance points.",
+            score=distance_score,
+            metadata={
+                "distance_m_estimated": round(distance_m, 1),
+                "user_grid_cell": user_grid_cell,
+                "merchant_grid_cell": merchant_grid_cell,
+            },
         )
     )
 

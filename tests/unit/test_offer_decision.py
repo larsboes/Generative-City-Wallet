@@ -218,3 +218,76 @@ def test_post_workout_shortens_single_offer_guard_recheck(tmp_path, monkeypatch)
     assert result.recommendation == "DO_NOT_RECOMMEND"
     assert result.trace[0].code == "single_offer_guard"
     assert result.recheck_in_minutes == 12
+
+
+def test_transit_delay_short_window_blocks_offer(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_transit_block.db")
+    init_database(db_path)
+    _seed_minimal_merchants(db_path)
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.2, "current_rate": 2.0},  # noqa: ARG005
+    )
+
+    class FakeConflict:
+        recommendation = "RECOMMEND"
+        framing_band = "quiet_intentional"
+        reason = "ok"
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.resolve_conflict",
+        lambda **kwargs: FakeConflict(),  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-transit-block",
+        grid_cell="STR-MITTE-047",
+        movement_mode="browsing",
+        social_preference="quiet",
+        weather_need="neutral",
+        preference_scores={"cafe": 0.8},
+        transit_delay_minutes=8,
+        must_return_by="2026-04-26T10:15:00Z",
+        db_path=db_path,
+    )
+
+    assert result.recommendation == "DO_NOT_RECOMMEND"
+    assert result.trace[0].code == "transit_window_block"
+    assert result.recheck_in_minutes == 8
+
+
+def test_transit_delay_14m_allows_regular_decision(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_transit_allow.db")
+    init_database(db_path)
+    _seed_minimal_merchants(db_path)
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.2, "current_rate": 2.0},  # noqa: ARG005
+    )
+
+    class FakeConflict:
+        recommendation = "RECOMMEND"
+        framing_band = "quiet_intentional"
+        reason = "ok"
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.resolve_conflict",
+        lambda **kwargs: FakeConflict(),  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-transit-allow",
+        grid_cell="STR-MITTE-047",
+        movement_mode="browsing",
+        social_preference="quiet",
+        weather_need="neutral",
+        preference_scores={"cafe": 0.8},
+        transit_delay_minutes=14,
+        must_return_by="2026-04-26T10:21:00Z",
+        db_path=db_path,
+    )
+
+    assert result.recommendation == "RECOMMEND"
+    assert result.trace[0].code != "transit_window_block"

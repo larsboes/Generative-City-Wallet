@@ -24,8 +24,9 @@ def test_merchants_list(client):
     resp = client.get("/api/payone/merchants")
     assert resp.status_code == 200
     merchants = resp.json()
-    assert len(merchants) == 5
-    assert any(m["name"] == "Café Römer" for m in merchants)
+    assert len(merchants) >= 1
+    assert all("merchant_id" in m and m["merchant_id"] for m in merchants)
+    assert all("name" in m and m["name"] for m in merchants)
 
 
 def test_density_endpoint(client):

@@ -13,6 +13,8 @@ Run Python scripts with repo root as cwd, e.g.:
 uv run python scripts/ops/run_graph_maintenance.py
 uv run python scripts/dev/smoke_intent_vector.py
 uv run python scripts/dev/smoke_local_llm.py
+uv run python scripts/dev/check_architecture_boundaries.py
+uv run python scripts/dev/check_service_sql_boundaries.py
 ```
 
 See **`docs/DEVELOPMENT.md`** for the full command matrix.

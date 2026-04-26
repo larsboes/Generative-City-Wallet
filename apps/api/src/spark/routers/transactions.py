@@ -1,19 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter
 
-from fastapi import APIRouter, HTTPException
-
-from spark.db.connection import get_connection
 from spark.models.transactions import (
     LiveUpdateRequest,
     TransactionGenerationRequest,
     TransactionGenerationResponse,
 )
-from spark.services.transactions import (
-    ensure_utc,
-    generate_history_for_venues,
-    generate_last_hour_update,
-    resolve_venues,
-)
+from spark.routers.errors import as_bad_request, as_not_found
+from spark.services.transaction_generation import generate_history, generate_live_update
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
@@ -22,27 +15,27 @@ router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 def api_generate_history(
     request: TransactionGenerationRequest,
 ) -> TransactionGenerationResponse:
-    end = ensure_utc(request.end or datetime.now(timezone.utc))
-    start = ensure_utc(request.start or (end - timedelta(days=request.days)))
-    if start >= end:
-        raise HTTPException(status_code=400, detail="start must be before end")
-
-    conn = get_connection()
     try:
-        venues = resolve_venues(
-            conn, request.merchant_ids, request.category, request.city, request.limit
+        result = generate_history(
+            merchant_ids=request.merchant_ids,
+            category=request.category,
+            city=request.city,
+            limit=request.limit,
+            days=request.days,
+            start=request.start,
+            end=request.end,
+            seed=request.seed,
         )
-        if not venues:
-            raise HTTPException(status_code=404, detail="No venues matched the request")
-        inserted = generate_history_for_venues(conn, venues, start, end, request.seed)
-    finally:
-        conn.close()
+    except ValueError as exc:
+        raise as_bad_request(exc) from exc
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
 
     return TransactionGenerationResponse(
-        inserted_count=inserted,
-        venue_count=len(venues),
-        start=start,
-        end=end,
+        inserted_count=result.inserted,
+        venue_count=result.venue_count,
+        start=result.start,
+        end=result.end,
         source="synthetic_history",
     )
 
@@ -51,24 +44,22 @@ def api_generate_history(
 def api_generate_live_update(
     request: LiveUpdateRequest,
 ) -> TransactionGenerationResponse:
-    timestamp = ensure_utc(request.timestamp or datetime.now(timezone.utc))
-    conn = get_connection()
     try:
-        venues = resolve_venues(
-            conn, request.merchant_ids, request.category, request.city, request.limit
+        result = generate_live_update(
+            merchant_ids=request.merchant_ids,
+            category=request.category,
+            city=request.city,
+            limit=request.limit,
+            timestamp=request.timestamp,
+            seed=request.seed,
         )
-        if not venues:
-            raise HTTPException(status_code=404, detail="No venues matched the request")
-        inserted, window_start, window_end = generate_last_hour_update(
-            conn, venues, timestamp, request.seed
-        )
-    finally:
-        conn.close()
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
 
     return TransactionGenerationResponse(
-        inserted_count=inserted,
-        venue_count=len(venues),
-        start=window_start,
-        end=window_end,
+        inserted_count=result.inserted,
+        venue_count=result.venue_count,
+        start=result.window_start,
+        end=result.window_end,
         source="synthetic_live_update",
     )

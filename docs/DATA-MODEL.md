@@ -7,7 +7,7 @@ Canonical data model across contracts, SQLite persistence, and graph projection.
 ## Model layers
 
 1. **Canonical API contracts (Python runtime)**  
-   `apps/api/src/spark/models/contracts.py`
+   `apps/api/src/spark/models/*` (exported via `apps/api/src/spark/models/__init__.py`)
 2. **Shared cross-client mirror (TypeScript)**  
    `packages/shared/src/contracts.ts` (`@spark/shared`)
 3. **Operational store (SQLite)**  
@@ -35,6 +35,12 @@ Primary ingress contract:
   - `intent: IntentVector`
   - optional `merchant_id`
   - optional `demo_overrides` (dev/demo only)
+  - optional OCR transit object (`ocr_transit`) with confidence
+- `OCRTransitParseRequest` -> `OCRTransitParseResponse`
+  - raw OCR text parsing boundary for transit enrichment
+  - `payload` can be forwarded to `ocr_transit` on `GenerateOfferRequest`
+- `OCRTransitPayload` -> `OCRTransitIngestResponse`
+  - typed OCR ingest validation boundary (confidence + timestamp checks)
 
 `IntentVector` is the core privacy boundary object and contains abstracted fields
 such as `grid_cell`, `movement_mode`, and `weather_need` rather than raw telemetry.
@@ -42,6 +48,9 @@ such as `grid_cell`, `movement_mode`, and `weather_need` rather than raw telemet
 ### Cloud-resident classes/stores
 
 - `CompositeContextState`, `OfferDecisionTrace`, `OfferObject`
+- `OCRTransitParseRequest`, `OCRTransitParseResponse`
+- `OCRTransitPayload`, `OCRTransitIngestResponse`
+- `WaveResponse`, `JoinWaveResponse`
 - SQLite tables (`offer_audit_log`, `wallet_transactions`, `graph_event_log`, etc.)
 - optional Neo4j projection entities for personalization and explainability
 
@@ -50,6 +59,21 @@ such as `grid_cell`, `movement_mode`, and `weather_need` rather than raw telemet
 - raw latitude/longitude traces from device sensors
 - raw transaction/event history used for local-only preference derivation
 - unconstrained generative fields as source of truth for discount/expiry/merchant id
+
+---
+
+## OCR Transit Contract Handshake
+
+Recommended runtime handshake for OCR transit enrichment:
+
+1. Client posts raw OCR text to `POST /api/ocr/transit/parse`.
+2. Backend returns `OCRTransitParseResponse` with:
+   - `parsed=true` and typed `payload`, or
+   - `parsed=false` with `reason`.
+3. Client submits typed payload to `POST /api/ocr/transit` (optional explicit ingest check).
+4. Client includes validated `ocr_transit` object in `GenerateOfferRequest` for deterministic offer gating.
+
+This keeps free-form OCR extraction concerns separate from deterministic offer-policy enforcement.
 
 ---
 
@@ -184,6 +208,7 @@ erDiagram
   merchants ||--o{ offer_audit_log : appears_in
   offer_audit_log ||--o{ wallet_transactions : credits
   offer_audit_log ||--o{ graph_event_log : projects
+  offer_audit_log ||--o{ spark_waves : coordinates
 
   merchants {
     text id PK
@@ -241,6 +266,17 @@ erDiagram
     text offer_id
     text source
     text created_at
+  }
+
+  spark_waves {
+    text wave_id PK
+    text offer_id FK
+    text merchant_id
+    text created_by_session
+    integer participant_count
+    integer milestone_target
+    text expires_at
+    text status
   }
 ```
 
@@ -309,7 +345,7 @@ sequenceDiagram
 
 - **Source of truth for offer lifecycle:** SQLite `offer_audit_log`
 - **Source of truth for wallet balance:** SQLite `wallet_transactions`
-- **Source of truth for contract shape:** Python contracts in `apps/api/src/spark/models/contracts.py`
+- **Source of truth for contract shape:** Python models in `apps/api/src/spark/models/*` exported via `models/__init__.py`
 - **Parity requirement for frontend/shared consumers:** TypeScript mirror in `packages/shared/src/contracts.ts` must stay field-for-field aligned with Python
 - **Graph:** derived/augmenting personalization layer, fail-soft
 
@@ -325,3 +361,7 @@ sequenceDiagram
    - inspect `graph_event_log` idempotency keys.
 4. Unexpected density class:
    - inspect `payone_transactions` for merchant/hour-of-week baseline.
+5. OCR transit unexpectedly not applied:
+   - inspect `ocr_transit_input.used_for_gating` in offer explainability.
+6. Wave replay joins:
+   - inspect `join_applied` in `/api/waves/{id}/join` response.

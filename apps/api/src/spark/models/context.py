@@ -126,4 +126,6 @@ class DemoOverrides(BaseModel):
     merchant_occupancy_pct: Optional[float] = None
     social_preference: Optional[SocialPreference] = None
     time_bucket: Optional[str] = None
+    transit_delay_minutes: Optional[int] = Field(default=None, ge=1, le=180)
+    must_return_by: Optional[str] = None
 

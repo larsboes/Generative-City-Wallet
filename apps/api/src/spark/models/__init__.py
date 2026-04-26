@@ -5,7 +5,12 @@ Prefer importing from the narrow module (`api`, `context`, `offers`, `transactio
 `redemption`, `conflict`, `decision`) when writing new code.
 """
 
-from spark.models.api import GenerateOfferRequest as GenerateOfferRequest
+from spark.models.api import (
+    GenerateOfferRequest as GenerateOfferRequest,
+    WalletSeedItem as WalletSeedItem,
+    WalletSeedRequest as WalletSeedRequest,
+    WalletSeedResponse as WalletSeedResponse,
+)
 from spark.models.agents import (
     AgentDecision as AgentDecision,
     ConflictCheckToolResult as ConflictCheckToolResult,
@@ -58,6 +63,12 @@ from spark.models.offers import (
     MerchantInfo as MerchantInfo,
     OfferObject as OfferObject,
 )
+from spark.models.ocr import (
+    OCRTransitIngestResponse as OCRTransitIngestResponse,
+    OCRTransitParseRequest as OCRTransitParseRequest,
+    OCRTransitParseResponse as OCRTransitParseResponse,
+    OCRTransitPayload as OCRTransitPayload,
+)
 from spark.models.redemption import (
     QRPayload as QRPayload,
     RedemptionValidationRequest as RedemptionValidationRequest,
@@ -83,6 +94,12 @@ from spark.models.transactions import (
     VendorDashboardTodayResponse as VendorDashboardTodayResponse,
     Venue as Venue,
     VenueListResponse as VenueListResponse,
+)
+from spark.models.wave import (
+    CreateWaveRequest as CreateWaveRequest,
+    JoinWaveRequest as JoinWaveRequest,
+    JoinWaveResponse as JoinWaveResponse,
+    WaveResponse as WaveResponse,
 )
 
 __all__ = [
@@ -112,6 +129,9 @@ __all__ = [
     "EnvironmentContext",
     "ExplainabilityReason",
     "GenerateOfferRequest",
+    "WalletSeedItem",
+    "WalletSeedRequest",
+    "WalletSeedResponse",
     "HourRankingBucket",
     "HourRankingsResponse",
     "HourlyAverageBucket",
@@ -132,6 +152,10 @@ __all__ = [
     "OfferDecisionResult",
     "OfferDecisionTrace",
     "OfferObject",
+    "OCRTransitPayload",
+    "OCRTransitIngestResponse",
+    "OCRTransitParseRequest",
+    "OCRTransitParseResponse",
     "PriceTier",
     "QRPayload",
     "RedemptionValidationRequest",
@@ -149,4 +173,8 @@ __all__ = [
     "VenueListResponse",
     "WeatherNeed",
     "WeatherContextToolResult",
+    "CreateWaveRequest",
+    "JoinWaveRequest",
+    "WaveResponse",
+    "JoinWaveResponse",
 ]

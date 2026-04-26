@@ -1,0 +1,10 @@
+{
+  "source": "ocr_ticket_scan",
+  "city": "Berlin",
+  "district": "Kreuzberg",
+  "line": "U1",
+  "station": "Kottbusser Tor",
+  "transit_delay_minutes": 8,
+  "must_return_by": "2026-04-26T10:15:00Z",
+  "confidence": 0.92
+}

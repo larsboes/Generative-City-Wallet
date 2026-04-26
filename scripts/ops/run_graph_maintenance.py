@@ -17,6 +17,7 @@ from spark.config import (
 )
 from spark.graph import close_graph, init_graph
 from spark.graph.repository import get_repository
+from spark.services.wave import cleanup_expired_waves
 
 
 async def _run(retention_days: int, stale_after_days: int, decay_rate: float) -> dict:
@@ -30,8 +31,14 @@ async def _run(retention_days: int, stale_after_days: int, decay_rate: float) ->
         stale_after_days=stale_after_days,
         default_decay_rate=decay_rate,
     )
+    wave_cleanup = cleanup_expired_waves()
     await close_graph()
-    return {"connected": True, "cleanup": cleanup, "decay": decay}
+    return {
+        "connected": True,
+        "cleanup": cleanup,
+        "decay": decay,
+        "wave_cleanup": {"expired_rows": wave_cleanup},
+    }
 
 
 def main() -> None:

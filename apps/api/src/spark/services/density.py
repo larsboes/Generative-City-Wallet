@@ -5,7 +5,12 @@ Converts raw transaction rate into a normalized signal the offer engine consumes
 
 from datetime import datetime
 
-from spark.db.connection import get_connection
+from spark.repositories.density import (
+    get_historical_avg_at_arrival_hour,
+    get_hourly_transaction_stats,
+    get_latest_transaction_rate,
+    list_merchants_for_density,
+)
 
 
 # ── Occupancy calibration (txn_rate_at_empty, txn_rate_at_capacity, capacity) ─
@@ -34,26 +39,15 @@ def compute_density_signal(
         current_dt = datetime.now()
 
     hour_of_week = current_dt.weekday() * 24 + current_dt.hour
-    conn = get_connection(db_path)
-
-    # Historical 4-week average for this exact hour-of-week
-    row = conn.execute(
-        "SELECT AVG(txn_count), COUNT(*) FROM payone_transactions WHERE merchant_id = ? AND hour_of_week = ?",
-        (merchant_id, hour_of_week),
-    ).fetchone()
+    avg_txn, sample_count = get_hourly_transaction_stats(
+        merchant_id=merchant_id, hour_of_week=hour_of_week, db_path=db_path
+    )
 
     # If no current rate provided, use the most recent matching hour
     if current_txn_rate is None:
-        recent = conn.execute(
-            "SELECT txn_count FROM payone_transactions WHERE merchant_id = ? AND hour_of_week = ? ORDER BY timestamp DESC LIMIT 1",
-            (merchant_id, hour_of_week),
-        ).fetchone()
-        current_txn_rate = float(recent[0]) if recent else 0.0
-
-    conn.close()
-
-    avg_txn = float(row[0]) if row and row[0] else 0.0
-    sample_count = int(row[1]) if row else 0
+        current_txn_rate = get_latest_transaction_rate(
+            merchant_id=merchant_id, hour_of_week=hour_of_week, db_path=db_path
+        )
 
     if avg_txn < 0.5:
         return {
@@ -121,14 +115,11 @@ def predict_occupancy_at(
 ) -> float:
     """Predict occupancy at arrival using historical trajectory. 60% hist / 40% current blend."""
     arrival_hour_of_week = arrival_dt.weekday() * 24 + arrival_dt.hour
-    conn = get_connection(db_path)
-
-    hist_at_arrival = conn.execute(
-        "SELECT AVG(txn_count) FROM payone_transactions WHERE merchant_id = ? AND hour_of_week = ?",
-        (merchant_id, arrival_hour_of_week),
-    ).fetchone()[0]
-
-    conn.close()
+    hist_at_arrival = get_historical_avg_at_arrival_hour(
+        merchant_id=merchant_id,
+        arrival_hour_of_week=arrival_hour_of_week,
+        db_path=db_path,
+    )
 
     if not hist_at_arrival:
         return current_occ_pct
@@ -143,11 +134,7 @@ def predict_occupancy_at(
 
 def get_all_merchants_density(db_path: str | None = None) -> list[dict]:
     """Return density info for all merchants."""
-    conn = get_connection(db_path)
-    merchants = conn.execute(
-        "SELECT id, name, type, lat, lon, address, grid_cell FROM merchants"
-    ).fetchall()
-    conn.close()
+    merchants = list_merchants_for_density(db_path=db_path)
 
     results = []
     for m in merchants:

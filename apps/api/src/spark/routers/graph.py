@@ -6,6 +6,7 @@ Useful for the demo dashboard and operational checks. Read-only.
 
 from fastapi import APIRouter
 
+from spark.models.api import WalletSeedRequest
 from spark.config import (
     GRAPH_PREF_DECAY_DEFAULT_RATE,
     GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
@@ -13,11 +14,21 @@ from spark.config import (
 )
 from spark.graph import get_metrics, is_available
 from spark.graph.repository import get_repository
+from spark.models.graph_api import (
+    GraphCleanupResponse,
+    GraphDecayResponse,
+    GraphHealthResponse,
+    GraphMigrationsResponse,
+    GraphStatsResponse,
+    SessionPreferencesResponse,
+    SessionRecentOffersResponse,
+)
+from spark.services.wallet_seed import apply_wallet_seed_preferences
 
 router = APIRouter(prefix="/api/graph", tags=["graph"])
 
 
-@router.get("/health")
+@router.get("/health", response_model=GraphHealthResponse)
 async def graph_health():
     """Lightweight health check + Neo4j metrics snapshot."""
     return {
@@ -26,14 +37,14 @@ async def graph_health():
     }
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=GraphStatsResponse)
 async def graph_stats():
     """Aggregate node/edge counts (used by ops dashboards)."""
     repo = get_repository()
     return {"available": is_available(), "stats": await repo.stats()}
 
 
-@router.get("/sessions/{session_id}/preferences")
+@router.get("/sessions/{session_id}/preferences", response_model=SessionPreferencesResponse)
 async def session_preferences(session_id: str, limit: int = 10):
     """Top preference scores for a given user session — for explainability."""
     repo = get_repository()
@@ -53,7 +64,7 @@ async def session_preferences(session_id: str, limit: int = 10):
     }
 
 
-@router.get("/sessions/{session_id}/recent-offers")
+@router.get("/sessions/{session_id}/recent-offers", response_model=SessionRecentOffersResponse)
 async def session_recent_offers(session_id: str, limit: int = 10):
     """Most recent offers for a user (graph view, for debugging the rules engine)."""
     repo = get_repository()
@@ -74,7 +85,25 @@ async def session_recent_offers(session_id: str, limit: int = 10):
     }
 
 
-@router.post("/cleanup")
+@router.post("/sessions/{session_id}/wallet-seed")
+async def wallet_seed(session_id: str, request: WalletSeedRequest):
+    """
+    Seed category preferences from user-approved wallet artifacts.
+
+    This is idempotent per (session_id, category) and uses `source_type=wallet_seed`
+    with higher decay for cold-start priors.
+    """
+    result = await apply_wallet_seed_preferences(
+        session_id=session_id,
+        seeds=request.seeds,
+    )
+    return {
+        "available": is_available(),
+        "result": result.model_dump(mode="json"),
+    }
+
+
+@router.post("/cleanup", response_model=GraphCleanupResponse)
 async def run_graph_cleanup(retention_days: int = GRAPH_RETENTION_DAYS):
     """Delete graph session/offer artifacts older than retention window."""
     repo = get_repository()
@@ -85,7 +114,7 @@ async def run_graph_cleanup(retention_days: int = GRAPH_RETENTION_DAYS):
     }
 
 
-@router.post("/decay-preferences")
+@router.post("/decay-preferences", response_model=GraphDecayResponse)
 async def run_preference_decay(
     stale_after_days: int = GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
     default_decay_rate: float = GRAPH_PREF_DECAY_DEFAULT_RATE,
@@ -98,7 +127,7 @@ async def run_preference_decay(
     return {"available": is_available(), "decay": decay}
 
 
-@router.get("/migrations")
+@router.get("/migrations", response_model=GraphMigrationsResponse)
 async def graph_migrations():
     repo = get_repository()
     return {"available": is_available(), "migrations": await repo.migration_status()}

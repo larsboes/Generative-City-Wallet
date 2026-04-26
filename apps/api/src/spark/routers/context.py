@@ -4,13 +4,13 @@ Context endpoints — composite state builder.
 
 from fastapi import APIRouter
 
-from spark.models.context import DemoOverrides, IntentVector
+from spark.models.context import CompositeContextState, DemoOverrides, IntentVector
 from spark.services.composite import build_composite_state
 
 router = APIRouter(prefix="/api/context", tags=["context"])
 
 
-@router.post("/composite")
+@router.post("/composite", response_model=CompositeContextState)
 async def composite_endpoint(
     intent: IntentVector,
     merchant_id: str | None = None,

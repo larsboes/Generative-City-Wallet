@@ -275,12 +275,17 @@ export interface DemoOverrides {
   merchant_occupancy_pct?: number;
   social_preference?: SocialPreference;
   time_bucket?: string;
+  transit_delay_minutes?: number;
+  must_return_by?: string;
 }
 
 export interface GenerateOfferRequest {
   intent: IntentVector;
   merchant_id?: string;
   demo_overrides?: DemoOverrides;
+  transit_delay_minutes?: number;
+  must_return_by?: string;
+  ocr_transit?: OCRTransitPayload;
 }
 
 // ── Conflict Resolution (standalone endpoint) ────────────────────────────────
@@ -299,4 +304,85 @@ export interface ConflictResolveResponse {
   coupon_mechanism?: string;
   reason: string;
   recheck_in_minutes?: number;
+}
+
+// ── Wallet Seed Ingestion ─────────────────────────────────────────────────────
+
+export interface WalletSeedItem {
+  category: string;
+  weight: number;
+}
+
+export interface WalletSeedRequest {
+  seeds: WalletSeedItem[];
+}
+
+export interface WalletSeedResponse {
+  session_id: string;
+  applied: number;
+  skipped: number;
+}
+
+// ── Spark Wave ────────────────────────────────────────────────────────────────
+
+export interface CreateWaveRequest {
+  offer_id: string;
+  merchant_id: string;
+  created_by_session: string;
+  milestone_target: number;
+  ttl_minutes: number;
+}
+
+export interface JoinWaveRequest {
+  session_id: string;
+}
+
+export interface WaveResponse {
+  wave_id: string;
+  offer_id: string;
+  merchant_id: string;
+  participant_count: number;
+  milestone_target: number;
+  status: string;
+  expires_at: string;
+  catalyst_bonus_pct: number;
+}
+
+export interface JoinWaveResponse extends WaveResponse {
+  join_applied: boolean;
+}
+
+// ── OCR Transit Ingestion ─────────────────────────────────────────────────────
+
+export interface OCRTransitPayload {
+  city?: string;
+  district?: string;
+  line?: string;
+  station?: string;
+  transit_delay_minutes: number;
+  must_return_by?: string;
+  confidence: number;
+}
+
+export interface OCRTransitIngestResponse {
+  accepted: boolean;
+  transit_delay_minutes: number;
+  must_return_by?: string;
+  confidence: number;
+  reason?: string;
+}
+
+export interface OCRTransitParseRequest {
+  raw_text: string;
+  city_hint?: string;
+  district_hint?: string;
+  parser_provider?: "rule_based";
+}
+
+export interface OCRTransitParseResponse {
+  parsed: boolean;
+  payload?: OCRTransitPayload;
+  parser_provider: string;
+  attempts: number;
+  reason?: string;
 }

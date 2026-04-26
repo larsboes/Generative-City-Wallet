@@ -1,8 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
-from spark.db.connection import get_connection
 from spark.models.transactions import (
     OccupancyQueryRequest,
     OccupancyQueryResponse,
@@ -10,8 +9,13 @@ from spark.models.transactions import (
     Venue,
     VenueListResponse,
 )
-from spark.services.signals import compute_demand_context
-from spark.services.venues import get_venue, list_venues
+from spark.routers.errors import as_not_found
+from spark.services.occupancy_query import (
+    get_occupancy_for_merchant,
+    get_venue_or_none,
+    list_available_venues,
+    query_occupancy,
+)
 
 router = APIRouter(prefix="/api", tags=["occupancy"])
 
@@ -27,21 +31,13 @@ def api_list_venues(
     radius_m: float | None = Query(default=None, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> VenueListResponse:
-    conn = get_connection()
-    try:
-        venues = list_venues(conn, category, city, lat, lon, radius_m, limit)
-    finally:
-        conn.close()
+    venues = list_available_venues(category, city, lat, lon, radius_m, limit)
     return VenueListResponse(venues=venues, count=len(venues))
 
 
 @router.get("/venues/{merchant_id}", response_model=Venue)
 def api_get_venue(merchant_id: str) -> Venue:
-    conn = get_connection()
-    try:
-        venue = get_venue(conn, merchant_id)
-    finally:
-        conn.close()
+    venue = get_venue_or_none(merchant_id)
     if not venue:
         raise HTTPException(status_code=404, detail="Venue not found")
     return venue
@@ -53,48 +49,37 @@ def api_get_occupancy(
     timestamp: datetime | None = None,
     arrival_offset_minutes: int = Query(default=10, ge=0, le=240),
 ) -> OccupancyResponse:
-    dt = timestamp or datetime.now(timezone.utc)
-    conn = get_connection()
     try:
-        venue = get_venue(conn, merchant_id)
-        if not venue:
-            raise HTTPException(status_code=404, detail="Venue not found")
-        demand = compute_demand_context(conn, venue, dt, arrival_offset_minutes)
-    finally:
-        conn.close()
+        data = get_occupancy_for_merchant(
+            merchant_id, timestamp, arrival_offset_minutes
+        )
+    except LookupError as exc:
+        raise as_not_found(exc) from exc
     return OccupancyResponse(
-        merchant_id=venue.merchant_id,
-        name=venue.name,
-        category=venue.category,
-        city=venue.city,
-        timestamp=dt,
-        demand=demand,
+        merchant_id=data.venue.merchant_id,
+        name=data.venue.name,
+        category=data.venue.category,
+        city=data.venue.city,
+        timestamp=data.timestamp,
+        demand=data.demand,
     )
 
 
 @router.post("/occupancy/query", response_model=OccupancyQueryResponse)
 def api_query_occupancy(request: OccupancyQueryRequest) -> OccupancyQueryResponse:
-    dt = request.timestamp or datetime.now(timezone.utc)
     results: list[OccupancyResponse] = []
-    conn = get_connection()
-    try:
-        for merchant_id in request.merchant_ids:
-            venue = get_venue(conn, merchant_id)
-            if not venue:
-                continue
-            demand = compute_demand_context(
-                conn, venue, dt, request.arrival_offset_minutes
+    data = query_occupancy(
+        request.merchant_ids, request.timestamp, request.arrival_offset_minutes
+    )
+    for venue, demand in data.items:
+        results.append(
+            OccupancyResponse(
+                merchant_id=venue.merchant_id,
+                name=venue.name,
+                category=venue.category,
+                city=venue.city,
+                timestamp=data.timestamp,
+                demand=demand,
             )
-            results.append(
-                OccupancyResponse(
-                    merchant_id=venue.merchant_id,
-                    name=venue.name,
-                    category=venue.category,
-                    city=venue.city,
-                    timestamp=dt,
-                    demand=demand,
-                )
-            )
-    finally:
-        conn.close()
+        )
     return OccupancyQueryResponse(results=results, count=len(results))

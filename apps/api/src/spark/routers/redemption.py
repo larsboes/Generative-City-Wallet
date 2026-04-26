@@ -4,8 +4,14 @@ Redemption and wallet endpoints.
 
 from fastapi import APIRouter
 
-from spark.models.conflict import ConflictResolveRequest
-from spark.models.redemption import RedemptionValidationRequest
+from spark.models.conflict import ConflictResolveRequest, ConflictResolveResponse
+from spark.models.redemption import (
+    OfferOutcomeResponse,
+    RedemptionConfirmResponse,
+    RedemptionValidationRequest,
+    RedemptionValidationResponse,
+    WalletResponse,
+)
 from spark.services.conflict import resolve_conflict
 from spark.services.redemption import (
     confirm_redemption,
@@ -19,14 +25,14 @@ from spark.services.redemption import (
 router = APIRouter(prefix="/api", tags=["redemption"])
 
 
-@router.post("/redemption/validate")
-async def validate_endpoint(request: RedemptionValidationRequest):
+@router.post("/redemption/validate", response_model=RedemptionValidationResponse)
+async def validate_endpoint(request: RedemptionValidationRequest) -> RedemptionValidationResponse:
     """Merchant scans QR — validate and return discount info."""
     return validate_qr(request.qr_payload, request.merchant_id)
 
 
-@router.post("/redemption/confirm")
-async def confirm_endpoint(offer_id: str):
+@router.post("/redemption/confirm", response_model=RedemptionConfirmResponse)
+async def confirm_endpoint(offer_id: str) -> RedemptionConfirmResponse:
     """Confirm redemption — credit cashback and reinforce KG preferences."""
     result = confirm_redemption(offer_id)
     if result.get("success"):
@@ -39,11 +45,13 @@ async def confirm_endpoint(offer_id: str):
             amount_eur=result.get("amount_eur", 0.0),
             merchant_category=category,
         )
-    return result
+    return RedemptionConfirmResponse(**result)
 
 
-@router.post("/offers/{offer_id}/outcome")
-async def offer_outcome_endpoint(offer_id: str, status: str, session_id: str):
+@router.post("/offers/{offer_id}/outcome", response_model=OfferOutcomeResponse)
+async def offer_outcome_endpoint(
+    offer_id: str, status: str, session_id: str
+) -> OfferOutcomeResponse:
     """
     Record a non-redemption outcome (ACCEPTED, DECLINED, EXPIRED) for an offer.
 
@@ -52,7 +60,7 @@ async def offer_outcome_endpoint(offer_id: str, status: str, session_id: str):
     """
     status = status.upper()
     if status not in {"ACCEPTED", "DECLINED", "EXPIRED"}:
-        return {"success": False, "error": "INVALID_STATUS"}
+        return OfferOutcomeResponse(success=False, error="INVALID_STATUS")
 
     category = lookup_merchant_category_for_offer(offer_id)
     await project_offer_outcome_to_graph(
@@ -61,17 +69,17 @@ async def offer_outcome_endpoint(offer_id: str, status: str, session_id: str):
         status=status,
         merchant_category=category,
     )
-    return {"success": True, "offer_id": offer_id, "status": status}
+    return OfferOutcomeResponse(success=True, offer_id=offer_id, status=status)
 
 
-@router.get("/wallet/{session_id}")
-async def wallet_endpoint(session_id: str):
+@router.get("/wallet/{session_id}", response_model=WalletResponse)
+async def wallet_endpoint(session_id: str) -> WalletResponse:
     """Get wallet balance and transaction history."""
-    return get_wallet(session_id)
+    return WalletResponse(**get_wallet(session_id))
 
 
-@router.post("/conflict/resolve")
-async def conflict_endpoint(request: ConflictResolveRequest):
+@router.post("/conflict/resolve", response_model=ConflictResolveResponse)
+async def conflict_endpoint(request: ConflictResolveRequest) -> ConflictResolveResponse:
     """
     Standalone conflict resolution endpoint.
     Useful for dashboard integration and debugging.
@@ -83,10 +91,10 @@ async def conflict_endpoint(request: ConflictResolveRequest):
         current_dt=request.current_dt,
         active_coupon=request.active_coupon,
     )
-    return {
-        "recommendation": result.recommendation,
-        "framing_band": result.framing_band,
-        "coupon_mechanism": result.coupon_mechanism,
-        "reason": result.reason,
-        "recheck_in_minutes": result.recheck_in_minutes,
-    }
+    return ConflictResolveResponse(
+        recommendation=result.recommendation,
+        framing_band=result.framing_band,
+        coupon_mechanism=result.coupon_mechanism,
+        reason=result.reason,
+        recheck_in_minutes=result.recheck_in_minutes,
+    )

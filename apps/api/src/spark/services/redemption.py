@@ -12,8 +12,16 @@ from spark.config import (
     DEFAULT_QR_VALID_MINUTES,
     GRAPH_PREF_DECAY_DEFAULT_RATE,
 )
-from spark.db.connection import get_connection
 from spark.graph.repository import get_repository
+from spark.repositories.redemption import (
+    acquire_graph_event_idempotency_key,
+    cleanup_graph_event_log,
+    credit_wallet_transaction,
+    get_offer_audit_row,
+    get_wallet_snapshot,
+    lookup_merchant_category_for_offer as lookup_merchant_category_for_offer_repo,
+    mark_offer_redeemed,
+)
 from spark.utils.logger import get_logger
 from spark.services.canonicalization import parse_stored_offer
 
@@ -54,37 +62,27 @@ def validate_qr(
             return {"valid": False, "offer_id": offer_id, "error": "EXPIRED"}
 
         # Look up offer in audit log
-        conn = get_connection(db_path)
-        offer_row = conn.execute(
-            "SELECT * FROM offer_audit_log WHERE offer_id = ?",
-            (offer_id,),
-        ).fetchone()
+        offer_row = get_offer_audit_row(offer_id=offer_id, db_path=db_path)
 
         if not offer_row:
-            conn.close()
             return {"valid": False, "offer_id": offer_id, "error": "INVALID_TOKEN"}
 
         # Check if already redeemed
         if offer_row["status"] == "REDEEMED":
-            conn.close()
             return {"valid": False, "offer_id": offer_id, "error": "ALREADY_REDEEMED"}
 
         # Verify merchant match
         if offer_row["merchant_id"] != merchant_id:
-            conn.close()
             return {"valid": False, "offer_id": offer_id, "error": "WRONG_MERCHANT"}
 
         # Verify token (HMAC)
         expected_token = _compute_token(offer_id, offer_row["session_id"], expiry_unix)
         if not hmac.compare_digest(token_hash, expected_token):
-            conn.close()
             return {"valid": False, "offer_id": offer_id, "error": "INVALID_TOKEN"}
 
         # Parse discount from final_offer
         parsed_offer = parse_stored_offer(offer_row["final_offer"])
         final_offer = parsed_offer.value
-
-        conn.close()
 
         return {
             "valid": True,
@@ -107,23 +105,14 @@ def confirm_redemption(
     db_path: str | None = None,
 ) -> dict:
     """Confirm redemption and credit cashback."""
-    conn = get_connection(db_path)
-
-    offer_row = conn.execute(
-        "SELECT * FROM offer_audit_log WHERE offer_id = ?",
-        (offer_id,),
-    ).fetchone()
+    offer_row = get_offer_audit_row(offer_id=offer_id, db_path=db_path)
 
     if not offer_row:
-        conn.close()
         return {"success": False, "error": "Offer not found"}
 
     # Update offer status
     now = datetime.now().isoformat()
-    conn.execute(
-        "UPDATE offer_audit_log SET status = 'REDEEMED', redeemed_at = ? WHERE offer_id = ?",
-        (now, offer_id),
-    )
+    mark_offer_redeemed(offer_id=offer_id, redeemed_at_iso=now, db_path=db_path)
 
     # Calculate cashback (discount value as cashback EUR)
     parsed_offer = parse_stored_offer(offer_row["final_offer"])
@@ -137,20 +126,14 @@ def confirm_redemption(
     if cashback_amount < 0.01:
         cashback_amount = 0.68  # fallback for demo
 
-    # Credit wallet
-    conn.execute(
-        "INSERT INTO wallet_transactions (session_id, offer_id, amount_eur, merchant_name, credited_at) VALUES (?, ?, ?, ?, ?)",
-        (offer_row["session_id"], offer_id, cashback_amount, merchant_name, now),
+    wallet_balance = credit_wallet_transaction(
+        session_id=offer_row["session_id"],
+        offer_id=offer_id,
+        amount_eur=cashback_amount,
+        merchant_name=merchant_name,
+        credited_at_iso=now,
+        db_path=db_path,
     )
-
-    # Compute new balance
-    balance_row = conn.execute(
-        "SELECT COALESCE(SUM(amount_eur), 0) as total FROM wallet_transactions WHERE session_id = ?",
-        (offer_row["session_id"],),
-    ).fetchone()
-
-    conn.commit()
-    conn.close()
 
     return {
         "success": True,
@@ -159,7 +142,7 @@ def confirm_redemption(
         "amount_eur": cashback_amount,
         "merchant_name": merchant_name,
         "credited_at": now,
-        "wallet_balance_eur": round(balance_row["total"], 2),
+        "wallet_balance_eur": round(wallet_balance, 2),
     }
 
 
@@ -271,41 +254,16 @@ def lookup_merchant_category_for_offer(
     offer_id: str, db_path: str | None = None
 ) -> str | None:
     """Return the merchant category for an offer (used when projecting outcomes)."""
-    conn = get_connection(db_path)
-    try:
-        row = conn.execute(
-            """
-            SELECT m.type AS category
-            FROM offer_audit_log o
-            JOIN merchants m ON m.id = o.merchant_id
-            WHERE o.offer_id = ?
-            """,
-            (offer_id,),
-        ).fetchone()
-        return row["category"] if row else None
-    finally:
-        conn.close()
+    return lookup_merchant_category_for_offer_repo(offer_id=offer_id, db_path=db_path)
 
 
 def get_wallet(session_id: str, db_path: str | None = None) -> dict:
     """Get wallet balance and transaction history."""
-    conn = get_connection(db_path)
-
-    balance_row = conn.execute(
-        "SELECT COALESCE(SUM(amount_eur), 0) as total FROM wallet_transactions WHERE session_id = ?",
-        (session_id,),
-    ).fetchone()
-
-    transactions = conn.execute(
-        "SELECT offer_id, amount_eur, merchant_name, credited_at FROM wallet_transactions WHERE session_id = ? ORDER BY credited_at DESC LIMIT 20",
-        (session_id,),
-    ).fetchall()
-
-    conn.close()
+    balance, transactions = get_wallet_snapshot(session_id=session_id, db_path=db_path)
 
     return {
         "session_id": session_id,
-        "balance_eur": round(balance_row["total"], 2),
+        "balance_eur": round(balance, 2),
         "transactions": [
             {
                 "offer_id": t["offer_id"],
@@ -332,47 +290,18 @@ def _acquire_graph_event_idempotency_key(
     db_path: str | None = None,
 ) -> bool:
     """Insert-once guard for graph side-effects."""
-    token = f"{event_type}:{session_id or '-'}:{offer_id or '-'}"
-    key = hashlib.sha256(token.encode()).hexdigest()
-    conn = get_connection(db_path)
-    try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS graph_event_log (
-                idempotency_key TEXT PRIMARY KEY,
-                event_type TEXT NOT NULL,
-                session_id TEXT,
-                offer_id TEXT,
-                source TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        result = conn.execute(
-            """
-            INSERT OR IGNORE INTO graph_event_log (
-                idempotency_key, event_type, session_id, offer_id, source
-            ) VALUES (?, ?, ?, ?, ?)
-            """,
-            (key, event_type, session_id, offer_id, "kg_projection"),
-        )
-        conn.commit()
-        return result.rowcount > 0
-    finally:
-        conn.close()
+    return acquire_graph_event_idempotency_key(
+        event_type=event_type,
+        session_id=session_id,
+        offer_id=offer_id,
+        source="kg_projection",
+        db_path=db_path,
+    )
 
 
 def _cleanup_graph_event_log(db_path: str | None = None) -> None:
     """Best-effort retention cleanup for projection idempotency rows."""
-    conn = get_connection(db_path)
-    try:
-        conn.execute(
-            """
-            DELETE FROM graph_event_log
-            WHERE datetime(created_at) < datetime('now', ?)
-            """,
-            (f"-{GRAPH_EVENT_RETENTION_DAYS} days",),
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    cleanup_graph_event_log(
+        retention_days=GRAPH_EVENT_RETENTION_DAYS,
+        db_path=db_path,
+    )

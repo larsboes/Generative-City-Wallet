@@ -125,6 +125,24 @@ CREATE TABLE IF NOT EXISTS graph_event_log (
 CREATE INDEX IF NOT EXISTS idx_graph_event_log_created_at
     ON graph_event_log(created_at);
 
+-- ── Spark Wave (social coordination, anonymous + TTL-bounded) ─────────────────
+
+CREATE TABLE IF NOT EXISTS spark_waves (
+    wave_id              TEXT PRIMARY KEY,
+    offer_id             TEXT NOT NULL,
+    merchant_id          TEXT NOT NULL,
+    created_by_session   TEXT NOT NULL,
+    participant_count    INTEGER NOT NULL DEFAULT 1,
+    milestone_target     INTEGER NOT NULL DEFAULT 3,
+    expires_at           TEXT NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'ACTIVE', -- ACTIVE | COMPLETED | EXPIRED
+    created_at           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (offer_id) REFERENCES offer_audit_log(offer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spark_waves_offer
+    ON spark_waves(offer_id);
+
 -- ── Venue Occupancy (Finn's transaction-based demand system) ──────────────────
 
 CREATE TABLE IF NOT EXISTS venues (

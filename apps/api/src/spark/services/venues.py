@@ -3,8 +3,12 @@ import sqlite3
 from typing import Iterable
 
 from spark.models.transactions import Venue
-from spark.repositories.venues import upsert_venues as repo_upsert_venues
-from spark.services.signals import normalize_category
+from spark.repositories.venues import (
+    get_venue_row,
+    list_venue_rows,
+    upsert_venues as repo_upsert_venues,
+)
+from spark.services.canonicalization import normalize_category
 
 
 def row_to_venue(row: sqlite3.Row) -> Venue:
@@ -38,9 +42,7 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 
 def get_venue(conn: sqlite3.Connection, merchant_id: str) -> Venue | None:
-    row = conn.execute(
-        "SELECT * FROM venues WHERE merchant_id = ?", (merchant_id,)
-    ).fetchone()
+    row = get_venue_row(conn, merchant_id)
     return row_to_venue(row) if row else None
 
 
@@ -53,29 +55,20 @@ def list_venues(
     radius_m: float | None = None,
     limit: int = 100,
 ) -> list[Venue]:
-    clauses: list[str] = []
-    params: list[object] = []
-
+    categories: list[str] | None = None
     if category:
         categories = [
             normalize_category(part) for part in category.split(",") if part.strip()
         ]
-        placeholders = ",".join("?" for _ in categories)
-        clauses.append(f"category IN ({placeholders})")
-        params.extend(categories)
-
-    if city:
-        clauses.append("LOWER(city) = LOWER(?)")
-        params.append(city)
-
-    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     query_limit = (
         5000 if lat is not None and lon is not None and radius_m is not None else limit
     )
-    rows = conn.execute(
-        f"SELECT * FROM venues {where} ORDER BY name LIMIT ?",
-        (*params, max(1, min(query_limit, 5000))),
-    ).fetchall()
+    rows = list_venue_rows(
+        conn,
+        categories=categories,
+        city=city,
+        query_limit=query_limit,
+    )
     venues = [row_to_venue(row) for row in rows]
 
     if lat is None or lon is None or radius_m is None:

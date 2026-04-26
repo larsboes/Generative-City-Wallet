@@ -1,54 +1,51 @@
 # Spark — Documentation
 
-This folder holds **current, implementation-aligned** documentation for the repo.  
-Long-form product, pitch, and hackathon planning material lives under **[`planning/`](planning/README.md)**.
+Spark is a real-time contextual intelligence layer for urban retail.
 
 ---
 
-## Core documentation
-
-| Doc | What it covers |
-|-----|----------------|
-| **[`ARCHITECTURE.md`](ARCHITECTURE.md)** | **How it works:** Main architecture overview and navigation. |
-| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | **How to run it:** Workspaces, npm/turbo/uv commands, Docker, CI, import rules, and active tech debt. |
-| **[`architecture/neo4j-graph.md`](architecture/neo4j-graph.md)** | **Graph deep dive:** Server-side user knowledge graph rules and runtime behavior. |
-| **[`CONCEPT.md`](CONCEPT.md)** | **Why it exists:** Stable product concept and long-lived principles. |
-| **[`architecture/context-signals.md`](architecture/context-signals.md)** | **Context model:** signal categories, composite usage, and runtime boundaries. |
-| **[`architecture/offer-decision-engine.md`](architecture/offer-decision-engine.md)** | **Decision engine:** deterministic ranking, thresholding, and trace. |
-| **[`architecture/llm-and-hard-rails.md`](architecture/llm-and-hard-rails.md)** | **LLM safety boundary:** deterministic recommendation vs generative framing and rails. |
-| **[`architecture/ingress-and-canonicalization.md`](architecture/ingress-and-canonicalization.md)** | **Mapping boundary:** Fluent Bit ingress normalization vs Python canonical contracts. |
-| **[`DATA-MODEL.md`](DATA-MODEL.md)** | **Data model:** contracts, SQLite tables, graph projection relationships, and ownership. |
-| **[`architecture/consumer-app-surfaces.md`](architecture/consumer-app-surfaces.md)** | **Consumer surfaces:** in-app, push, lock-screen/widget behavior and flow. |
-| **[`architecture/merchant-dashboard.md`](architecture/merchant-dashboard.md)** | **Business surfaces:** overview, rules, analytics, validation flow. |
-| **[`architecture/data-simulation.md`](architecture/data-simulation.md)** | **Synthetic data layer:** transaction simulation, density signal, occupancy proxy. |
+## 🏗️ Core Architecture
+| File | Description |
+|---|---|
+| **[`ARCHITECTURE.md`](ARCHITECTURE.md)** | **System Overview:** Main architecture, privacy boundaries, and data flow. |
+| **[`DATA-MODEL.md`](DATA-MODEL.md)** | **Schema & Contracts:** Canonical API contracts, SQLite schema, and graph projection. |
+| **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | **Dev Guide:** Local setup, toolchain, and contribution rules. |
+| **[`CONCEPT.md`](CONCEPT.md)** | **Vision:** Stable product principles and "Why" behind Spark. |
 
 ---
 
-## Planning & Research archive
+## 🛠️ Functional Specifications (`specs/`)
+Technical deep-dives into the system's core logic engines.
 
-
-**[`planning/README.md`](planning/README.md)** — navigation by role and topic (merchant dashboard, consumer app, architecture, pitch, research).
+- **[`CONTEXT-ENGINE.md`](specs/CONTEXT-ENGINE.md)**: Signal aggregation and the composite state machine.
+- **[`GENERATIVE-ENGINE.md`](specs/GENERATIVE-ENGINE.md)**: AI offer pipeline, GenUI, and prompting strategy.
+- **[`INTENT-MODEL.md`](specs/INTENT-MODEL.md)**: On-device mobility classification and intent extraction.
+- **[`KNOWLEDGE-GRAPH.md`](specs/KNOWLEDGE-GRAPH.md)**: User preference graph and behavioral seeding.
+- **[`CONFLICT-RESOLUTION.md`](specs/CONFLICT-RESOLUTION.md)**: Balancing user intent with venue occupancy.
+- **[`SOCIAL-COORDINATION.md`](specs/SOCIAL-COORDINATION.md)**: Anonymous momentum signals and Spark Waves.
+- **[`SAFETY-AND-LIABILITY.md`](specs/SAFETY-AND-LIABILITY.md)**: Hard rails, audit trails, and legal defensive design.
 
 ---
 
-## Current status vs planning
+## 📱 Product & UX (`product/`)
+Specifications for user-facing surfaces.
 
-The planning docs are broader than what is currently implemented. Use this as a quick reality check:
+- **[`OVERVIEW.md`](product/OVERVIEW.md)**: The "Two Products, One System" concept and key flows.
+- **[`CONSUMER-APP.md`](product/CONSUMER-APP.md)**: Mobile app screens, interactions, and privacy pulses.
+- **[`MERCHANT-DASHBOARD.md`](product/MERCHANT-DASHBOARD.md)**: Rule engine, analytics, and redemption flows.
 
-- **Implemented now**
-  - Deterministic offer selection path (`offer_decision`) with decision trace.
-  - Pre-LLM graph guardrails (`GraphValidationService`).
-  - Hard-rails LLM boundary (LLM for framing/content, not offer entitlement).
-  - Offer lifecycle projection into Neo4j + idempotent projection guard.
+---
 
-- **Partially implemented**
-  - Composite context and conflict resolution logic (core paths in place; still evolving).
-  - On-device local LLM spike scaffolding and fixtures (not full production path yet).
+## 🚀 Pitch & Strategy (`pitch/`)
+Materials for presentation and business analysis.
 
-- **Still planning-stage / missing from runtime**
-  - OCR transit delay enrichment end-to-end.
-  - Wallet pass cold-start seeding end-to-end.
-  - Spark Wave/social coordination mechanics.
-  - Full “advanced signals” rollout from `docs/planning/16-ADVANCED-SIGNALS.md`.
+- **[`BACKGROUND.md`](pitch/BACKGROUND.md)**: Vision, strategy, and challenge analysis.
+- **[`DEMO-SCRIPT.md`](pitch/DEMO-SCRIPT.md)**: The end-to-end presentation narrative.
+- **[`GAP-ANALYSIS.md`](pitch/GAP-ANALYSIS.md)**: DSV-specific business case and competitive mapping.
 
-If you need the most accurate current behavior, start with `ARCHITECTURE.md` + `architecture/neo4j-graph.md`, then use planning docs for roadmap intent.
+---
+
+## 🗺️ Roadmap & Planning (`roadmap/`, `planning/`)
+- **[`roadmap/MVP-SCOPE.md`](roadmap/MVP-SCOPE.md)**: Feature tiers and current roadmap.
+- **[`planning/OPEN-QUESTIONS.md`](planning/OPEN-QUESTIONS.md)**: Live decision log and blockers.
+- **[`planning/IMPLEMENTATION-GAPS.md`](planning/IMPLEMENTATION-GAPS.md)**: Technical checklist for current build.

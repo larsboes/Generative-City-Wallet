@@ -64,3 +64,38 @@ def upsert_venues(db_path: str | Path | None, venues: list[dict[str, Any]]) -> i
         conn.close()
     return len(venues)
 
+
+def get_venue_row(
+    conn: sqlite3.Connection, merchant_id: str
+) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM venues WHERE merchant_id = ?", (merchant_id,)
+    ).fetchone()
+
+
+def list_venue_rows(
+    conn: sqlite3.Connection,
+    *,
+    categories: list[str] | None = None,
+    city: str | None = None,
+    query_limit: int = 100,
+) -> list[sqlite3.Row]:
+    clauses: list[str] = []
+    params: list[object] = []
+
+    if categories:
+        placeholders = ",".join("?" for _ in categories)
+        clauses.append(f"category IN ({placeholders})")
+        params.extend(categories)
+
+    if city:
+        clauses.append("LOWER(city) = LOWER(?)")
+        params.append(city)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    bounded_limit = max(1, min(query_limit, 5000))
+    return conn.execute(
+        f"SELECT * FROM venues {where} ORDER BY name LIMIT ?",
+        (*params, bounded_limit),
+    ).fetchall()
+
