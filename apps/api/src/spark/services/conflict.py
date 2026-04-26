@@ -80,7 +80,7 @@ def resolve_conflict(
     walk_time_min = 2
     arrival_dt = current_dt + timedelta(minutes=walk_time_min + 1)
 
-    current_occ = infer_occupancy_pct(merchant_id, current_txn_rate)
+    current_occ = infer_occupancy_pct(merchant_id, current_txn_rate, db_path)
     predicted_occ = predict_occupancy_at(
         merchant_id, current_occ or 0, current_dt, arrival_dt, db_path
     )

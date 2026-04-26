@@ -181,7 +181,7 @@ curl -s -X POST http://localhost:8000/api/offers/generate \
   -H "Content-Type: application/json" \
   -d '{
     "intent": {
-      "grid_cell": "STR-MITTE-047",
+      "grid_cell": "891f8d7a49bffff",
       "movement_mode": "post_workout",
       "time_bucket": "sunday_morning_coffee",
       "weather_need": "neutral",
@@ -206,7 +206,7 @@ curl -s -X POST http://localhost:8000/api/offers/generate \
   -H "Content-Type: application/json" \
   -d '{
     "intent": {
-      "grid_cell": "STR-MITTE-047",
+      "grid_cell": "891f8d7a49bffff",
       "movement_mode": "exercising",
       "time_bucket": "sunday_morning_coffee",
       "weather_need": "neutral",

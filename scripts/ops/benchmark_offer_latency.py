@@ -37,7 +37,7 @@ def _payload(index: int) -> dict[str, Any]:
             "battery_low": False,
             "session_id": f"bench-{index}-{uuid.uuid4()}",
         },
-        "merchant_id": "MERCHANT_001",
+        "merchant_id": "osm_node_10900309574",
     }
 
 

@@ -3,7 +3,7 @@ Quick local check for external context providers.
 
 Usage:
   python scripts/dev/check_provider_status.py
-  python scripts/dev/check_provider_status.py --base-url http://localhost:8000 --grid-cell STR-MITTE-047
+  python scripts/dev/check_provider_status.py --base-url http://localhost:8000 --grid-cell 891f8d7a49bffff
 """
 
 from __future__ import annotations
@@ -30,8 +30,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--grid-cell",
-        default="STR-MITTE-047",
-        help="Grid cell to inspect (default: STR-MITTE-047)",
+        default="891f8d7a49bffff",
+        help="Grid cell to inspect (default: 891f8d7a49bffff — Munich center)",
     )
     args = parser.parse_args()
 

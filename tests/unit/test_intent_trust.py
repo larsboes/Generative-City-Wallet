@@ -9,7 +9,7 @@ from spark.services.intent_trust import normalize_intent_vector
 def _intent() -> IntentVector:
     return IntentVector.model_validate(
         {
-            "grid_cell": "STR-MITTE-047",
+            "grid_cell": "891f8d7a49bffff",
             "movement_mode": "browsing",
             "time_bucket": "friday_evening",
             "weather_need": "neutral",

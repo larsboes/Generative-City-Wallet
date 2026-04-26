@@ -12,7 +12,7 @@ async def test_places_fallback_without_api_key(monkeypatch):
     monkeypatch.setattr(places, "GOOGLE_MAPS_API_KEY", "")
     places._cache.clear()
     places._cache_ts.clear()
-    result = await places.get_places_context("STR-MITTE-047")
+    result = await places.get_places_context("891f8d7a49bffff")
     assert result["source"] == "fallback_defaults"
     assert result["provider_available"] is False
 
@@ -24,7 +24,7 @@ async def test_luma_fallback_without_api_key(monkeypatch):
     events._cache = {}
     events._cache_ts = {}
     events._seed_events = None
-    result = await events.get_luma_event_context("STR-MITTE-047")
+    result = await events.get_luma_event_context("891f8d7a49bffff")
     assert result["source"] == "fallback_defaults"
     assert result["provider_available"] is False
     assert result["error_reason"] == "missing_api_key"

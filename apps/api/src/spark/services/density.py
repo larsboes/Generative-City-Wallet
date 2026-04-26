@@ -15,10 +15,14 @@ from spark.repositories.density import (
 
 # ── Occupancy calibration (txn_rate_at_empty, txn_rate_at_capacity, capacity) ─
 
-OCCUPANCY_CALIBRATION: dict[str, tuple[float, float, int]] = {
-    "MERCHANT_003": (0.5, 22, 120),  # Bar Unter
-    "MERCHANT_005": (0, 35, 300),  # Club Schräglage
+# Per-type occupancy calibration (txn_rate_at_empty, txn_rate_at_full, capacity).
+# OSM merchants don't have individual calibration — infer_occupancy_pct returns None for them.
+OCCUPANCY_CALIBRATION_BY_TYPE: dict[str, tuple[float, float, int]] = {
+    "bar": (0.5, 22, 120),
+    "club": (0.0, 35, 300),
 }
+
+OCCUPANCY_CALIBRATION: dict[str, tuple[float, float, int]] = {}
 
 
 def compute_density_signal(
@@ -93,17 +97,36 @@ def compute_density_signal(
     }
 
 
-def infer_occupancy_pct(merchant_id: str, current_txn_rate: float) -> float | None:
+def infer_occupancy_pct(
+    merchant_id: str, current_txn_rate: float, db_path: str | None = None
+) -> float | None:
     """Linearly interpolate between known empty/full txn rates. Clamp [0, 1]."""
-    if merchant_id not in OCCUPANCY_CALIBRATION:
+    if merchant_id in OCCUPANCY_CALIBRATION:
+        calibration = OCCUPANCY_CALIBRATION[merchant_id]
+    else:
+        merchant_type = _get_merchant_type(merchant_id, db_path)
+        calibration = OCCUPANCY_CALIBRATION_BY_TYPE.get(merchant_type)
+
+    if calibration is None:
         return None
 
-    empty_rate, full_rate, _capacity = OCCUPANCY_CALIBRATION[merchant_id]
+    empty_rate, full_rate, _capacity = calibration
     if full_rate <= empty_rate:
         return 0.0
 
     occ = (current_txn_rate - empty_rate) / (full_rate - empty_rate)
     return round(max(0.0, min(1.0, occ)), 3)
+
+
+def _get_merchant_type(merchant_id: str, db_path: str | None = None) -> str | None:
+    try:
+        from spark.db.connection import get_connection
+        conn = get_connection(db_path)
+        row = conn.execute("SELECT type FROM merchants WHERE id = ?", (merchant_id,)).fetchone()
+        conn.close()
+        return row["type"] if row else None
+    except Exception:
+        return None
 
 
 def predict_occupancy_at(
