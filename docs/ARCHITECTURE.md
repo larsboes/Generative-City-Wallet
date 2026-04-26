@@ -10,6 +10,7 @@ For planning rationale, see [`planning/README.md`](./planning/README.md).
 
 ## Quick Navigation
 
+- [Signal Vision](#signal-vision--input--feature-map)
 - [System Map](#system-map)
 - [Privacy Boundary and On-Device Layer](#privacy-boundary--on-device-layer)
 - [Offer Pipeline](#offer-pipeline)
@@ -17,6 +18,86 @@ For planning rationale, see [`planning/README.md`](./planning/README.md).
 - [Code Structure Boundaries](#code-structure-boundaries)
 - [Documentation Map](#documentation-map)
 - [Debug-first Checklist](#debug-first-checklist)
+
+---
+
+## Signal Vision — Input → Feature Map
+
+What signals Spark ingests and what user-facing features they unlock. This is the product layer above the implementation.
+
+```mermaid
+flowchart LR
+    subgraph Inputs
+        IMU["IMU / Pedometer\n→ fast / slow walking"]
+        Weather["OpenWeatherMap /\nDeutscher Wetterdienst"]
+        GMaps["Google Maps API"]
+        GCal["Google Calendar API"]
+        DB["Deutsche Bahn API"]
+        Health["Google Health API\n(HR, workout complete)"]
+        Places["Google Places API\n(occupancy, busyness)"]
+        Availability["Availability Signal\n(Haben Platz? Ja/Nein)"]
+        MerchantData["Restaurant / Café Data\n(menu, Lebensmittelreste)"]
+        Hotspots["Google Maps\nHotspots for People"]
+        Events["Event Platforms\n(Luma, Meetup, Eventbrite)"]
+    end
+
+    subgraph Mapping["Unified Data-Mapping Layer\n(Composite State / Intent Vector)"]
+        UDL[" "]
+    end
+
+    subgraph Features
+        F1["Indoor / Outdoor\nrecommendation"]
+        F2["Vibe & Allergen matching\n(Hipster, Chic, Sustainability,\nBarrierefreiheit, Magst du Menschen?)"]
+        F3["Coffee Chat\nLocation suggestion"]
+        F4["Transit delay\n→ 10% discount"]
+        F5["Post-workout\ncold drink offer"]
+        F6["Less-busy-than-usual\ntargeting"]
+        F7["Events nearby\n→ mapped to offer context"]
+        F8["Social proof / Influencer\n→ Punkte sammeln (gainback.app)"]
+        F9["Reservation via\nElevenlabs → auto-call"]
+    end
+
+    IMU --> UDL
+    Weather --> UDL
+    GMaps --> UDL
+    GCal --> UDL
+    DB --> UDL
+    Health --> UDL
+    Places --> UDL
+    Availability --> UDL
+    MerchantData --> UDL
+    Hotspots --> UDL
+    Events --> UDL
+
+    UDL --> F1
+    UDL --> F2
+    UDL --> F3
+    DB --> F4
+    Health --> F5
+    Places --> F6
+    Events --> F7
+    UDL --> F8
+    UDL --> F9
+```
+
+### Signal Implementation Status
+
+| Signal | Source | Status | Implementation |
+|---|---|---|---|
+| Motion mode | IMU / on-device | ✅ Live | `intentMapper.ts`, `movement_mode` in IntentVector |
+| Weather | OpenWeatherMap | ✅ Live | `services/weather.py` |
+| Grid cell (location) | H3 / on-device GPS | ✅ Live | `services/location_cells.py` |
+| Merchant occupancy | Payone synthetic | ✅ Live | `services/density.py` |
+| Google Places | Places API (New) | ✅ Live (API key optional) | `services/places.py` |
+| Local events | Luma Discover API | ✅ Live (seed fallback) | `services/events.py` |
+| Transit delay | Deutsche Bahn API | 🔲 Planned | `transit_delay_minutes` field exists in IntentVector |
+| Workout / HR | Google Health API | 🔲 Planned | `activity_signal` field exists in offer_decision |
+| Calendar context | Google Calendar API | 🔲 Planned | — |
+| Availability (Haben Platz) | Merchant push | 🔲 Planned | — |
+| Food waste / Lebensmittelreste | Merchant push | 🔲 Planned | — |
+| Event platforms (Meetup, Eventbrite) | APIs | 🔲 Planned | Luma is the current proxy |
+| Social proof / gainback.app | External | 🔲 Planned | — |
+| Reservation (Elevenlabs) | Voice API | 🔲 Planned | — |
 
 ---
 
@@ -37,12 +118,21 @@ C4Container
     }
 
     System_Ext(gemini, "Gemini Flash", "Synthesizes UI/Offer text just-in-time.")
-    System_Ext(payone, "Payone Feed", "Simulated density density signal trigger.")
+    System_Ext(payone, "Payone Sim (Density)")
+    System_Ext(weather, "Weather API")
+    System_Ext(strava, "Strava API (Mobile)")
+    System_Ext(luma, "Luma Events API")
+    System_Ext(maps, "Google Places API")
     
     Rel(user, api, "Sends anonymous Intent Vector", "HTTPS")
     Rel(merchant, api, "Views analytics", "HTTPS")
     Rel(payone, fluent, "Transaction pings", "HTTP")
     Rel(fluent, api, "Density ingestion", "HTTP/RPC")
+    
+    Rel(api, strava, "Gets recent runs")
+    Rel(api, weather, "Fetches ambient")
+    Rel(api, luma, "Fetches local events")
+    Rel(api, maps, "Validates locations")
     
     Rel(api, sqlite, "audit & persistence", "SQL")
     Rel(api, neo4j, "fetch & update weights", "Bolt")
@@ -74,14 +164,14 @@ flowchart LR
         server[FastAPI Backend]
     end
 
-    vector -- "Only abstract fields\n(e.g., 'STR-MITTE-047', 'walking')" --> server
+    vector -- "Only abstract fields\n(e.g., '891f8d7a49bffff', 'walking')" --> server
 ```
 
 ### Components
 
 **1. GPS Quantizer**
 - Raw GPS coordinates never leave the device.
-- Quantized to a ~50m grid cell (e.g., `"STR-MITTE-047"`).
+- Quantized to a ~50m grid cell (e.g., `"891f8d7a49bffff"`).
 - Only the grid cell reaches the server.
 
 **2. IMU / Motion Classifier**
@@ -122,7 +212,7 @@ What leaves the device. No PII. No raw location.
 
 ```json
 {
-  "grid_cell": "STR-MITTE-047",
+  "grid_cell": "891f8d7a49bffff",
   "movement_mode": "browsing",
   "time_bucket": "tuesday_lunch",
   "weather_need": "warmth_seeking",
