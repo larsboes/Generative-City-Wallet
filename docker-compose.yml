@@ -9,3 +9,25 @@ services:
     volumes:
       - ./data:/app/data
     restart: unless-stopped
+
+  fluentbit:
+    image: fluent/fluent-bit:4.2.2
+    container_name: spark-fluentbit
+    ports:
+      - "8888:8888"
+      - "2020:2020"
+    volumes:
+      - ./src/pipeline/fluent-bit.yaml:/fluent-bit/etc/fluent-bit.yaml:ro
+      - ./src/pipeline/scripts:/fluent-bit/scripts:ro
+      - fluentbit-data:/fluent-bit/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: spark-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  fluentbit-data:
