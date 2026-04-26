@@ -2,6 +2,14 @@
 
 > **"Right place. Right time. Right Spark."**
 
+[![Mobile: Expo](https://img.shields.io/badge/Mobile-Expo-000000?logo=expo&logoColor=white)](https://expo.dev/)
+[![Dashboard: React + Vite](https://img.shields.io/badge/Dashboard-React%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Backend: FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![AI: Gemini Flash](https://img.shields.io/badge/AI-Gemini%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![On-device AI: Gemma 3n](https://img.shields.io/badge/On--device%20AI-Gemma%203n-1A73E8?logo=google&logoColor=white)](https://ai.google.dev/edge)
+[![Graph: Neo4j](https://img.shields.io/badge/Graph-Neo4j-4581C3?logo=neo4j&logoColor=white)](https://neo4j.com/)
+[![Maps: Mapbox](https://img.shields.io/badge/Maps-Mapbox-000000?logo=mapbox&logoColor=white)](https://www.mapbox.com/)
+
 Spark is an AI-powered city wallet that detects the most relevant local offer for a user in real time, generates it dynamically based on context, and makes it redeemable through a simulated checkout — all while keeping sensitive data on-device.
 
 Built for the **DSV Gruppe Hackathon** — HackNation 2025.
@@ -40,6 +48,66 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 | **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** | npm workspaces, Turbo, folder map, root scripts, CI, Docker |
 | **[`docs/NEO4J-GRAPH.md`](docs/NEO4J-GRAPH.md)** | Server-side knowledge graph: model, APIs, env vars, ops limits |
 | **[`docs/planning/README.md`](docs/planning/README.md)** | Design, pitch, and hackathon planning (moved from repo-root `docs/`) |
+
+---
+
+## Demo / Submission Status (Main README Source)
+
+This section replaces the remaining TODO intent from `docs/planning/12-SUBMISSION-README.md` directly in the main README.
+
+References: [`docs/planning/12-SUBMISSION-README.md`](docs/planning/12-SUBMISSION-README.md), [`docs/planning/22-IMPLEMENTATION-GAPS.md`](docs/planning/22-IMPLEMENTATION-GAPS.md)
+
+### What worked well (current state)
+
+- Deterministic offer selection and rule gating are implemented with audit trace support.
+- Neo4j graph integration adds explainability, idempotent write protection, preference decay, retention cleanup, and migration tracking.
+- Privacy architecture is enforced by design boundary: on-device context abstraction and server-side pseudonymous session processing.
+- Monorepo quality gates are in place (`lint`, `typecheck`, `test`, contract symbol checks) and documented in `docs/DEVELOPMENT.md`.
+
+### What did not work yet / still incomplete
+
+- OCR transit delay enrichment is still missing end-to-end in runtime.
+- Wallet pass cold-start seeding is still missing as a production flow.
+- Spark Wave social coordination remains concept-level, not fully integrated.
+- Advanced post-workout rollout is partial; movement-aware orchestration is not fully complete.
+- TS/Python contract parity is partial for some newer runtime fields.
+
+### Local run instructions (actual monorepo paths)
+
+Run from repo root:
+
+```bash
+# API (FastAPI on :8000)
+npm run dev:api
+
+# Mobile (Expo)
+npm run dev:mobile
+
+# Dashboard (Vite on :3000)
+npm run dev:dashboard
+```
+
+Optional quality checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+```
+
+### Submission data still required from final demo run
+
+- `UNKNOWN_YET`: Final Stuttgart merchant list used during demo.
+- `UNKNOWN_YET`: Community Hero Score from a measured demo session.
+- `UNKNOWN_YET`: Final team member list for submission footer.
+
+### Readiness gates
+
+- [x] Architecture/runtime docs aligned (`docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`, graph runtime docs).
+- [x] Planning-to-runtime gaps explicitly tracked (`docs/planning/22-IMPLEMENTATION-GAPS.md`).
+- [ ] End-to-end demo loop re-validated on final demo build (offer -> accept -> QR -> redeem -> cashback).
+- [ ] Privacy/logging claims re-verified against final demo payloads.
+- [ ] Remaining submission data (`UNKNOWN_YET` fields above) filled after final run.
 
 ---
 

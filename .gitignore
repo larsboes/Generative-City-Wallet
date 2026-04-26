@@ -79,4 +79,4 @@ yarn-error.log*
 pnpm-debug.log*
 
 
-.cursor/hooks/state/continual-learning.json
+.cursor/*
