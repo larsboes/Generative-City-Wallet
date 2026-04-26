@@ -23,14 +23,29 @@ Runtime signal model and composite context assembly.
 
 ```mermaid
 flowchart TD
-  weather[Weather] --> composite[CompositeState]
-  demand[DemandSignal] --> composite
-  movement[MovementMode] --> composite
-  time[TimeBucket] --> composite
-  prefs[PreferenceScores] --> composite
-  composite --> decide[DecisionEngine]
-  decide --> conflict[ConflictResolver]
-  conflict --> llm[LLMFraming]
+  subgraph Data Sources
+      weather((Weather API))
+      demand((Payone Density))
+      movement((Motion Mode))
+      time((Time Buket))
+      prefs[(Neo4j Prefs)]
+  end
+
+  subgraph Composite Assembly
+      composite{Composite State Builder}
+      decision(Offer Decision Engine)
+      conflict[Conflict Resolver & Framing]
+  end
+
+  weather --> composite
+  demand --> composite
+  movement --> composite
+  time --> composite
+  prefs -.-> composite
+
+  composite ==> decision
+  decision ==> conflict
+  conflict ==> llm(((Gemini Flash)))
 ```
 
 ---

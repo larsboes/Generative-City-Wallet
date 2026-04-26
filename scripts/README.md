@@ -10,7 +10,7 @@ Repo-local tooling (not shipped in the Docker API image unless copied explicitly
 Run Python scripts with repo root as cwd, e.g.:
 
 ```bash
-uv run python scripts/ops/run_graph_maintenance.py
+uv run python infra/pipeline/graph-maintenance.py
 uv run python scripts/dev/smoke_intent_vector.py
 uv run python scripts/dev/smoke_local_llm.py
 uv run python scripts/dev/check_architecture_boundaries.py

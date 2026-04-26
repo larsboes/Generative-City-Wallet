@@ -13,7 +13,7 @@ For planning rationale, see `planning/README.md`.
 C4Container
     title System Map: Spark Generative City Wallet
     
-    Person(user, "Consumer", "Uses the Mobile App")
+    Person(user, "Consumer", "Uses the React PWA")
     Person(merchant, "Local Merchant", "Manages business on Dashboard")
     
     System_Boundary(spark_cloud, "Spark Cloud Environment") {

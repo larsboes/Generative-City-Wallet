@@ -10,7 +10,7 @@ Spark is a real-time context layer that connects local merchants with urban prof
 
 | | **Consumer App** | **Merchant Dashboard** |
 |---|---|---|
-| **Platform** | Expo / React Native | Next.js Web App |
+| **Platform** | React PWA | Next.js Web App |
 | **Primary User** | Professionals & Explorers | Local Business Owners |
 | **Core Value** | Discovery & Cashback | Filling Lulls & Inventory Rescue |
 | **Trigger** | Contextual Browsing State | Payone Transaction Density Drop |

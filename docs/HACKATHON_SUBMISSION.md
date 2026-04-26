@@ -30,7 +30,7 @@ What makes Spark uniquely powerful is its "Just-in-Time Generation" model trigge
 **How did you technically implement the solution? What technologies do you use?**
 
 We implemented Spark using a cutting-edge hybrid architecture prioritizing privacy, speed, and intelligence.
-- **Frontend & Mobile:** Built with Expo (React Native) for cross-platform mobile access and Vite + React for the interactive real-time merchant dashboard.
+- **Frontend & Mobile:** Built as a React PWA for cross-platform access and Vite + React for the interactive real-time merchant dashboard.
 - **Backend Core:** A high-performance Python FastAPI server acts as the central orchestrator.
 - **Generative AI (Cloud):** Google Gemini Flash orchestrates exact offer generation and rapid structured output (GenUI) directly feeding the mobile frontend.
 - **On-Device Edge AI:** Gemma 3n operating via Google AI Edge processes the abstract intent extraction entirely locally on the device (LiteRT).
@@ -53,11 +53,11 @@ Spark redefines the relationship between Sparkasse, local merchants, and consume
 ## Video Submissions
 
 ### Demo Video (max 60 sec) Script: UI/UX & Flow
-- **`0:00 - 0:10`** - **[Screen Record Mobile]** Walking down the street. The Context Sensing Layer quietly monitors the signals (show minimal abstract icons for weather, movement updating).
-- **`0:10 - 0:25`** - **[Screen Record Mobile]** Boom! A dynamically generated offer appears. Briefly read out how the UI, generative text, and discount perfectly match the user's current context (e.g., matching a post-workout recovery state with a nearby smoothie spot).
+- **`0:00 - 0:10`** - **[Screen Record PWA]** Walking down the street. The Context Sensing Layer quietly monitors the signals (show minimal abstract icons for weather, movement updating).
+- **`0:10 - 0:25`** - **[Screen Record PWA]** Boom! A dynamically generated offer appears. Briefly read out how the UI, generative text, and discount perfectly match the user's current context (e.g., matching a post-workout recovery state with a nearby smoothie spot).
 - **`0:25 - 0:35`** - **[Screen Record Dashboard]** Switch to the Merchant dashboard. Show the density peak on the Mapbox heatmap that influenced and triggered the offer targeting. 
-- **`0:35 - 0:50`** - **[Screen Record Mobile]** User reviews and accepts the AI offer. Demonstrate the seamless checkout—a dynamic QR token is generated and immediately scanned. 
-- **`0:50 - 0:60`** - **[Screen Record Mobile]** The distinct Spark cashback animation confidently confirms the successful closed-loop transaction. Fade to Tagline: *"Right place. Right time. Right Spark."*
+- **`0:35 - 0:50`** - **[Screen Record PWA]** User reviews and accepts the AI offer. Demonstrate the seamless checkout—a dynamic QR token is generated and immediately scanned. 
+- **`0:50 - 0:60`** - **[Screen Record PWA]** The distinct Spark cashback animation confidently confirms the successful closed-loop transaction. Fade to Tagline: *"Right place. Right time. Right Spark."*
 
 ### Tech Video (max 60 sec) Script: Stack & Architecture
 - **`0:00 - 0:15`** - **[Architecture Overview Graphic]** Briefly explain the separation of concerns between On-Device Gemma 3n (privacy-first intent extraction without PII leak) and Server-side Gemini Flash (heavy generative and styling output).

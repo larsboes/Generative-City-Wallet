@@ -19,7 +19,7 @@ Canonical data model across contracts, SQLite persistence, and graph projection.
 
 ## Local vs cloud boundary (data classes)
 
-### Local-only classes (conceptual/mobile side)
+### Local-only classes (conceptual/PWA side)
 
 - raw sensor/event streams used to derive intent
 - fine-grained location history before quantization
@@ -323,7 +323,7 @@ These events support deterministic risk-scored join gating and provide an audit 
 ```mermaid
 sequenceDiagram
   autonumber
-  participant Mobile as Mobile App
+  participant PWA as React PWA
   participant API as FastAPI
   participant Decision as DeterministicDecisionEngine
   participant RuleGate as GraphRuleGate
@@ -331,7 +331,7 @@ sequenceDiagram
   participant SQLite as SQLite
   participant Graph as Neo4j
 
-  Mobile->>API: POST /api/offers/generate (GenerateOfferRequest)
+  PWA->>API: POST /api/offers/generate (GenerateOfferRequest)
   API->>Decision: build CompositeContextState + decide_offer()
   Decision-->>API: OfferDecisionTrace (recommendation + candidate scores)
 
@@ -340,7 +340,7 @@ sequenceDiagram
 
   alt Rejected
     API->>SQLite: INSERT offer_audit_log (decision_trace + rejection)
-    API-->>Mobile: no-offer response
+    API-->>PWA: no-offer response
   else Accepted
     API->>LLM: generate framing/genui with bounded prompt
     LLM-->>API: LLMOfferOutput
@@ -348,15 +348,15 @@ sequenceDiagram
     API->>API: apply spark wave catalyst bonus (if session participates for merchant)
     API->>SQLite: INSERT offer_audit_log (final_offer + rails_audit)
     API->>Graph: best-effort projection (idempotency-keyed)
-    API-->>Mobile: OfferObject
+    API-->>PWA: OfferObject
   end
 
   opt Redemption path
-    Mobile->>API: POST /api/redeem
+    PWA->>API: POST /api/redeem
     API->>SQLite: UPDATE offer_audit_log status=REDEEMED
     API->>SQLite: INSERT wallet_transactions credit
     API->>Graph: project redemption/outcome (idempotent)
-    API-->>Mobile: cashback confirmation
+    API-->>PWA: cashback confirmation
   end
 ```
 

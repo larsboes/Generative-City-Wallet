@@ -18,10 +18,12 @@ Use this as the execution checklist after the core deterministic offer-selection
 | Spark Wave social coordination | Implemented (MVP) | Wave schema + API are live; catalyst bonus propagates to offer + redemption economics |
 | Post-workout advanced signal rollout | Implemented (MVP) | Exercising block and movement-aware category adjustments are live |
 | Intent source-of-truth + identity model | Implemented | Authoritative trust normalization, advisory activity policies, and privacy-preserving continuity are live |
-| External context source integration | Implemented | Google Places + Luma context enrichment is live; Strava abstraction path is wired for mobile OAuth + advisory trust normalization |
+| External context source integration | Implemented | Google Places + Luma context enrichment is live |
 | Fluent Bit -> backend density ingestion | Implemented | Ingestion bridge is live and connected to density read path |
 | Runtime distance signal | Implemented | Geographic distance estimation now powers decision scoring |
+| Dynamic transit gating | Implemented | Walking-time vs delay window check is live and merchant-specific |
 | TS/Python contract parity | Implemented | Boundary types are synchronized and guarded by CI checks |
+
 
 ---
 
@@ -53,45 +55,58 @@ Use this as the execution checklist after the core deterministic offer-selection
   - Backend advisory policy enforces source/signal consistency and confidence capping with provenance.
   - Decision trace now exposes activity confidence bands for explainability.
   - Source: `apps/mobile/src/api/strava.ts`, `apps/mobile/src/api/secureStore.ts`, `apps/mobile/src/local-llm/sourceSignals.ts`, `apps/api/src/spark/services/intent_trust.py`, `apps/api/src/spark/services/offer_decision.py`
+- **Identity continuity:**
+  - Server-side `continuity_id` derivation and reset controls are live.
+- **Dynamic Transit Gating:**
+  - Replaced hardcoded blocks with merchant-specific round-trip viability checks.
+  - Calculation: `(distance_m / 80m_min) * 2 + 5m buffer`.
+  - Intelligent recheck cadence aligned with transit delay window.
+  - Source: `apps/api/src/spark/services/offer_decision.py`, `tests/unit/test_dynamic_transit_gating.py`
 
 ---
 
 ## Gap Backlog (Actionable)
 
-## 1) Dynamic Transit Gating (Refinement)
-
-- **Goal:** Replace the 14-minute hardcode with a dynamic round-trip viability check.
-- **Current:** `offer_decision.py` uses a hardcoded `min_round_trip_minutes = 14` for all merchants.
-- **Required:**
-  - Calculate `walking_time_min = (distance_m / 80)` (assuming 80m/min walking speed).
-  - Add 5 minutes for "purchase/interaction buffer."
-  - Only allow offer if `(walking_time_min * 2) + 5 <= transit_delay_minutes`.
-- **Likely touchpoints:**
-  - `apps/api/src/spark/services/offer_decision.py`
-
-## 2) Long-horizon Identity Strategy
+## 1) Long-horizon Identity Strategy
 
 - **Goal:** Support cross-session stable pseudonyms with documented retention and user opt-out controls beyond transient sessions.
 - **Current:** `identity_continuity.py` derives `continuity_id` but it is still largely session-bound in practice.
 - **Required:**
   - Implement stable hashing strategy for longer-term preference linkage.
   - Add explicit "Identity Reset" clear-down in Neo4j.
+- **Definition of done:**
+  - Stable pseudonymous identity links behavior across sessions within documented retention limits.
+  - Reset/opt-out fully clears graph-linkable continuity state for that user context.
+  - Identity lifecycle is documented end-to-end (generation, reuse, expiry, reset, retention).
+- **Tests to run:**
+  - `uv run pytest tests/unit/test_identity_continuity.py tests/unit/test_identity_continuity_reset.py tests/unit/test_identity_router.py`
+  - `uv run pytest tests/integration/test_identity_continuity_endpoint.py tests/integration/test_composite_graph_integration.py`
+- **Demo impact:**
+  - Medium/low for judging demo flow; high for trust/compliance narrative and longer-horizon personalization quality.
 
-## 3) Final Demo Data Cleanup
+## 2) Final Demo Data Cleanup
 
 - **Goal:** Finalize Munich merchant list and Hero Score scaling for the live demo.
 - **Touchpoint:** `README.md`, `resources/mock_venues_munich.json`.
 - **Status:** Munich fixture is available; `README.md` placeholders need replacing.
+- **Definition of done:**
+  - Munich merchant fixture is the single source used by demo seed/load scripts.
+  - Hero Score scaling is explicitly documented with baseline and expected range.
+  - `README.md` has no placeholder submission/demo values.
+- **Tests to run:**
+  - `uv run pytest tests/integration/test_smoke.py tests/integration/test_wave_flow.py`
+  - Manual demo dry-run: load data, generate offer, redeem, confirm cashback and score output formatting.
+- **Demo impact:**
+  - High: ensures all shown numbers and claims are consistent during judging.
 
 ---
 
 ## Suggested Build Order
 
-1. **Dynamic Transit Gating** (High impact for demo realism).
-2. **Final Demo Data replacement** in `README.md`.
-3. **Long-horizon identity strategy refinement**.
+1. **Final Demo Data replacement** in `README.md`.
+2. **Long-horizon identity strategy refinement**.
+   - Treat this as post-demo unless judges explicitly require cross-session continuity proof.
 
----
 
 ## Validation Commands (keep as release gate)
 

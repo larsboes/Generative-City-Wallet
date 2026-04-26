@@ -1,7 +1,7 @@
 # Spark — Consumer App: Design Spec
 
 > All consumer-facing screens, notification surfaces, widgets, and lock screen.
-> Platform: Expo / React Native (iOS + Android).
+> Platform: React PWA (iOS + Android).
 
 ---
 

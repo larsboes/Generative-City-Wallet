@@ -13,10 +13,23 @@ Safety and boundary model for generated offer content.
 - Python canonicalization owns DB-truth overrides, typed offer assembly, and rails audit.
 
 ```mermaid
-flowchart LR
-  decision[DecisionApproved] --> llm[LLMOutput]
-  llm --> rails[HardRails]
-  rails --> offer[OfferObject]
+sequenceDiagram
+    participant Pipeline as Deterministic Engine
+    participant Gemini as Gemini Flash (Cloud)
+    participant Rails as Server Hard Rails
+    participant DB as SQLite Audit
+    
+    Pipeline->>Gemini: 1. Send Target Context (Passed Gates)
+    Gemini-->>Pipeline: 2. Return Generated GenUI JSON
+    Pipeline->>Rails: 3. Pass JSON to Rules Validator
+    
+    rect rgb(200, 10, 10, 0.1)
+        Note over Rails: Discount Capped<br/>Expiry Enforced<br/>Safety Claims Verified
+        Rails->>Rails: Bounding Checks Override Bad Output
+    end
+    
+    Rails->>DB: 4. Persist Original vs Adjusted JSON
+    Rails-->>Pipeline: 5. Return Canonical OfferObject
 ```
 
 ---

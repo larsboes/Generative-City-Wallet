@@ -17,12 +17,18 @@ Server-side graph layer for personalization, deterministic gating, and feedback 
 
 ```mermaid
 flowchart TD
-  composite[CompositeBuilder] --> rules[GraphValidationService]
-  rules -->|accepted| llm[LLMPath]
-  rules -->|rejected| reject[NoOfferResponse]
-  llm --> rails[HardRails]
-  rails --> write[GraphWriteBestEffort]
-  outcome[RedemptionOrOutcome] --> reinforce[PreferenceReinforcement]
+  composite(Composite Builder) --> rules{Graph Gate\nValidation}
+  
+  rules -- "Blocked by Fatigue" --> reject[Silent No-Offer]
+  rules -- "Accepted Context" --> llm(Gemini Generation)
+  
+  llm --> rails[Hard Rails]
+  rails --> write[(Neo4j: PREFERS & Offer Log)]
+  
+  subgraph Reinforcement Loop
+    outcome(Redemption Success) -. "Idempotency Check" .-> write
+    decay((Cron: Decay Priority)) -. "Linearly reduces weight" .-> write
+  end
 ```
 
 ---
