@@ -87,6 +87,17 @@ def _build_explainability(
             )
         )
 
+    if state.decision_trace and state.decision_trace.trace:
+        for item in state.decision_trace.trace[:2]:
+            reasons.append(
+                ExplainabilityReason(
+                    code=item.code,
+                    reason=item.reason,
+                    score=item.score,
+                    metadata=item.metadata,
+                )
+            )
+
     return reasons[:4]
 
 
@@ -185,7 +196,12 @@ async def generate_offer(request: GenerateOfferRequest):
             "offer": None,
             "reason": "Conflict resolution determined not to recommend at this time.",
             "recommendation": state.conflict_resolution.recommendation,
-            "recheck_in_minutes": 30,
+            "recheck_in_minutes": state.decision_trace.recheck_in_minutes
+            if state.decision_trace
+            else 30,
+            "decision_trace": state.decision_trace.model_dump()
+            if state.decision_trace
+            else None,
             "graph_decision": rule_result.to_audit_dict(),
             "pipeline": pipeline_source,
         }
@@ -317,6 +333,9 @@ def _log_offer_audit(
                         "pipeline": pipeline_source,
                         "agent_reasoning": agent_reasoning,
                         "graph_decision": graph_decision or {},
+                        "decision_trace": state.decision_trace.model_dump()
+                        if state.decision_trace
+                        else {},
                     }
                 ),
                 "SENT",

@@ -62,6 +62,7 @@ For architecture and data flows, see **[`ARCHITECTURE.md`](ARCHITECTURE.md)**.
 | `scripts/ops/run_graph_maintenance.py` | Neo4j cleanup + preference decay (cron-friendly) |
 | `scripts/ops/benchmark_offer_latency.py` | p95 offer latency Neo4j on vs off |
 | `scripts/dev/smoke_intent_vector.py` | POST sample intent to running API |
+| `scripts/dev/smoke_local_llm.py` | Validates local-LLM fixtures + parser rates |
 | `scripts/dev/check_contract_symbols.py` | CI: TS/Python contract name alignment |
 
 ---
@@ -91,3 +92,11 @@ Keep **root `package-lock.json`** committed so `npm ci` is reproducible.
   - **Current status:** `uv run pyright apps/api/src/spark/` reports **28 errors**.
   - **Hotspots:** `agents/agent.py`, `graph/repository.py`, `graph/{migrations,schema}.py`, `services/{composite,offer_generator}.py`, `routers/vendors.py`.
   - **Tracking note:** address in a dedicated typing pass.
+
+- **Contract parity drift (Python vs TS)**
+  - `CompositeContextState.decision_trace` now exists in Python contracts.
+  - Mirror this field in `packages/shared/src/contracts.ts` before mobile/dashboard consumes it.
+
+- **Planning-to-implementation deltas**
+  - Advanced signals from planning (`OCR transit scan`, `wallet seed`, `Spark Wave`) are still mostly design-stage.
+  - Track these as explicit implementation epics instead of implicit planning carry-over.
