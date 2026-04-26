@@ -40,7 +40,9 @@ Use this as the execution checklist after the core deterministic offer-selection
   - Catalyst bonus applied to both offer generation and redemption cashback.
   - Source: `apps/api/src/spark/services/offer_pipeline.py`, `apps/api/src/spark/services/redemption.py`
 - **Pipeline infra consolidation:**
-  - Fluent Bit config and validation moved to `src/pipeline/` for cleaner service boundaries.
+  - Fluent Bit config and validation moved to `infra/pipeline/` for a clean monorepo structure.
+  - Graph maintenance (cleanup + decay) moved to `infra/pipeline/graph-maintenance.py`.
+  - Root `src/` removed to avoid architectural ambiguity.
 - **Geographic distance estimation:**
   - Replaced stubs with `estimate_distance_m` in `offer_decision.py` and `composite.py`.
 - **Identity continuity:**

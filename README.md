@@ -191,7 +191,7 @@ After `docker compose up -d --build`, use these local endpoints:
 
 - **100 Munich Merchants**: Final Munich merchant list loaded from `resources/mock_venues_munich.json`.
 - **42.0**: Community Hero Score baseline from measured demo session.
-- **Lars Boes & Team Spark**: Final team for submission.
+- **Milan, David, Finn, Lars**: Final team for submission.
 
 ### Readiness gates
 
