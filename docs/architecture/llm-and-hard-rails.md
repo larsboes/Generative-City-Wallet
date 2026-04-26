@@ -2,6 +2,15 @@
 
 Safety and boundary model for generated offer content.
 
+## Quick Navigation
+
+- [Core boundary](#core-boundary)
+- [Hard rail checks](#hard-rail-checks)
+- [What LLM cannot decide](#what-llm-cannot-decide)
+- [Failure and fallback](#failure-and-fallback)
+- [Audit and explainability hooks](#audit-and-explainability-hooks)
+- [Code map](#code-map)
+
 ---
 
 ## Core boundary
@@ -45,6 +54,15 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 5. placeholders normalized
 6. canonical mapping actions recorded for audit persistence
 
+### Linked implementation
+
+| Capability | File |
+|---|---|
+| LLM output generation | [`apps/api/src/spark/services/offer_generator.py`](../../apps/api/src/spark/services/offer_generator.py) |
+| Hard rail enforcement | [`apps/api/src/spark/services/hard_rails.py`](../../apps/api/src/spark/services/hard_rails.py) |
+| Offer route orchestration | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Contract models | [`apps/api/src/spark/models/offers.py`](../../apps/api/src/spark/models/offers.py) |
+
 ## Why hard rails stay in Python
 
 - They depend on DB truth, not just event payload fields.
@@ -60,6 +78,9 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 - merchant entitlement values
 - hard financial terms outside configured limits
 - lifecycle timestamps
+
+> [!IMPORTANT]
+> The LLM is a renderer, not a policy engine. Treat every generated field as untrusted until rails canonicalization completes.
 
 ---
 
@@ -81,9 +102,9 @@ Implemented in `apps/api/src/spark/services/hard_rails.py`:
 
 ## Code map
 
-- `apps/api/src/spark/services/offer_generator.py`
-- `apps/api/src/spark/services/hard_rails.py`
-- `apps/api/src/spark/routers/offers.py`
+- [`apps/api/src/spark/services/offer_generator.py`](../../apps/api/src/spark/services/offer_generator.py)
+- [`apps/api/src/spark/services/hard_rails.py`](../../apps/api/src/spark/services/hard_rails.py)
+- [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py)
 
 ---
 

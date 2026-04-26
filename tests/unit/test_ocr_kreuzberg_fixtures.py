@@ -79,7 +79,7 @@ def test_kreuzberg_short_delay_blocks_offer(tmp_path, monkeypatch) -> None:
     )
 
     assert result.recommendation == "DO_NOT_RECOMMEND"
-    assert result.trace[0].code == "transit_window_block"
+    assert result.trace[0].code == "all_candidates_filtered"
 
 
 def test_kreuzberg_workable_delay_allows_offer(tmp_path, monkeypatch) -> None:

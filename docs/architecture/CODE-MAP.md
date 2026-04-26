@@ -2,6 +2,9 @@
 
 Quick placement guide for new work. If you are unsure where code belongs, start here.
 
+> [!TIP]
+> Pair this with [`ARCHITECTURE-GUARDRAILS.md`](./ARCHITECTURE-GUARDRAILS.md) during implementation and review.
+
 ---
 
 ## Where to place code
@@ -23,25 +26,25 @@ Quick placement guide for new work. If you are unsure where code belongs, start 
 ## Feature templates (fast routing)
 
 ### OCR transit delay enrichment
-- API intake: `routers/`
-- delay window policy + gating: `services/`
-- payload fields: `models/contracts.py` + `packages/shared`
-- tests: `tests/unit` + `tests/integration`
+- API intake: [`apps/api/src/spark/routers/ocr.py`](../../apps/api/src/spark/routers/ocr.py)
+- delay window policy + gating: [`apps/api/src/spark/services/ocr_transit.py`](../../apps/api/src/spark/services/ocr_transit.py), [`apps/api/src/spark/services/offer_decision.py`](../../apps/api/src/spark/services/offer_decision.py)
+- payload fields: [`apps/api/src/spark/models/ocr.py`](../../apps/api/src/spark/models/ocr.py), [`packages/shared/src/contracts.ts`](../../packages/shared/src/contracts.ts)
+- tests: [`tests/unit`](../../tests/unit), [`tests/integration`](../../tests/integration)
 
 ### Wallet pass cold-start seeding
-- ingestion endpoint: `routers/`
-- seed policy/idempotency orchestration: `services/`
-- graph persistence and metadata: `graph/repository.py`
-- contracts: `models` + `packages/shared`
+- ingestion endpoint: [`apps/api/src/spark/routers/graph.py`](../../apps/api/src/spark/routers/graph.py)
+- seed policy/idempotency orchestration: [`apps/api/src/spark/services/wallet_seed.py`](../../apps/api/src/spark/services/wallet_seed.py)
+- graph persistence and metadata: [`apps/api/src/spark/graph/repository.py`](../../apps/api/src/spark/graph/repository.py)
+- contracts: [`apps/api/src/spark/models`](../../apps/api/src/spark/models), [`packages/shared/src/contracts.ts`](../../packages/shared/src/contracts.ts)
 
 ### Spark Wave social coordination
-- endpoints and lifecycle orchestration: `routers/` + `services/`
-- persistence schema: `db/schema.sql` (+ migrations as needed)
-- integration coverage: `tests/integration`
+- endpoints and lifecycle orchestration: [`apps/api/src/spark/routers/wave.py`](../../apps/api/src/spark/routers/wave.py), [`apps/api/src/spark/repositories/wave.py`](../../apps/api/src/spark/repositories/wave.py)
+- persistence schema: [`apps/api/src/spark/db/schema.sql`](../../apps/api/src/spark/db/schema.sql) (+ migrations as needed)
+- integration coverage: [`tests/integration/test_wave_flow.py`](../../tests/integration/test_wave_flow.py)
 
 ### Fluent Bit -> backend ingestion E2E
-- ingestion config and filter validation: `infra/fluentbit/`
-- backend sink/path alignment: `services/` + `repositories/`
+- ingestion config and filter validation: [`infra/fluentbit`](../../infra/fluentbit)
+- backend sink/path alignment: [`apps/api/src/spark/routers/payone.py`](../../apps/api/src/spark/routers/payone.py), [`apps/api/src/spark/services/density.py`](../../apps/api/src/spark/services/density.py), [`apps/api/src/spark/repositories/transactions.py`](../../apps/api/src/spark/repositories/transactions.py)
 - coverage: integration test proving density impact
 
 ---

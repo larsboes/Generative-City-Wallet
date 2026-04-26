@@ -2,6 +2,15 @@
 
 Server-side graph layer for personalization, deterministic gating, and feedback reinforcement.
 
+## Quick Navigation
+
+- [Runtime responsibilities](#runtime-responsibilities)
+- [Request-time flow](#request-time-flow)
+- [Rule gate order](#rule-gate-order)
+- [Operational endpoints](#operational-endpoints)
+- [Code map](#code-map)
+- [Debug cookbook](#debug-cookbook)
+
 ---
 
 ## Runtime responsibilities
@@ -30,6 +39,16 @@ flowchart TD
     decay((Cron: Decay Priority)) -. "Linearly reduces weight" .-> write
   end
 ```
+
+### Runtime code links
+
+| Concern | File |
+|---|---|
+| Graph client/repositories | [`apps/api/src/spark/graph`](../../apps/api/src/spark/graph) |
+| Rule evaluation service | [`apps/api/src/spark/services/graph_rules.py`](../../apps/api/src/spark/services/graph_rules.py) |
+| Graph API surface | [`apps/api/src/spark/routers/graph.py`](../../apps/api/src/spark/routers/graph.py) |
+| Offer route graph gate usage | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Redemption graph writes | [`apps/api/src/spark/routers/redemption.py`](../../apps/api/src/spark/routers/redemption.py) |
 
 ---
 
@@ -67,28 +86,30 @@ Short-circuit on first HARD rejection.
 
 ## Operational endpoints
 
-- `/api/graph/health`
-- `/api/graph/stats`
-- `/api/graph/migrations`
-- `/api/graph/cleanup`
-- `/api/graph/decay-preferences`
+| Endpoint | Purpose |
+|---|---|
+| `/api/graph/health` | Driver/runtime health and availability |
+| `/api/graph/stats` | Node/edge counts and topology snapshot |
+| `/api/graph/migrations` | Applied graph migration visibility |
+| `/api/graph/cleanup` | Retention cleanup operation |
+| `/api/graph/decay-preferences` | Stale preference decay operation |
 
 ---
 
 ## Code map
 
-- `apps/api/src/spark/graph/*`
-- `apps/api/src/spark/services/graph_rules.py`
-- `apps/api/src/spark/routers/graph.py`
-- `apps/api/src/spark/routers/offers.py`
-- `apps/api/src/spark/routers/redemption.py`
+- [`apps/api/src/spark/graph`](../../apps/api/src/spark/graph)
+- [`apps/api/src/spark/services/graph_rules.py`](../../apps/api/src/spark/services/graph_rules.py)
+- [`apps/api/src/spark/routers/graph.py`](../../apps/api/src/spark/routers/graph.py)
+- [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py)
+- [`apps/api/src/spark/routers/redemption.py`](../../apps/api/src/spark/routers/redemption.py)
 
 ---
 
 ## Test coverage
 
-- `tests/unit/test_graph_rules.py` (gate behavior)
-- `tests/unit/test_redemption_idempotency.py` (idempotency key behavior)
+- [`tests/unit/test_graph_rules.py`](../../tests/unit/test_graph_rules.py) (gate behavior)
+- [`tests/unit/test_redemption_idempotency.py`](../../tests/unit/test_redemption_idempotency.py) (idempotency key behavior)
 
 ---
 

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { Button, Linking, StyleSheet, Text, View } from "react-native";
+import { Button, Linking, StyleSheet, Text, TextInput, View } from "react-native";
 import type { IntentVector } from "@spark/shared";
 
 import { postComposite } from "./src/api/spark";
+import { runIntentInference, mapToolArgsToIntent, DEFAULT_INTENT_VECTOR } from "./src/local-llm";
 import { applyStravaSignalToIntent } from "./src/local-llm/sourceSignals";
 import { useStravaIntegration } from "./src/api/useStravaIntegration";
 
@@ -22,6 +23,8 @@ const SAMPLE_INTENT: IntentVector = {
 
 export default function App() {
   const [status, setStatus] = useState<string>("");
+  const [userText, setUserText] = useState<string>("I'm walking downtown feeling sluggish and need a quick pick-me-up.");
+  const [activeIntent, setActiveIntent] = useState<IntentVector>(DEFAULT_INTENT_VECTOR);
   const {
     status: stravaStatus,
     connection,
@@ -56,13 +59,25 @@ export default function App() {
     return () => sub.remove();
   }, [handleCallbackUrl]);
 
-  const ping = useCallback(async () => {
-    setStatus("…");
+  const extractContext = useCallback(async () => {
+    setStatus("Initializing WebGPU... (This may take a minute if downloading Gemma 4 Nano for the first time)");
     try {
-      let intent = SAMPLE_INTENT;
+      const res = await runIntentInference(userText);
+      const mapped = mapToolArgsToIntent(res.arguments, activeIntent);
+      setActiveIntent(mapped);
+      setStatus(`Local intent derived: ${res.arguments.movement_mode} / ${res.arguments.weather_need}`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e));
+    }
+  }, [userText, activeIntent]);
+
+  const ping = useCallback(async () => {
+    setStatus("Pinging cloud...");
+    try {
+      let intent = activeIntent;
       if (canUseStrava) {
         const refreshed = await refreshSignal();
-        intent = applyStravaSignalToIntent(SAMPLE_INTENT, SAMPLE_INTENT.movement_mode, refreshed);
+        intent = applyStravaSignalToIntent(activeIntent, activeIntent.movement_mode, refreshed);
       }
       const data = await postComposite(intent);
       const m = (data as { merchant?: { id?: string } }).merchant;
@@ -70,7 +85,7 @@ export default function App() {
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e));
     }
-  }, [canUseStrava, refreshSignal]);
+  }, [activeIntent, canUseStrava, refreshSignal]);
 
   return (
     <View style={styles.container}>
@@ -87,7 +102,18 @@ export default function App() {
           onPress={() => disconnect().catch((e) => setStatus(String(e)))}
         />
       </View>
-      <Button title="Ping backend" onPress={ping} />
+
+      <TextInput
+        style={styles.input}
+        value={userText}
+        onChangeText={setUserText}
+        placeholder="How are you feeling right now?"
+      />
+      <View style={styles.row}>
+        <Button title="1. Extract Intent (Local LLM)" onPress={extractContext} />
+        <Button title="2. Ping Backend (Cloud)" onPress={ping} />
+      </View>
+
       {status ? <Text style={styles.status}>{status}</Text> : null}
       {stravaStatus ? <Text style={styles.status}>{stravaStatus}</Text> : null}
       <StatusBar style="auto" />
@@ -106,6 +132,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: "600" },
   hint: { fontSize: 12, color: "#666", textAlign: "center" },
-  status: { fontSize: 12, color: "#111", textAlign: "center" },
+  status: { fontSize: 12, color: "#111", textAlign: "center", marginTop: 16 },
   row: { flexDirection: "row", gap: 8 },
+  input: { borderWidth: 1, borderColor: "#ccc", width: "100%", padding: 12, borderRadius: 8, marginTop: 12 },
 });

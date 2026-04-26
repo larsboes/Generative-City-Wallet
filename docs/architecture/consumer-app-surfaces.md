@@ -2,6 +2,13 @@
 
 Consumer-facing delivery and interaction surfaces tied to backend offer lifecycle.
 
+## Quick Navigation
+
+- [Surfaces](#surfaces)
+- [Primary user flow](#primary-user-flow)
+- [Runtime constraints](#runtime-constraints)
+- [Surface responsibilities](#surface-responsibilities)
+
 ---
 
 ## Surfaces
@@ -25,6 +32,15 @@ flowchart TD
   redeem --> cashback[Cashback]
   cashback --> wallet[WalletView]
 ```
+
+### Runtime code links
+
+| Concern | File |
+|---|---|
+| Mobile app shell and flow wiring | [`apps/mobile/App.tsx`](../../apps/mobile/App.tsx) |
+| Offer generation API route | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Redemption confirm route | [`apps/api/src/spark/routers/redemption.py`](../../apps/api/src/spark/routers/redemption.py) |
+| Mobile API integration docs | [`apps/mobile/README.md`](../../apps/mobile/README.md) |
 
 ---
 

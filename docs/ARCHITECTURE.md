@@ -2,8 +2,21 @@
 
 This is the primary architecture entrypoint.
 
-For setup and workflows, see `DEVELOPMENT.md`.  
-For planning rationale, see `planning/README.md`.
+For setup and workflows, see [`DEVELOPMENT.md`](./DEVELOPMENT.md).  
+For planning rationale, see [`planning/README.md`](./planning/README.md).
+
+> [!TIP]
+> Use this page as a map, then jump to deep-dive docs in [`docs/architecture`](./architecture/).
+
+## Quick Navigation
+
+- [System Map](#system-map)
+- [Privacy Boundary and On-Device Layer](#privacy-boundary--on-device-layer)
+- [Offer Pipeline](#offer-pipeline)
+- [Runtime Ownership and Mapping Boundaries](#runtime-ownership-and-mapping-boundaries)
+- [Code Structure Boundaries](#code-structure-boundaries)
+- [Documentation Map](#documentation-map)
+- [Debug-first Checklist](#debug-first-checklist)
 
 ---
 
@@ -91,6 +104,16 @@ flowchart LR
 - Visual log of what is being processed locally.
 - Shows the "Cloud Exit Gate" content.
 
+### Primary implementation links
+
+| Concern | File |
+|---|---|
+| Request schemas + intent boundary | [`apps/api/src/spark/models/api.py`](../apps/api/src/spark/models/api.py) |
+| Composite state models | [`apps/api/src/spark/models/context.py`](../apps/api/src/spark/models/context.py) |
+| Intent trust normalization | [`apps/api/src/spark/services/intent_trust.py`](../apps/api/src/spark/services/intent_trust.py) |
+| Identity continuity policy | [`apps/api/src/spark/services/identity_continuity.py`](../apps/api/src/spark/services/identity_continuity.py) |
+| Mobile intent mapping + local bridge | [`apps/mobile/src/local-llm/index.ts`](../apps/mobile/src/local-llm/index.ts) |
+
 ---
 
 ## Intent Vector Schema
@@ -114,7 +137,7 @@ What leaves the device. No PII. No raw location.
 
 ---
 
-## Offer pipeline
+## Offer Pipeline
 
 ```mermaid
 flowchart TD
@@ -138,6 +161,19 @@ flowchart TD
 ```
 
 Key rule: recommendation is deterministic; LLM is framing/UI generation only.
+
+> [!IMPORTANT]
+> The LLM never decides entitlement. Eligibility, merchant selection, and financial bounds are deterministic and enforced server-side.
+
+### Pipeline entrypoints
+
+| Stage | Runtime file |
+|---|---|
+| Offer generation route | [`apps/api/src/spark/routers/offers.py`](../apps/api/src/spark/routers/offers.py) |
+| Composite assembly | [`apps/api/src/spark/services/composite.py`](../apps/api/src/spark/services/composite.py) |
+| Deterministic decision engine | [`apps/api/src/spark/services/offer_decision.py`](../apps/api/src/spark/services/offer_decision.py) |
+| LLM generation | [`apps/api/src/spark/services/offer_generator.py`](../apps/api/src/spark/services/offer_generator.py) |
+| Hard rails | [`apps/api/src/spark/services/hard_rails.py`](../apps/api/src/spark/services/hard_rails.py) |
 
 ---
 
@@ -168,7 +204,7 @@ This loop keeps personalization adaptive while preserving deterministic gating a
 
 ---
 
-## Runtime ownership and mapping boundaries
+## Runtime Ownership and Mapping Boundaries
 
 - **Fluent Bit / Lua** owns ingress validation and lightweight event normalization.
   - required field checks
@@ -184,6 +220,15 @@ This loop keeps personalization adaptive while preserving deterministic gating a
   - OCR transit confidence policy (low-confidence OCR does not hard-gate offers)
 
 Rule of thumb: if logic needs DB truth, response contracts, or product/business rules, it belongs in Python, not Lua.
+
+### Ownership matrix
+
+| Layer | Owns | Primary files |
+|---|---|---|
+| Ingress (Fluent Bit/Lua) | validation, coercion, dead-lettering, lightweight enrichment | [`infra/fluentbit/fluent-bit.yaml`](../infra/fluentbit/fluent-bit.yaml) |
+| API + policy (Python) | trust normalization, deterministic gating, rails, audit fields | [`apps/api/src/spark/services`](../apps/api/src/spark/services) |
+| Persistence (SQLite) | authoritative offer lifecycle + idempotency logs | [`apps/api/src/spark/db/schema.sql`](../apps/api/src/spark/db/schema.sql), [`apps/api/src/spark/repositories`](../apps/api/src/spark/repositories) |
+| Graph projection (Neo4j) | preference graph, graph rules, explainability reads | [`apps/api/src/spark/graph`](../apps/api/src/spark/graph), [`apps/api/src/spark/routers/graph.py`](../apps/api/src/spark/routers/graph.py) |
 
 ---
 
@@ -256,7 +301,7 @@ Design intent: Spark Wave remains anonymous and deterministic while providing me
 
 ---
 
-## Code structure boundaries
+## Code Structure Boundaries
 
 - **`spark.models`** defines typed shapes grouped by lifecycle and boundary.
   - `api`: HTTP request/response DTOs
@@ -333,21 +378,21 @@ Rule of thumb: transport shapes live in `models`, policy lives in `services`, SQ
 
 ---
 
-## Documentation map
+## Documentation Map
 
-- `architecture/context-signals.md` — signal model and composite context usage
-- `architecture/offer-decision-engine.md` — rules-first ranking and thresholding
-- `architecture/llm-and-hard-rails.md` — generation boundary and safety enforcement
-- `architecture/ingress-and-canonicalization.md` — runtime mapping boundary between Fluent Bit and Python
-- `architecture/neo4j-graph.md` — graph model, rules, writes, operations
-- `architecture/self-learning-api-reference.md` — online learning endpoints, attribution, idempotency, and ops controls
-- `architecture/ARCHITECTURE-GUARDRAILS.md` — enforced layer boundaries and ownership rules
-- `architecture/CODE-MAP.md` — where to place new feature code quickly
-- `architecture/adr/clean-architecture-ddd-direction.md` — rationale for clean + DDD-inspired direction
-- `DATA-MODEL.md` — canonical contracts + SQLite + graph projection model
-- `architecture/consumer-app-surfaces.md` — delivery surfaces and app flow
-- `architecture/merchant-dashboard.md` — business-facing workflow and coupling
-- `architecture/data-simulation.md` — synthetic transaction and density layer
+- [`architecture/context-signals.md`](./architecture/context-signals.md) — signal model and composite context usage
+- [`architecture/offer-decision-engine.md`](./architecture/offer-decision-engine.md) — rules-first ranking and thresholding
+- [`architecture/llm-and-hard-rails.md`](./architecture/llm-and-hard-rails.md) — generation boundary and safety enforcement
+- [`architecture/ingress-and-canonicalization.md`](./architecture/ingress-and-canonicalization.md) — runtime mapping boundary between Fluent Bit and Python
+- [`architecture/neo4j-graph.md`](./architecture/neo4j-graph.md) — graph model, rules, writes, operations
+- [`architecture/self-learning-api-reference.md`](./architecture/self-learning-api-reference.md) — online learning endpoints, attribution, idempotency, and ops controls
+- [`architecture/ARCHITECTURE-GUARDRAILS.md`](./architecture/ARCHITECTURE-GUARDRAILS.md) — enforced layer boundaries and ownership rules
+- [`architecture/CODE-MAP.md`](./architecture/CODE-MAP.md) — where to place new feature code quickly
+- [`architecture/adr/clean-architecture-ddd-direction.md`](./architecture/adr/clean-architecture-ddd-direction.md) — rationale for clean + DDD-inspired direction
+- [`DATA-MODEL.md`](./DATA-MODEL.md) — canonical contracts + SQLite + graph projection model
+- [`architecture/consumer-app-surfaces.md`](./architecture/consumer-app-surfaces.md) — delivery surfaces and app flow
+- [`architecture/merchant-dashboard.md`](./architecture/merchant-dashboard.md) — business-facing workflow and coupling
+- [`architecture/data-simulation.md`](./architecture/data-simulation.md) — synthetic transaction and density layer
 
 ---
 

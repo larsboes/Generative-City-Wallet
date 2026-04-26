@@ -2,6 +2,12 @@
 
 Runtime ownership for mapping, normalization, and canonical contracts.
 
+## Quick Navigation
+
+- [Two mapping stages](#two-mapping-stages)
+- [Decision rule](#decision-rule)
+- [Current examples](#current-examples)
+
 ---
 
 ## Two mapping stages
@@ -31,6 +37,16 @@ Responsibilities:
 
 This stage produces the objects the API returns or persists as canonical records.
 
+### Runtime code links
+
+| Stage | File |
+|---|---|
+| Fluent Bit ingress config | [`infra/fluentbit/fluent-bit.yaml`](../../infra/fluentbit/fluent-bit.yaml) |
+| Payone ingest route | [`apps/api/src/spark/routers/payone.py`](../../apps/api/src/spark/routers/payone.py) |
+| Offer rails canonicalization | [`apps/api/src/spark/services/hard_rails.py`](../../apps/api/src/spark/services/hard_rails.py) |
+| Offer route orchestration | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Transaction persistence | [`apps/api/src/spark/repositories/transactions.py`](../../apps/api/src/spark/repositories/transactions.py) |
+
 ---
 
 ## Decision rule
@@ -58,3 +74,6 @@ Use Python when the rule:
   - `hard_rails.py` builds `OfferObject` from `LLMOfferOutput` plus DB truth
   - redemption reads stored `final_offer` through a typed canonical parser
   - venue transactions are normalized before SQLite insert
+
+> [!TIP]
+> If the rule needs database truth, public API contract semantics, or explainability metadata, keep it in Python services/routers, not Lua.

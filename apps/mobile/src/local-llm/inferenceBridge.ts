@@ -25,7 +25,7 @@ function getNativeModule(): SparkLocalLLMModule | null {
 
 // Global engine instance for the web path
 let webEngineInstance: MLCEngine | null = null;
-const SELECTED_MODEL = "gemma-2b-it-q4f16_1-MLC";
+const SELECTED_MODEL = "gemma-4-nano-it-q4f16_1-MLC";
 
 async function runWebGPUInference(userText: string): Promise<NativeInferenceResult> {
     if (!webEngineInstance) {

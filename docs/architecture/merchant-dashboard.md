@@ -2,6 +2,13 @@
 
 Business-facing view for demand monitoring, campaign control, and redemption operations.
 
+## Quick Navigation
+
+- [Core sections](#core-sections)
+- [Operational loop](#operational-loop)
+- [Coupling to backend](#coupling-to-backend)
+- [Runtime expectations](#runtime-expectations)
+
 ---
 
 ## Core sections
@@ -24,6 +31,16 @@ flowchart TD
   accepted --> qr[QRValidated]
   qr --> metrics[MetricsUpdated]
 ```
+
+### Runtime code links
+
+| Concern | File |
+|---|---|
+| Dashboard app package | [`apps/web-dashboard`](../../apps/web-dashboard) |
+| Offer generation + analytics feed entrypoint | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Redemption/QR validation path | [`apps/api/src/spark/routers/redemption.py`](../../apps/api/src/spark/routers/redemption.py) |
+| Density signal service | [`apps/api/src/spark/services/density.py`](../../apps/api/src/spark/services/density.py) |
+| Transaction ingest route | [`apps/api/src/spark/routers/payone.py`](../../apps/api/src/spark/routers/payone.py) |
 
 ---
 

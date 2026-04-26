@@ -2,6 +2,16 @@
 
 This page summarizes the server-side graph personalization loop and the API/ops surfaces used to inspect and maintain it.
 
+## Quick Navigation
+
+- [Purpose](#purpose)
+- [Core signal ingests](#core-signal-ingests)
+- [Explainability endpoint](#explainability-endpoint)
+- [Data stores used by the loop](#data-stores-used-by-the-loop)
+- [Maintenance and operations](#maintenance-and-operations)
+- [Relevant configuration](#relevant-configuration)
+- [Debug playbook (copy/paste)](#debug-playbook-copypaste)
+
 ## Purpose
 
 The self-learning loop updates user-category preference edges from behavioral signals while enforcing deterministic safety controls:
@@ -16,7 +26,7 @@ The self-learning loop updates user-category preference edges from behavioral si
 
 ### Offer outcome projection
 
-- Runtime path: `apps/api/src/spark/services/redemption.py` (`project_offer_outcome_to_graph`)
+- Runtime path: [`apps/api/src/spark/services/redemption.py`](../../apps/api/src/spark/services/redemption.py) (`project_offer_outcome_to_graph`)
 - Inputs: `session_id`, `offer_id`, `status`, optional `merchant_category`
 - Effects:
   - writes outcome edge in graph
@@ -25,7 +35,7 @@ The self-learning loop updates user-category preference edges from behavioral si
 
 ### Redemption projection
 
-- Runtime path: `apps/api/src/spark/services/redemption.py` (`project_redemption_to_graph`)
+- Runtime path: [`apps/api/src/spark/services/redemption.py`](../../apps/api/src/spark/services/redemption.py) (`project_redemption_to_graph`)
 - Inputs: redemption context from confirmed offer
 - Effects:
   - writes redemption and wallet event graph entities
@@ -35,7 +45,7 @@ The self-learning loop updates user-category preference edges from behavioral si
 ### Wallet seed projection
 
 - API endpoint: `POST /api/graph/sessions/{session_id}/wallet-seed`
-- Runtime path: `apps/api/src/spark/services/wallet_seed.py`
+- Runtime path: [`apps/api/src/spark/services/wallet_seed.py`](../../apps/api/src/spark/services/wallet_seed.py)
 - Effects:
   - applies cold-start category priors with source governance
   - tracks duplicates and guardrail suppressions
@@ -107,11 +117,15 @@ Typical metrics:
 - `preference_weight_volatility`
 - maintenance metrics from ops scripts
 
+### Schema source
+
+The canonical table/column definitions are in [`apps/api/src/spark/db/schema.sql`](../../apps/api/src/spark/db/schema.sql).
+
 ## Maintenance and operations
 
 ### Graph maintenance script
 
-- Script: `scripts/ops/run_graph_maintenance.py`
+- Script: [`scripts/ops/run_graph_maintenance.py`](../../scripts/ops/run_graph_maintenance.py)
 - Performs:
   - graph artifact cleanup
   - stale preference decay
@@ -126,7 +140,7 @@ uv run python scripts/ops/run_graph_maintenance.py
 
 ## Relevant configuration
 
-Config source: `apps/api/src/spark/config.py`
+Config source: [`apps/api/src/spark/config.py`](../../apps/api/src/spark/config.py)
 
 - `GRAPH_PREF_UPDATE_WINDOW_SECONDS`
 - `GRAPH_PREF_MAX_UPDATES_PER_CATEGORY_WINDOW`
@@ -138,12 +152,12 @@ Config source: `apps/api/src/spark/config.py`
 
 ## Implementation map
 
-- `apps/api/src/spark/services/redemption.py`
-- `apps/api/src/spark/services/wallet_seed.py`
-- `apps/api/src/spark/repositories/redemption.py`
-- `apps/api/src/spark/routers/graph.py`
-- `apps/api/src/spark/db/schema.sql`
-- `scripts/ops/run_graph_maintenance.py`
+- [`apps/api/src/spark/services/redemption.py`](../../apps/api/src/spark/services/redemption.py)
+- [`apps/api/src/spark/services/wallet_seed.py`](../../apps/api/src/spark/services/wallet_seed.py)
+- [`apps/api/src/spark/repositories/redemption.py`](../../apps/api/src/spark/repositories/redemption.py)
+- [`apps/api/src/spark/routers/graph.py`](../../apps/api/src/spark/routers/graph.py)
+- [`apps/api/src/spark/db/schema.sql`](../../apps/api/src/spark/db/schema.sql)
+- [`scripts/ops/run_graph_maintenance.py`](../../scripts/ops/run_graph_maintenance.py)
 
 ## Debug playbook (copy/paste)
 

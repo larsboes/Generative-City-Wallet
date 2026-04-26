@@ -2,7 +2,16 @@
 
 Deterministic engine for choosing one merchant (or no offer) per request.
 
-Implementation: `apps/api/src/spark/services/offer_decision.py`.
+Implementation: [`apps/api/src/spark/services/offer_decision.py`](../../apps/api/src/spark/services/offer_decision.py).
+
+## Quick Navigation
+
+- [Pipeline](#pipeline)
+- [Hard blocks](#hard-blocks)
+- [Scoring model](#scoring-model)
+- [Output contract](#output-contract)
+- [Test coverage](#test-coverage)
+- [Debug cookbook](#debug-cookbook)
 
 ---
 
@@ -18,6 +27,15 @@ flowchart TD
   threshold --> trace[DecisionTrace]
   trace --> decision[RECOMMEND or DO_NOT_RECOMMEND]
 ```
+
+### Runtime code links
+
+| Concern | File |
+|---|---|
+| Deterministic ranking + threshold | [`apps/api/src/spark/services/offer_decision.py`](../../apps/api/src/spark/services/offer_decision.py) |
+| Composite orchestration | [`apps/api/src/spark/services/composite.py`](../../apps/api/src/spark/services/composite.py) |
+| Offer route integration | [`apps/api/src/spark/routers/offers.py`](../../apps/api/src/spark/routers/offers.py) |
+| Decision trace models | [`apps/api/src/spark/models/context.py`](../../apps/api/src/spark/models/context.py) |
 
 ---
 
@@ -73,6 +91,9 @@ Minimum threshold:
 Conflict resolver acts as a pre-filter: candidates with `DO_NOT_RECOMMEND` are excluded.
 
 Note on economics propagation: Spark Wave catalyst bonus is applied downstream in the offer pipeline (post-selection) and does not affect deterministic merchant ranking in this engine.
+
+> [!IMPORTANT]
+> Keep this engine deterministic. Any value that changes merchant eligibility or score ordering must be computable without LLM output.
 
 ---
 
@@ -130,7 +151,7 @@ No exception path should be required for expected negative decisions.
 
 ## Test coverage
 
-- `tests/unit/test_offer_decision.py`
+- [`tests/unit/test_offer_decision.py`](../../tests/unit/test_offer_decision.py)
   - exercising hard block
   - candidate ranking and selection
   - single-offer guard behavior
@@ -138,6 +159,8 @@ No exception path should be required for expected negative decisions.
   - cycling category weighting and recheck timing
   - transit-waiting category weighting and recheck timing
   - commuting category weighting and recheck timing
+- [`tests/unit/test_dynamic_transit_gating.py`](../../tests/unit/test_dynamic_transit_gating.py)
+  - distance-aware transit viability allow/block behavior
 
 ---
 
