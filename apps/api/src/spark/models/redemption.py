@@ -33,6 +33,8 @@ class RedemptionConfirmResponse(BaseModel):
     session_id: Optional[str] = None
     offer_id: Optional[str] = None
     amount_eur: Optional[float] = None
+    base_amount_eur: Optional[float] = None
+    catalyst_bonus_pct: Optional[float] = None
     merchant_name: Optional[str] = None
     credited_at: Optional[str] = None
     wallet_balance_eur: Optional[float] = None

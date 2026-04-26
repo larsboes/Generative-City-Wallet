@@ -35,6 +35,25 @@ export interface IntentVector {
   dwell_signal: boolean;
   battery_low: boolean;
   session_id: string;
+  continuity_hint?: string;
+}
+
+export type IntentTrustPolicy =
+  | "authoritative"
+  | "advisory"
+  | "derived"
+  | "ignored";
+
+export type IntentTrustAction = "accepted" | "overridden" | "derived" | "ignored";
+
+export interface IntentFieldProvenance {
+  field: string;
+  policy: IntentTrustPolicy;
+  client_value?: unknown;
+  final_value?: unknown;
+  action: IntentTrustAction;
+  reason: string;
+  source: string;
 }
 
 // ── Density Signal ────────────────────────────────────────────────────────────
@@ -121,6 +140,10 @@ export interface MerchantContext {
 export interface UserContext {
   intent: IntentVector;
   preference_scores: Record<string, number>;
+  intent_provenance: IntentFieldProvenance[];
+  continuity_id?: string;
+  continuity_source?: string;
+  continuity_expires_at?: string;
   social_preference: SocialPreference;
   price_tier: PriceTier;
 }
@@ -288,6 +311,22 @@ export interface GenerateOfferRequest {
   ocr_transit?: OCRTransitPayload;
 }
 
+export interface ContinuityResetRequest {
+  session_id: string;
+  continuity_hint?: string;
+  opt_out?: boolean;
+}
+
+export interface ContinuityResetResponse {
+  session_id: string;
+  continuity_id?: string;
+  continuity_hint?: string;
+  source: string;
+  expires_at: string;
+  reset_applied: boolean;
+  opt_out: boolean;
+}
+
 // ── Conflict Resolution (standalone endpoint) ────────────────────────────────
 
 export interface ConflictResolveRequest {
@@ -311,6 +350,9 @@ export interface ConflictResolveResponse {
 export interface WalletSeedItem {
   category: string;
   weight: number;
+  source_type?: string;
+  source_confidence?: number;
+  artifact_count?: number;
 }
 
 export interface WalletSeedRequest {
@@ -321,6 +363,9 @@ export interface WalletSeedResponse {
   session_id: string;
   applied: number;
   skipped: number;
+  duplicates: number;
+  suppressed_by_guardrail: number;
+  avg_quality_multiplier: number;
 }
 
 // ── Spark Wave ────────────────────────────────────────────────────────────────
@@ -376,7 +421,7 @@ export interface OCRTransitParseRequest {
   raw_text: string;
   city_hint?: string;
   district_hint?: string;
-  parser_provider?: "rule_based";
+  parser_provider?: "rule_based" | "hybrid_rule_based";
 }
 
 export interface OCRTransitParseResponse {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GraphHealthResponse(BaseModel):
@@ -20,12 +20,16 @@ class GraphPreferenceScoreItem(BaseModel):
     weight: float
     source_type: str | None = None
     last_reinforced_unix: float | None = None
+    decay_rate: float | None = None
+    source_confidence: float | None = None
+    artifact_count: int | None = None
 
 
 class SessionPreferencesResponse(BaseModel):
     session_id: str
     available: bool
     scores: list[GraphPreferenceScoreItem]
+    attribution: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RecentOfferItem(BaseModel):

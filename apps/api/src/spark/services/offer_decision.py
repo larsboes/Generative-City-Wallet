@@ -24,6 +24,10 @@ POST_WORKOUT_RECOVERY_CATEGORIES = {
     "bakery",
 }
 POST_WORKOUT_SUPPRESSED_CATEGORIES = {"bar", "club", "nightclub"}
+CYCLING_RECOVERY_CATEGORIES = {"juice_bar", "smoothie_bar", "healthy_cafe", "cafe"}
+CYCLING_SUPPRESSED_CATEGORIES = {"club", "nightclub"}
+TRANSIT_WAITING_FAST_CATEGORIES = {"cafe", "bakery", "juice_bar"}
+TRANSIT_WAITING_SUPPRESSED_CATEGORIES = {"club", "nightclub", "restaurant"}
 
 
 def decide_offer(
@@ -374,13 +378,28 @@ def _movement_category_adjustment(
 
     Post-workout users should see recovery-oriented options and avoid nightlife.
     """
-    if movement_mode != "post_workout":
-        return 0.0, "No movement-specific category adjustment."
-    if merchant_category in POST_WORKOUT_RECOVERY_CATEGORIES:
-        return 18.0, "Post-workout recovery category boost applied."
-    if merchant_category in POST_WORKOUT_SUPPRESSED_CATEGORIES:
-        return -14.0, "Post-workout nightlife suppression applied."
-    return 0.0, "Post-workout neutral category."
+    if movement_mode == "post_workout":
+        if merchant_category in POST_WORKOUT_RECOVERY_CATEGORIES:
+            return 18.0, "Post-workout recovery category boost applied."
+        if merchant_category in POST_WORKOUT_SUPPRESSED_CATEGORIES:
+            return -14.0, "Post-workout nightlife suppression applied."
+        return 0.0, "Post-workout neutral category."
+
+    if movement_mode == "cycling":
+        if merchant_category in CYCLING_RECOVERY_CATEGORIES:
+            return 10.0, "Cycling recovery category boost applied."
+        if merchant_category in CYCLING_SUPPRESSED_CATEGORIES:
+            return -8.0, "Cycling nightlife suppression applied."
+        return 0.0, "Cycling neutral category."
+
+    if movement_mode == "transit_waiting":
+        if merchant_category in TRANSIT_WAITING_FAST_CATEGORIES:
+            return 8.0, "Transit-waiting quick-stop category boost applied."
+        if merchant_category in TRANSIT_WAITING_SUPPRESSED_CATEGORIES:
+            return -10.0, "Transit-waiting long-visit category suppression applied."
+        return 0.0, "Transit-waiting neutral category."
+
+    return 0.0, "No movement-specific category adjustment."
 
 
 def _movement_recheck_minutes(*, movement_mode: str, default_minutes: int) -> int:
@@ -391,4 +410,8 @@ def _movement_recheck_minutes(*, movement_mode: str, default_minutes: int) -> in
     """
     if movement_mode == "post_workout":
         return max(5, min(default_minutes, 12))
+    if movement_mode == "cycling":
+        return max(7, min(default_minutes, 15))
+    if movement_mode == "transit_waiting":
+        return max(3, min(default_minutes, 8))
     return default_minutes

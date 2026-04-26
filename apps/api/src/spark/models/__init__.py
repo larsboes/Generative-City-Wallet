@@ -6,6 +6,8 @@ Prefer importing from the narrow module (`api`, `context`, `offers`, `transactio
 """
 
 from spark.models.api import (
+    ContinuityResetRequest as ContinuityResetRequest,
+    ContinuityResetResponse as ContinuityResetResponse,
     GenerateOfferRequest as GenerateOfferRequest,
     WalletSeedItem as WalletSeedItem,
     WalletSeedRequest as WalletSeedRequest,
@@ -40,6 +42,7 @@ from spark.models.context import (
     DensitySignal as DensitySignal,
     EnvironmentContext as EnvironmentContext,
     IntentVector as IntentVector,
+    IntentFieldProvenance as IntentFieldProvenance,
     MerchantContext as MerchantContext,
     MerchantDemand as MerchantDemand,
     OfferDecisionTrace as OfferDecisionTrace,
@@ -114,6 +117,8 @@ __all__ = [
     "ConflictCheckToolResult",
     "ConflictResolveRequest",
     "ConflictResolveResponse",
+    "ContinuityResetRequest",
+    "ContinuityResetResponse",
     "ConflictResolutionContext",
     "CouponType",
     "DailyTransactionsResponse",
@@ -137,6 +142,7 @@ __all__ = [
     "HourlyAverageBucket",
     "HourlyTransactionBucket",
     "IntentVector",
+    "IntentFieldProvenance",
     "LLMContent",
     "LLMGenUI",
     "LLMOfferOutput",

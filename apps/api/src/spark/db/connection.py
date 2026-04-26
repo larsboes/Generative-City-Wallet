@@ -46,7 +46,17 @@ def init_database(
     if conn is None:
         conn = get_connection(db_path)
     schema = _SCHEMA_PATH.read_text()
-    conn.executescript(schema)
+    try:
+        conn.executescript(schema)
+    except sqlite3.OperationalError as exc:
+        # Backward compatibility for older DBs where graph_event_log was created
+        # before newer columns (e.g. category/source_event_id/payload_hash) existed.
+        if "no such column: category" not in str(exc):
+            raise
+        from spark.repositories.redemption import ensure_graph_learning_schema
+
+        ensure_graph_learning_schema(db_path=db_path)
+        conn.executescript(schema)
     if owns_connection:
         conn.close()
 

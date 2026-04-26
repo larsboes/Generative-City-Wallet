@@ -1,4 +1,4 @@
-# 22 — Implementation Gaps (Planning -> Runtime)
+# PLAN — Implementation Gaps (Planning -> Runtime)
 
 This document tracks what is still missing between planning design and current implementation.
 
@@ -13,15 +13,16 @@ Use this as the execution checklist after the core deterministic offer-selection
 | Deterministic offer selection + trace | Implemented | Rules-first engine, thresholding, audit trace in runtime docs/code |
 | Graph rule gate + explainability | Implemented | Pre-LLM guardrails and explainability path are live |
 | KG projection idempotency | Implemented | SQLite-backed idempotency guard for graph write side-effects |
-| OCR transit delay enrichment | Implemented (MVP) | Delay-window fields + deterministic gate are live; OCR parse adapter (`/api/ocr/transit/parse`) now includes retry/timeout policy and typed handoff |
-| Wallet pass cold-start seeding | Partial | Wallet seed endpoint and idempotent graph writes are live; source quality calibration still pending |
-| Spark Wave social coordination | Partial | Wave schema + create/join/get API are live with replay/expiry semantics, deterministic `catalyst_bonus_pct`, participant cap guard, and cleanup endpoint; stricter rate policy + downstream bonus consumption remain |
-| Post-workout advanced signal rollout | Implemented (MVP) | Exercising hard block, post-workout category adjustments, and movement-aware recheck cadence are live |
-| TS/Python contract parity for new runtime fields | Implemented (guarded) | Parity checker now targets `models/__init__.py` exports + field-level checks |
+| OCR transit delay enrichment | Partial | Delay-window fields + deterministic gate are live; OCR parse adapter now includes retry/timeout policy and hybrid rule-based provider extraction (line/station/return-by confidence), but non-rule provider expansion remains |
+| Wallet pass cold-start seeding | Partial | Wallet seed endpoint now includes quality-aware weighting/decay by source type, per-source base impact multipliers, and stronger longitudinal damping; production replay calibration still pending |
+| Spark Wave social coordination | Partial | Wave schema + create/join/get API are live with replay/expiry semantics, deterministic `catalyst_bonus_pct`, participant cap guard, cleanup endpoint, stricter anti-abuse rate guards, and redemption cashback consumption of completed-wave catalyst bonus; broader economics propagation remains |
+| Post-workout advanced signal rollout | Implemented (MVP) | Exercising hard block, post-workout + cycling + transit-waiting category adjustments, and movement-aware recheck cadence are live |
+| TS/Python contract parity for new runtime fields | Implemented (guarded) | Parity checker now covers continuity reset symbols and expanded field-level checks (`IntentVector.continuity_hint`, `GenerateOfferRequest` transit/OCR fields, `WalletSeedResponse` guardrail counters) |
 | Fluent Bit -> backend density ingestion E2E | Implemented (MVP) | Fluent Bit now forwards payone events to backend ingest and density read path is covered by integration test |
 | Runtime distance signal in composite state | Implemented (MVP) | Deterministic distance estimation now replaces fixed distance stubs in composite + decision path |
-| OCR/Wallet/Spark Wave test coverage | Partial | Added OCR fixtures/ingest/parse tests, wallet-seed idempotency, and wave progression + cleanup + participant-cap tests; wallet decay and broader failure-mode suites remain |
+| OCR/Wallet/Spark Wave test coverage | Implemented (MVP) | Added OCR fixtures/ingest/parse tests (including threshold boundary), wallet seed idempotency/decay + graph-unavailable failure path, and wave progression + cleanup + participant-cap + create-rate-limit tests |
 | Runtime architecture/data-model docs alignment | Implemented (MVP) | `docs/ARCHITECTURE.md` and `docs/DATA-MODEL.md` now include OCR confidence behavior, wave `join_applied`, and payone ingest path |
+| Intent source-of-truth + identity continuity model | Partial | Server-side trust normalization/provenance for `time_bucket` + `weather_need` is live, plus privacy-preserving continuity pseudonym derivation (`continuity_id`) and reset/opt-out API path; raw sensor ingestion and richer identity controls remain |
 
 ---
 
@@ -30,6 +31,8 @@ Use this as the execution checklist after the core deterministic offer-selection
 - Movement-aware deterministic rollout is active in runtime:
   - exercising hard block
   - post-workout category boost/suppression
+  - cycling recovery-vs-nightlife weighting and recheck cadence
+  - transit-waiting quick-stop weighting and faster recheck cadence
   - movement-aware `recheck_in_minutes`
   - source: `apps/api/src/spark/services/offer_decision.py`
 - Graph operational surface and preference explainability are live:
@@ -53,11 +56,47 @@ Use this as the execution checklist after the core deterministic offer-selection
 - OCR parser/provider adapter is live:
   - raw OCR text parsing endpoint with timeout/retry policy and typed payload handoff
   - source: `apps/api/src/spark/services/ocr_transit.py`, `apps/api/src/spark/routers/ocr.py`, `tests/unit/test_ocr_transit_parser.py`
+- OCR provider quality has advanced beyond baseline rule parsing:
+  - `hybrid_rule_based` parser adds stronger deterministic extraction (`line`, `station`, normalized `must_return_by`) and confidence scoring
+  - parser-provider selection is now explicit in parse request contracts
+  - source: `apps/api/src/spark/services/ocr_transit.py`, `apps/api/src/spark/models/ocr.py`, `packages/shared/src/contracts.ts`, `tests/unit/test_ocr_transit_parser.py`
 - Spark Wave catalyst/ops hardening is live:
   - deterministic `catalyst_bonus_pct`, participant-cap enforcement, and `/api/waves/cleanup` operational endpoint
   - source: `apps/api/src/spark/repositories/wave.py`, `apps/api/src/spark/routers/wave.py`, `tests/integration/test_wave_flow.py`, `scripts/ops/run_graph_maintenance.py`
+- Spark Wave anti-abuse hardening has advanced:
+  - active-wave cap per creator session and create/join burst limits per session are enforced
+  - per-wave join burst guard added to prevent concentrated spam joins
+  - source: `apps/api/src/spark/repositories/wave.py`, `tests/integration/test_wave_flow.py`
+- Spark Wave catalyst bonus is now consumed in redemption economics:
+  - completed wave `catalyst_bonus_pct` is deterministically applied to redemption cashback
+  - redemption response now exposes `base_amount_eur` and `catalyst_bonus_pct` for auditability
+  - source: `apps/api/src/spark/repositories/wave.py`, `apps/api/src/spark/services/redemption.py`, `apps/api/src/spark/models/redemption.py`, `tests/unit/test_redemption_idempotency.py`, `tests/integration/test_wave_flow.py`
+- Wallet seed quality/provenance hardening is live:
+  - source-aware decay + quality multiplier and preference provenance fields (`decay_rate`, `source_confidence`, `artifact_count`) exposed in graph debug endpoint
+  - source: `apps/api/src/spark/services/wallet_seed.py`, `apps/api/src/spark/routers/graph.py`, `tests/unit/test_wallet_seed.py`, `tests/unit/test_graph_preferences_provenance.py`
+- Wallet seed source-governance tuning has advanced:
+  - per-source `base_delta_multiplier` is now enforced (`wallet_pass` > `receipt_ocr` > `manual_import`)
+  - stronger longitudinal damping curve applied by per-session source history
+  - deterministic tests now verify monotonic reinforcement reduction as history grows
+  - source: `apps/api/src/spark/services/wallet_seed.py`, `tests/unit/test_wallet_seed.py`
+- Intent trust/provenance normalization is live for high-impact fields:
+  - server-side trust policy (`authoritative`/`advisory`) normalizes `time_bucket` + `weather_need`
+  - per-field provenance is emitted in composite user context + decision trace metadata (`intent_trust_normalization`)
+  - source: `apps/api/src/spark/services/intent_trust.py`, `apps/api/src/spark/services/composite.py`, `apps/api/src/spark/models/context.py`, `tests/unit/test_intent_trust.py`
+- Identity continuity baseline is now explicit in runtime:
+  - server derives privacy-preserving `continuity_id` from optional `intent.continuity_hint` (fallback to session-derived pseudonym)
+  - continuity source + expiry metadata are included in user context and provenance (`derived`)
+  - source: `apps/api/src/spark/services/identity_continuity.py`, `apps/api/src/spark/services/composite.py`, `apps/api/src/spark/models/context.py`, `tests/unit/test_identity_continuity.py`, `tests/integration/test_composite_graph_integration.py`
+- Identity continuity reset controls are now exposed:
+  - `POST /api/identity/continuity/reset` supports continuity rotation and explicit opt-out behavior
+  - response includes updated continuity metadata (`continuity_id`, `continuity_hint`, `expires_at`, `opt_out`)
+  - source: `apps/api/src/spark/routers/identity.py`, `apps/api/src/spark/services/identity_continuity.py`, `apps/api/src/spark/models/api.py`, `tests/unit/test_identity_continuity_reset.py`, `tests/unit/test_identity_router.py`, `tests/integration/test_identity_continuity_endpoint.py`
 - Runtime architecture/data-model docs are now aligned with current endpoints/semantics:
   - source: `docs/ARCHITECTURE.md`, `docs/DATA-MODEL.md`
+- Contract parity guard has been tightened for newer boundary types:
+  - includes continuity reset request/response symbols
+  - validates expanded field-level parity for continuity/transit/guardrail response fields
+  - source: `scripts/dev/check_contract_symbols.py`, `apps/api/src/spark/models/__init__.py`, `packages/shared/src/contracts.ts`
 
 ---
 
@@ -87,12 +126,11 @@ Use this as the execution checklist after the core deterministic offer-selection
 ## 2) Wallet Pass Cold-Start KG Seeding
 
 - **Goal:** Seed preference priors from user-approved wallet passes with lower confidence and faster decay.
-- **Current:** Runtime write path is now present via `/api/graph/sessions/{session_id}/wallet-seed`; further calibration and source governance remain.
+- **Current:** Runtime write path is present via `/api/graph/sessions/{session_id}/wallet-seed`; source-aware decay and quality-weighted reinforcement are live, and provenance is exposed via `/api/graph/sessions/{session_id}/preferences`.
 - **Required outputs:**
-  - Seed ingestion endpoint/model (`source=wallet_seed`).
-  - Mapped category/attribute edge creation with bounded initial weights.
-  - Explicit decay policy per source type.
-  - Idempotent seed events (no duplicate edges on re-import).
+  - Longitudinal calibration of source-quality multipliers with production-like replay/eval data.
+  - Source governance policy refinements (allowed source taxonomy + confidence defaults by source) beyond current multiplier tiering.
+  - Extended decay-behavior test coverage over multi-step/session timelines.
 - **Likely touchpoints:**
   - `apps/api/src/spark/graph/repository.py`
   - `apps/api/src/spark/services/redemption.py` (pattern reuse for idempotency)
@@ -111,8 +149,8 @@ Use this as the execution checklist after the core deterministic offer-selection
 - **Goal:** Add optional social coordination mechanic without contact scraping/social graph coupling.
 - **Current:** Baseline schema + create/join/get API are implemented with replay-safe joins, TTL expiry transitions, deterministic catalyst bonus, participant cap guard, and cleanup endpoint.
 - **Required outputs:**
-  - Downstream bonus consumption path in offer/redemption economics (if product requires direct payout impact).
-  - Abuse protection completion (stricter per-session/per-wave rate policies and additional anti-spam heuristics).
+  - Broader downstream bonus propagation beyond redemption cashback path (if product requires additional payout impact surfaces).
+  - Additional anti-spam heuristics beyond current per-session/per-wave rate limits (for example reputation/risk weighting).
 - **Likely touchpoints:**
   - `apps/api/src/spark/db/schema.sql`
   - `apps/api/src/spark/routers/offers.py`
@@ -129,7 +167,7 @@ Use this as the execution checklist after the core deterministic offer-selection
 ## 4) Advanced Signals Rollout (Post-workout + Movement Expansion)
 
 - **Goal:** Complete movement-mode driven context updates for post-workout recommendations.
-- **Current:** Core deterministic behavior is implemented in runtime (hard block, category weighting, movement-aware recheck cadence). Remaining work is expansion scenarios only.
+- **Current:** Core deterministic behavior is implemented in runtime (hard block, post-workout + cycling + transit-waiting category weighting, movement-aware recheck cadence). Remaining work is additional movement contexts only.
 - **Required outputs:**
   - Expand beyond current `post_workout` set into additional movement contexts (if product requires it).
   - Align mobile/app-facing movement semantics with backend rule labels.
@@ -218,12 +256,38 @@ Use this as the execution checklist after the core deterministic offer-selection
 
 ---
 
+## 9) Intent Source-of-Truth + Identity Continuity
+
+- **Goal:** Make runtime context derivation and identity continuity explicit, auditable, and less dependent on unverified client-side shaping.
+- **Current:**
+  - Backend trust normalization is active for `time_bucket` (authoritative) and `weather_need` (advisory) with auditable provenance.
+  - Privacy-preserving continuity pseudonym derivation is active (`continuity_id`, source, expiry) in composite user context, with reset/opt-out API control and integration coverage.
+  - No backend raw sensor pipeline for GPS/IMU processing; backend still assumes client-side sensor-level intent extraction.
+  - Identity continuity is session-scoped (`session_id`) rather than a richer long-horizon user model.
+- **Required outputs:**
+  - Introduce a backend verification/normalization layer for intent fields that can be cross-checked against server-side signals (time, weather, merchant proximity window).
+  - Define a server-side trust policy per field (`authoritative`, `advisory`, `derived`, `ignored`) and enforce it in request handling.
+  - Add a continuity strategy beyond transient sessions (for example privacy-preserving stable pseudonym strategy or explicit session-link policy), with documented retention and user controls.
+  - Add explicit audit metadata recording field provenance and whether values were accepted, overridden, or rejected.
+- **Likely touchpoints:**
+  - `apps/api/src/spark/models/api.py`
+  - `apps/api/src/spark/models/context.py`
+  - `apps/api/src/spark/services/composite.py`
+  - `apps/api/src/spark/services/offer_pipeline.py`
+  - `docs/ARCHITECTURE.md`
+  - shared contracts and mobile bridge code
+- **Acceptance criteria:**
+  - Deterministic tests verify server-side normalization/override behavior for mismatched client inputs.
+  - Offer audit output includes per-field provenance/trust decisions.
+  - Continuity behavior is documented end-to-end (generation, reuse, expiry, reset) and validated in integration tests.
+
+---
+
 ## Suggested Build Order
 
-1. Wallet seed source-quality calibration and stronger provenance/explainability.
-2. Extended OCR/Wallet/Wave edge-case and failure-mode tests.
-3. Spark Wave stricter anti-abuse/rate policy tuning.
-4. OCR provider quality improvements beyond current rule-based parser.
+1. Identity continuity strategy beyond session scope (privacy-preserving linkage + controls).
+2. OCR provider expansion beyond deterministic rule-based family (for example model-backed OCR extraction path).
+3. Spark Wave broader bonus propagation + anti-spam heuristics refinement.
 
 ---
 

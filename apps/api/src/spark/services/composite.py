@@ -15,6 +15,7 @@ from spark.models.context import (
     DecisionTraceItem,
     DemoOverrides,
     EnvironmentContext,
+    IntentFieldProvenance,
     IntentVector,
     MerchantContext,
     MerchantDemand,
@@ -34,6 +35,8 @@ from spark.services.conflict import resolve_conflict
 from spark.services.density import compute_density_signal
 from spark.services.distance import estimate_distance_m
 from spark.services.offer_decision import decide_offer
+from spark.services.intent_trust import normalize_intent_vector, provenance_metadata
+from spark.services.identity_continuity import resolve_continuity_identity
 from spark.services.weather import get_stuttgart_weather
 
 DEFAULT_PREFERENCE_SCORES = HELPER_DEFAULT_PREFERENCE_SCORES
@@ -59,12 +62,6 @@ async def build_composite_state(
     now = datetime.now()
     repo = graph_repo or get_repository()
 
-    # Touch the user session in the graph (idempotent, fail-soft).
-    await repo.ensure_session(intent.session_id)
-
-    # ── Preference scores from the user knowledge graph ─────────────────────
-    preference_scores = await load_preference_scores(intent.session_id, repo)
-
     effective_transit_delay = transit_delay_minutes
     effective_must_return_by = must_return_by
     if demo_overrides:
@@ -72,6 +69,41 @@ async def build_composite_state(
             effective_transit_delay = demo_overrides.transit_delay_minutes
         if demo_overrides.must_return_by is not None:
             effective_must_return_by = demo_overrides.must_return_by
+
+    # ── Weather (used for trust normalization + environment context) ─────────
+    weather = await get_stuttgart_weather()
+    weather = apply_demo_weather_overrides(
+        weather=weather, demo_overrides=demo_overrides, current_hour=now.hour
+    )
+
+    normalized = normalize_intent_vector(
+        intent,
+        now=now,
+        derived_weather_need=weather.get("weather_need"),
+    )
+    intent = normalized.intent
+    continuity = resolve_continuity_identity(
+        session_id=intent.session_id,
+        continuity_hint=intent.continuity_hint,
+        now=now,
+    )
+    normalized.provenance.append(
+        IntentFieldProvenance(
+            field="continuity_id",
+            policy="derived",
+            client_value=intent.continuity_hint,
+            final_value=continuity.continuity_id,
+            action="derived",
+            reason="Derived privacy-preserving continuity identity for cross-session linkage.",
+            source=continuity.source,
+        )
+    )
+
+    # Touch the user session in the graph (idempotent, fail-soft).
+    await repo.ensure_session(intent.session_id)
+
+    # ── Preference scores from the user knowledge graph ─────────────────────
+    preference_scores = await load_preference_scores(intent.session_id, repo)
 
     # Auto-select merchant through deterministic decision pipeline.
     decision = decide_offer(
@@ -105,13 +137,6 @@ async def build_composite_state(
     density = compute_density_signal(merchant_id, db_path=db_path)
 
     density = apply_demo_density_overrides(density, demo_overrides)
-
-    # ── Weather ────────────────────────────────────────────────────────────────
-    weather = await get_stuttgart_weather()
-
-    weather = apply_demo_weather_overrides(
-        weather=weather, demo_overrides=demo_overrides, current_hour=now.hour
-    )
 
     # ── Social preference (may be overridden) ──────────────────────────────────
     social_pref = intent.social_preference
@@ -161,6 +186,10 @@ async def build_composite_state(
         user=UserContext(
             intent=intent,
             preference_scores=preference_scores,
+            intent_provenance=normalized.provenance,
+            continuity_id=continuity.continuity_id,
+            continuity_source=continuity.source,
+            continuity_expires_at=continuity.expires_at_iso,
             social_preference=social_pref,
             price_tier=intent.price_tier,
         ),
@@ -202,12 +231,20 @@ async def build_composite_state(
             candidate_scores=decision.candidate_scores,
             trace=[
                 DecisionTraceItem(
-                    code=step.code,
-                    reason=step.reason,
-                    score=step.score,
-                    metadata=step.metadata,
-                )
-                for step in decision.trace
+                    code="intent_trust_normalization",
+                    reason="Server trust policy normalized high-impact intent fields.",
+                    score=1.0,
+                    metadata={"fields": provenance_metadata(normalized.provenance)},
+                ),
+                *[
+                    DecisionTraceItem(
+                        code=step.code,
+                        reason=step.reason,
+                        score=step.score,
+                        metadata=step.metadata,
+                    )
+                    for step in decision.trace
+                ],
             ],
         ),
     )

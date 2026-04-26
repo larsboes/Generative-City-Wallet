@@ -101,11 +101,38 @@ flowchart TD
   rules -->|accept| gen[LLM content generation]
   gen --> rails[HardRails]
   rails --> audit[SQLite audit]
-  rails --> graph[Neo4j write best-effort]
+  rails --> neo4j_write[Neo4j write best-effort]
   rails --> response[OfferObject]
 ```
 
 Key rule: recommendation is deterministic; LLM is framing/UI generation only.
+
+---
+
+## Server-side self-learning loop (graph personalization)
+
+Runtime now includes an explicit online learning loop for category preferences:
+
+1. signal ingest (`redemption`, `offer outcome`, `wallet seed`)
+2. event-granular idempotency (`graph_event_log` with `source_event_id` + payload hash)
+3. update guardrails (per-session/per-category rate caps)
+4. preference reinforcement (`PREFERS` bounded to `[0,1]`)
+5. attribution logging (`preference_update_log`)
+6. learning metrics (`learning_metrics_log`) and maintenance health checks
+
+This loop keeps personalization adaptive while preserving deterministic gating and fail-soft behavior when graph dependencies are unavailable.
+
+### Learning safety controls
+
+- **Idempotency:** duplicate replay suppression is keyed on event identity, not only offer/session.
+- **Rate limits:** noisy burst updates are suppressed with explicit outcome metadata.
+- **Outcome visibility:** update paths record `applied`, `duplicate`, or `suppressed_by_guardrail`.
+- **Drift telemetry:** weight volatility and suppression ratios are logged for monitoring.
+
+### Explainability surface
+
+- `GET /api/graph/sessions/{session_id}/preferences` returns preference weights/provenance.
+- `GET /api/graph/sessions/{session_id}/preferences?include_attribution=true` also returns recent event-level attribution rows (`before_weight`, `delta`, `after_weight`, `source_type`, `event_key`, `outcome`, timestamp).
 
 ---
 
@@ -119,11 +146,40 @@ Key rule: recommendation is deterministic; LLM is framing/UI generation only.
 - **Python runtime** owns domain canonicalization.
   - DB-authoritative overrides
   - typed contract assembly
+  - intent trust policy normalization (`authoritative` / `advisory` field handling)
   - offer hard rails
   - audit and explainability metadata
   - OCR transit confidence policy (low-confidence OCR does not hard-gate offers)
 
 Rule of thumb: if logic needs DB truth, response contracts, or product/business rules, it belongs in Python, not Lua.
+
+---
+
+## Intent trust policy (server-side)
+
+For `POST /api/offers/generate`, the backend applies a field-level trust policy before deterministic scoring:
+
+- `time_bucket` is **authoritative** server-side and recomputed from request time.
+- `weather_need` is **advisory** and is validated against server weather context.
+- provenance is emitted in decision trace metadata under `intent_trust_normalization`.
+
+Audit intent: every accepted/overridden value is recorded with source + reason so offer eligibility can be explained and replayed.
+
+---
+
+## Identity continuity policy
+
+Runtime now derives a privacy-preserving continuity pseudonym for cross-session linkage without exposing stable raw identifiers:
+
+- `continuity_id` is server-derived via HMAC from `intent.continuity_hint` when present.
+- fallback behavior derives continuity from `session_id` when no hint is provided.
+- continuity metadata includes `source` and `continuity_expires_at` (retention-bound window).
+- provenance records include `continuity_id` as a `derived` field for auditability.
+- reset/opt-out control is exposed via `POST /api/identity/continuity/reset`:
+  - `opt_out=false` rotates to a new continuity hint/id pair
+  - `opt_out=true` disables cross-session continuity hinting and returns null continuity id
+
+Design intent: continuity remains opt-in and bounded while keeping deterministic explainability in the same trace surface used for other intent-field trust decisions.
 
 ---
 
@@ -227,6 +283,7 @@ Rule of thumb: transport shapes live in `models`, policy lives in `services`, SQ
 - `architecture/llm-and-hard-rails.md` — generation boundary and safety enforcement
 - `architecture/ingress-and-canonicalization.md` — runtime mapping boundary between Fluent Bit and Python
 - `architecture/neo4j-graph.md` — graph model, rules, writes, operations
+- `architecture/self-learning-api-reference.md` — online learning endpoints, attribution, idempotency, and ops controls
 - `architecture/ARCHITECTURE-GUARDRAILS.md` — enforced layer boundaries and ownership rules
 - `architecture/CODE-MAP.md` — where to place new feature code quickly
 - `architecture/adr/clean-architecture-ddd-direction.md` — rationale for clean + DDD-inspired direction

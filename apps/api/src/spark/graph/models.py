@@ -12,6 +12,9 @@ class PreferenceScore:
     weight: float
     source_type: Optional[str] = None
     last_reinforced_unix: Optional[float] = None
+    decay_rate: Optional[float] = None
+    source_confidence: Optional[float] = None
+    artifact_count: Optional[int] = None
 
 
 @dataclass(frozen=True)

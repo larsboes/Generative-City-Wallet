@@ -8,6 +8,7 @@ Spark is a real-time contextual intelligence layer for urban retail.
 | File | Description |
 |---|---|
 | **[`ARCHITECTURE.md`](ARCHITECTURE.md)** | **System Overview:** Main architecture, privacy boundaries, and data flow. |
+| **[`architecture/self-learning-api-reference.md`](architecture/self-learning-api-reference.md)** | **Self-Learning Ops/API:** Attribution, idempotency, guardrails, and maintenance endpoints. |
 | **[`DATA-MODEL.md`](DATA-MODEL.md)** | **Schema & Contracts:** Canonical API contracts, SQLite schema, and graph projection. |
 | **[`DEVELOPMENT.md`](DEVELOPMENT.md)** | **Dev Guide:** Local setup, toolchain, and contribution rules. |
 | **[`CONCEPT.md`](CONCEPT.md)** | **Vision:** Stable product principles and "Why" behind Spark. |
@@ -24,6 +25,11 @@ Technical deep-dives into the system's core logic engines.
 - **[`CONFLICT-RESOLUTION.md`](specs/CONFLICT-RESOLUTION.md)**: Balancing user intent with venue occupancy.
 - **[`SOCIAL-COORDINATION.md`](specs/SOCIAL-COORDINATION.md)**: Anonymous momentum signals and Spark Waves.
 - **[`SAFETY-AND-LIABILITY.md`](specs/SAFETY-AND-LIABILITY.md)**: Hard rails, audit trails, and legal defensive design.
+- **[`ANALYTICS-ENGINE.md`](specs/ANALYTICS-ENGINE.md)**: "Community Hero Score" and Recovered Revenue algorithms.
+- **[`REDEMPTION-PROTOCOL.md`](specs/REDEMPTION-PROTOCOL.md)**: Secure QR handshake and HMAC validation.
+- **[`DATA-PRIVACY-LIFECYCLE.md`](specs/DATA-PRIVACY-LIFECYCLE.md)**: On-device sensor TTL and the "Cloud Exit Gate."
+- **[`TRANSIT-WAIT-LOGIC.md`](specs/TRANSIT-WAIT-LOGIC.md)**: Visit window calculations for VVS/transit delays.
+- **[`MERCHANT-INVENTORY-SIGNAL.md`](specs/MERCHANT-INVENTORY-SIGNAL.md)**: "TooGoodToGo Pro Max" and inventory-driven ranking.
 
 ---
 
@@ -46,6 +52,25 @@ Materials for presentation and business analysis.
 ---
 
 ## 🗺️ Roadmap & Planning (`roadmap/`, `planning/`)
-- **[`roadmap/MVP-SCOPE.md`](roadmap/MVP-SCOPE.md)**: Feature tiers and current roadmap.
+- **[`../PLAN.md`](../PLAN.md)**: Consolidated implementation status and backlog.
 - **[`planning/OPEN-QUESTIONS.md`](planning/OPEN-QUESTIONS.md)**: Live decision log and blockers.
-- **[`planning/IMPLEMENTATION-GAPS.md`](planning/IMPLEMENTATION-GAPS.md)**: Technical checklist for current build.
+- **Planning notes in `planning/`**: Historical context and decision rationale.
+
+---
+
+## Learning Loop Notes
+
+Current runtime includes a server-side self-learning graph loop for personalization:
+
+- event-granular idempotency for learning writes
+- per `(session_id, category)` update-rate guardrails
+- preference attribution ledger for explainability
+- lifecycle automation for decay + source-tier retention
+- learning metrics logging for drift/suppression monitoring
+
+Primary implementation paths:
+
+- `apps/api/src/spark/services/redemption.py`
+- `apps/api/src/spark/services/wallet_seed.py`
+- `apps/api/src/spark/repositories/redemption.py`
+- `scripts/ops/run_graph_maintenance.py`

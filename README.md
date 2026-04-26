@@ -55,7 +55,7 @@ Between a person walking past a quiet café and a perfectly timed, personally re
 
 This section replaces the remaining TODO intent from `docs/planning/12-SUBMISSION-README.md` directly in the main README.
 
-References: [`docs/planning/12-SUBMISSION-README.md`](docs/planning/12-SUBMISSION-README.md), [`docs/planning/22-IMPLEMENTATION-GAPS.md`](docs/planning/22-IMPLEMENTATION-GAPS.md)
+References: [`docs/planning/12-SUBMISSION-README.md`](docs/planning/12-SUBMISSION-README.md), [`PLAN.md`](PLAN.md)
 
 ### What worked well (current state)
 
@@ -182,7 +182,7 @@ After `docker compose up -d --build`, use these local endpoints:
 ### Readiness gates
 
 - [x] Architecture/runtime docs aligned (`docs/ARCHITECTURE.md`, `docs/DEVELOPMENT.md`, graph runtime docs).
-- [x] Planning-to-runtime gaps explicitly tracked (`docs/planning/22-IMPLEMENTATION-GAPS.md`).
+- [x] Planning-to-runtime gaps explicitly tracked (`PLAN.md`).
 - [ ] End-to-end demo loop re-validated on final demo build (offer -> accept -> QR -> redeem -> cashback).
 - [ ] Privacy/logging claims re-verified against final demo payloads.
 - [ ] Remaining submission data (`UNKNOWN_YET` fields above) filled after final run.
@@ -207,7 +207,7 @@ After `docker compose up -d --build`, use these local endpoints:
 
 The backend can persist a **pseudonymous session graph** (preferences, offers, outcomes) when Neo4j is enabled. Configure connection and tuning via `.env` (see `apps/api/src/spark/config.py` for `NEO4J_*`, `GRAPH_*`, retention, and decay variables).
 
-**What you get:** machine-readable **explainability** on generated offers; **idempotent** graph writes on retries; **preference decay** so old signals fade; **retention** for offers and stale preference edges; **migrations** tracked in the graph for schema evolution.
+**What you get:** machine-readable **explainability** on generated offers; event-granular **idempotent** learning writes on retries; per-category **learning guardrails** against burst noise; **preference decay** so old signals fade; source-aware **retention** for learning artifacts; **migrations** tracked in the graph for schema evolution.
 
 With the API running on `http://localhost:8000`:
 
@@ -220,6 +220,9 @@ curl -s http://localhost:8000/api/graph/stats | jq .
 
 # Applied migrations (GraphMigration nodes)
 curl -s http://localhost:8000/api/graph/migrations | jq .
+
+# Preferences with event-level attribution (optional explainability detail)
+curl -s 'http://localhost:8000/api/graph/sessions/sess-123/preferences?include_attribution=true&event_limit=10' | jq .
 
 # Delete old offers/contexts/redemptions/wallet events + stale sessions + old PREFERS/AVOIDS edges
 curl -s -X POST 'http://localhost:8000/api/graph/cleanup?retention_days=30' | jq .
@@ -234,7 +237,7 @@ curl -s -X POST 'http://localhost:8000/api/graph/decay-preferences?stale_after_d
 0 3 * * * cd /path/to/Generative-City-Wallet && /usr/local/bin/uv run python scripts/ops/run_graph_maintenance.py >> /var/log/spark-graph-maintenance.log 2>&1
 ```
 
-Adjust `cd` and `uv` path to your machine. The script runs **cleanup** (artifact + preference-edge retention) then **decay** in one shot.
+Adjust `cd` and `uv` path to your machine. The script runs **cleanup** (artifact + preference-edge retention) then **decay** in one shot, and emits maintenance health metadata (`last_decay_age_hours`, `decay_gap_alarm`) for monitoring.
 
 ---
 

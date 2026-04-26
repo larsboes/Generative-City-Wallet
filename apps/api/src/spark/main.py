@@ -24,6 +24,7 @@ from spark.graph.seed import sync_merchants_from_sqlite
 from spark.routers import (
     context,
     graph,
+    identity,
     occupancy,
     ocr,
     offers,
@@ -84,6 +85,7 @@ app.include_router(context.router)
 app.include_router(offers.router)
 app.include_router(redemption.router)
 app.include_router(graph.router)
+app.include_router(identity.router)
 app.include_router(occupancy.router)
 app.include_router(ocr.router)
 app.include_router(transactions.router)

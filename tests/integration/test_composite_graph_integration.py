@@ -84,6 +84,11 @@ async def test_composite_uses_graph_preferences_when_available(intent, monkeypat
     )
 
     assert state.user.preference_scores == {"cafe": 0.91, "bakery": 0.42}
+    assert state.user.continuity_id is not None
+    assert state.user.continuity_id.startswith("cid_")
+    assert state.user.continuity_source in {"hinted_pseudonym", "session_fallback"}
+    assert state.user.continuity_expires_at is not None
+    assert any(p.field == "continuity_id" for p in state.user.intent_provenance)
 
 
 async def test_composite_falls_back_when_graph_empty(intent):

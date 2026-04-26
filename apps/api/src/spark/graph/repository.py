@@ -124,6 +124,8 @@ class GraphRepository:
         base_weight: float = 0.5,
         source_type: str = "interaction",
         decay_rate: float = 0.01,
+        source_confidence: float | None = None,
+        artifact_count: int | None = None,
         now: Optional[float] = None,
     ) -> Optional[float]:
         return await self._preferences.reinforce_category(
@@ -133,6 +135,8 @@ class GraphRepository:
             base_weight=base_weight,
             source_type=source_type,
             decay_rate=decay_rate,
+            source_confidence=source_confidence,
+            artifact_count=artifact_count,
             now=now,
         )
 

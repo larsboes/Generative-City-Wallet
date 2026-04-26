@@ -119,11 +119,52 @@ CREATE TABLE IF NOT EXISTS graph_event_log (
     session_id           TEXT,
     offer_id             TEXT,
     source               TEXT NOT NULL,
+    category             TEXT,
+    source_event_id      TEXT,
+    payload_hash         TEXT,
     created_at           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_graph_event_log_created_at
     ON graph_event_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_graph_event_log_session_event
+    ON graph_event_log(session_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_graph_event_log_category
+    ON graph_event_log(category);
+
+-- ── Learning Attribution + Metrics ────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS preference_update_log (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id          TEXT NOT NULL,
+    category            TEXT NOT NULL,
+    source_type         TEXT NOT NULL,
+    event_type          TEXT NOT NULL,
+    event_key           TEXT NOT NULL,
+    source_event_id     TEXT,
+    before_weight       REAL,
+    delta               REAL NOT NULL,
+    after_weight        REAL,
+    outcome             TEXT NOT NULL,
+    created_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pref_update_log_session_category
+    ON preference_update_log(session_id, category, created_at);
+
+CREATE TABLE IF NOT EXISTS learning_metrics_log (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    metric_name         TEXT NOT NULL,
+    metric_value        REAL NOT NULL,
+    metric_group        TEXT,
+    session_id          TEXT,
+    category            TEXT,
+    source_type         TEXT,
+    created_at          TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_learning_metrics_log_name
+    ON learning_metrics_log(metric_name, created_at);
 
 -- ── Spark Wave (social coordination, anonymous + TTL-bounded) ─────────────────
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -26,6 +26,17 @@ class IntentVector(BaseModel):
     dwell_signal: bool = False
     battery_low: bool = False
     session_id: str
+    continuity_hint: str | None = None
+
+
+class IntentFieldProvenance(BaseModel):
+    field: str
+    policy: Literal["authoritative", "advisory", "derived", "ignored"]
+    client_value: Any = None
+    final_value: Any = None
+    action: Literal["accepted", "overridden", "derived", "ignored"]
+    reason: str
+    source: str
 
 
 class DensitySignal(BaseModel):
@@ -73,6 +84,10 @@ class MerchantContext(BaseModel):
 class UserContext(BaseModel):
     intent: IntentVector
     preference_scores: dict[str, float] = Field(default_factory=dict)
+    intent_provenance: list[IntentFieldProvenance] = Field(default_factory=list)
+    continuity_id: str | None = None
+    continuity_source: str | None = None
+    continuity_expires_at: str | None = None
     social_preference: SocialPreference
     price_tier: PriceTier
 

@@ -19,6 +19,8 @@ class PreferenceGraphRepository:
         base_weight: float = 0.5,
         source_type: str = "interaction",
         decay_rate: float = 0.01,
+        source_confidence: float | None = None,
+        artifact_count: int | None = None,
         now: float | None = None,
     ) -> float | None:
         ts = now if now is not None else time.time()
@@ -32,6 +34,8 @@ class PreferenceGraphRepository:
                 base_weight=base_weight,
                 source_type=source_type,
                 decay_rate=decay_rate,
+                source_confidence=source_confidence,
+                artifact_count=artifact_count,
                 now=ts,
             )
             row = await res.single()
@@ -56,6 +60,19 @@ class PreferenceGraphRepository:
                     weight=float(r["weight"] or 0.0),
                     source_type=r.get("source_type"),
                     last_reinforced_unix=r.get("last_reinforced_unix"),
+                    decay_rate=(
+                        float(r["decay_rate"]) if r.get("decay_rate") is not None else None
+                    ),
+                    source_confidence=(
+                        float(r["source_confidence"])
+                        if r.get("source_confidence") is not None
+                        else None
+                    ),
+                    artifact_count=(
+                        int(r["artifact_count"])
+                        if r.get("artifact_count") is not None
+                        else None
+                    ),
                 )
                 for r in rows
             ]

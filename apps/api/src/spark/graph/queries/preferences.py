@@ -11,7 +11,9 @@ ON CREATE SET p.weight = $base_weight,
               p.created_at_unix = $now,
               p.source_type = $source_type,
               p.last_reinforced_unix = $now,
-              p.decay_rate = $decay_rate
+              p.decay_rate = $decay_rate,
+              p.source_confidence = $source_confidence,
+              p.artifact_count = $artifact_count
 ON MATCH  SET p.weight = CASE
                    WHEN coalesce(p.weight, 0) + $delta > 1.0 THEN 1.0
                    WHEN coalesce(p.weight, 0) + $delta < 0.0 THEN 0.0
@@ -19,7 +21,9 @@ ON MATCH  SET p.weight = CASE
                  END,
               p.last_reinforced_unix = $now,
               p.decay_rate = coalesce(p.decay_rate, $decay_rate),
-              p.source_type = coalesce(p.source_type, $source_type)
+              p.source_type = coalesce(p.source_type, $source_type),
+              p.source_confidence = coalesce($source_confidence, p.source_confidence),
+              p.artifact_count = coalesce($artifact_count, p.artifact_count)
 RETURN p.weight AS weight
 """
 
@@ -28,7 +32,10 @@ MATCH (u:UserSession {session_id: $session_id})-[p:PREFERS]->(c:MerchantCategory
 RETURN c.name AS category,
        p.weight AS weight,
        p.last_reinforced_unix AS last_reinforced_unix,
-       p.source_type AS source_type
+       p.source_type AS source_type,
+       p.decay_rate AS decay_rate,
+       p.source_confidence AS source_confidence,
+       p.artifact_count AS artifact_count
 ORDER BY p.weight DESC
 LIMIT $limit
 """

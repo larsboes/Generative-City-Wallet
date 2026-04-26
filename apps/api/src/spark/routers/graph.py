@@ -7,6 +7,7 @@ Useful for the demo dashboard and operational checks. Read-only.
 from fastapi import APIRouter
 
 from spark.models.api import WalletSeedRequest
+from spark.repositories.redemption import get_recent_preference_update_events
 from spark.config import (
     GRAPH_PREF_DECAY_DEFAULT_RATE,
     GRAPH_PREF_DECAY_STALE_AFTER_DAYS,
@@ -45,11 +46,13 @@ async def graph_stats():
 
 
 @router.get("/sessions/{session_id}/preferences", response_model=SessionPreferencesResponse)
-async def session_preferences(session_id: str, limit: int = 10):
+async def session_preferences(
+    session_id: str, limit: int = 10, include_attribution: bool = False, event_limit: int = 10
+):
     """Top preference scores for a given user session — for explainability."""
     repo = get_repository()
     scores = await repo.get_preference_scores(session_id, limit=limit)
-    return {
+    response = {
         "session_id": session_id,
         "available": is_available(),
         "scores": [
@@ -58,10 +61,19 @@ async def session_preferences(session_id: str, limit: int = 10):
                 "weight": round(s.weight, 3),
                 "source_type": s.source_type,
                 "last_reinforced_unix": s.last_reinforced_unix,
+                "decay_rate": s.decay_rate,
+                "source_confidence": s.source_confidence,
+                "artifact_count": s.artifact_count,
             }
             for s in scores
         ],
     }
+    if include_attribution:
+        response["attribution"] = get_recent_preference_update_events(
+            session_id=session_id,
+            limit=max(1, min(event_limit, 100)),
+        )
+    return response
 
 
 @router.get("/sessions/{session_id}/recent-offers", response_model=SessionRecentOffersResponse)
