@@ -18,11 +18,14 @@ from spark.models.context import (
 )
 from spark.models.offers import LLMOfferOutput
 from spark.services.hard_rails import enforce_hard_rails
+from spark.services.location_cells import latlon_to_h3
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 def _build_state() -> CompositeContextState:
     intent = IntentVector(
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode=MovementMode.BROWSING,
         time_bucket="monday_morning_coffee",
         weather_need=WeatherNeed.NEUTRAL,
@@ -74,7 +77,7 @@ def test_hard_rails_canonicalizes_and_records_audit(tmp_path) -> None:
     try:
         conn.execute(
             "INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("merchant-1", "DB Cafe", "cafe", 48.1, 11.5, "DB Street 9", "STR-MITTE-047"),
+            ("merchant-1", "DB Cafe", "cafe", 48.1, 11.5, "DB Street 9", TEST_CELL),
         )
         conn.commit()
     finally:

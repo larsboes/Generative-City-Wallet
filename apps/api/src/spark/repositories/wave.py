@@ -12,6 +12,8 @@ MAX_ACTIVE_WAVES_PER_SESSION = 3
 MAX_CREATE_ATTEMPTS_PER_SESSION_WINDOW = 3
 MAX_JOIN_ATTEMPTS_PER_SESSION_WINDOW = 12
 MAX_JOIN_ATTEMPTS_PER_WAVE_WINDOW = 60
+JOIN_RISK_WINDOW_SECONDS = 15 * 60
+MAX_JOIN_RISK_SCORE = 0.8
 
 
 def _rate_limit_key(prefix: str, subject: str, window_seconds: int) -> str:
@@ -58,6 +60,64 @@ def _recent_event_count(
         tuple(params),
     ).fetchone()
     return int((row and row["c"]) or 0)
+
+
+def _log_join_denied(
+    conn,
+    *,
+    wave_id: str,
+    session_id: str,
+    reason: str,
+) -> None:
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO graph_event_log (
+            idempotency_key, event_type, session_id, offer_id, source, category
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            _rate_limit_key(
+                "wave_join_denied",
+                f"{wave_id}:{session_id}:{reason}",
+                JOIN_RATE_WINDOW_SECONDS,
+            ),
+            "wave_join_denied",
+            session_id,
+            wave_id,
+            "spark_wave_join_denied",
+            reason,
+        ),
+    )
+
+
+def _session_join_risk_score(conn, *, session_id: str) -> float:
+    denied = _recent_event_count(
+        conn,
+        event_type="wave_join_denied",
+        session_id=session_id,
+        source="spark_wave_join_denied",
+        window_seconds=JOIN_RISK_WINDOW_SECONDS,
+    )
+    attempts = _recent_event_count(
+        conn,
+        event_type="wave_rate_limit",
+        session_id=session_id,
+        source="spark_wave_join",
+        window_seconds=JOIN_RISK_WINDOW_SECONDS,
+    )
+    successful = _recent_event_count(
+        conn,
+        event_type="wave_join",
+        session_id=session_id,
+        source="spark_wave",
+        window_seconds=JOIN_RISK_WINDOW_SECONDS,
+    )
+    if attempts == 0 and denied == 0:
+        return 0.0
+    denial_pressure = denied / max(1, attempts)
+    low_success_penalty = 0.35 if successful == 0 and (attempts + denied) >= 6 else 0.0
+    score = min(1.0, (denial_pressure * 0.5) + low_success_penalty)
+    return round(score, 3)
 
 
 def create_wave(
@@ -201,6 +261,51 @@ def get_completed_wave_bonus_for_offer(
         conn.close()
 
 
+def get_session_wave_bonus_for_merchant(
+    *, session_id: str, merchant_id: str, db_path: str | None = None
+) -> float:
+    """
+    Return the highest deterministic catalyst bonus for waves this session is
+    participating in (creator or joiner) for the given merchant.
+    """
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT
+                sw.participant_count,
+                sw.milestone_target,
+                sw.status
+            FROM spark_waves sw
+            LEFT JOIN graph_event_log gel
+              ON gel.offer_id = sw.wave_id
+             AND gel.event_type = 'wave_join'
+             AND gel.session_id = ?
+            WHERE sw.merchant_id = ?
+              AND sw.status IN ('ACTIVE', 'COMPLETED')
+              AND datetime(sw.expires_at) >= datetime('now')
+              AND (
+                sw.created_by_session = ?
+                OR gel.idempotency_key IS NOT NULL
+              )
+            """,
+            (session_id, merchant_id, session_id),
+        ).fetchall()
+        if not rows:
+            return 0.0
+        bonuses = [
+            _compute_catalyst_bonus_pct(
+                participant_count=int(row["participant_count"]),
+                milestone_target=int(row["milestone_target"]),
+                status=str(row["status"]),
+            )
+            for row in rows
+        ]
+        return float(max(bonuses))
+    finally:
+        conn.close()
+
+
 def expire_old_waves(db_path: str | None = None) -> int:
     """Best-effort TTL cleanup for waves; returns number of rows updated."""
     conn = get_connection(db_path)
@@ -225,6 +330,17 @@ def join_wave(
     expire_old_waves(db_path=db_path)
     conn = get_connection(db_path)
     try:
+        risk_score = _session_join_risk_score(conn, session_id=session_id)
+        if risk_score >= MAX_JOIN_RISK_SCORE:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="risk_gate",
+            )
+            conn.commit()
+            return None
+
         recent_joins_for_session = _recent_event_count(
             conn,
             event_type="wave_rate_limit",
@@ -233,6 +349,13 @@ def join_wave(
             window_seconds=60,
         )
         if recent_joins_for_session >= MAX_JOIN_ATTEMPTS_PER_SESSION_WINDOW:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="session_burst_limit",
+            )
+            conn.commit()
             return None
 
         recent_joins_for_wave = _recent_event_count(
@@ -243,6 +366,13 @@ def join_wave(
             window_seconds=60,
         )
         if recent_joins_for_wave >= MAX_JOIN_ATTEMPTS_PER_WAVE_WINDOW:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="wave_burst_limit",
+            )
+            conn.commit()
             existing = get_wave(wave_id=wave_id, db_path=db_path)
             return (existing, False) if existing else None
 
@@ -258,6 +388,13 @@ def join_wave(
             offer_id=wave_id,
         )
         if not join_slot:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="join_slot_duplicate",
+            )
+            conn.commit()
             existing = get_wave(wave_id=wave_id, db_path=db_path)
             return (existing, False) if existing else None
 
@@ -266,11 +403,32 @@ def join_wave(
             (wave_id,),
         ).fetchone()
         if not row:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="wave_not_found",
+            )
+            conn.commit()
             return None
         if row["status"] == "COMPLETED":
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="wave_completed",
+            )
+            conn.commit()
             existing = get_wave(wave_id=wave_id, db_path=db_path)
             return (existing, False) if existing else None
         if row["status"] != "ACTIVE":
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="wave_inactive",
+            )
+            conn.commit()
             return None
         now = datetime.now(timezone.utc)
         expires_at = datetime.fromisoformat(row["expires_at"])
@@ -278,6 +436,12 @@ def join_wave(
             conn.execute(
                 "UPDATE spark_waves SET status = 'EXPIRED' WHERE wave_id = ?",
                 (wave_id,),
+            )
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="wave_expired",
             )
             conn.commit()
             return None
@@ -298,10 +462,24 @@ def join_wave(
             ),
         )
         if replay_guard.rowcount == 0:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="join_replay",
+            )
+            conn.commit()
             existing = get_wave(wave_id=wave_id, db_path=db_path)
             return (existing, False) if existing else None
 
         if int(row["participant_count"]) >= MAX_WAVE_PARTICIPANTS:
+            _log_join_denied(
+                conn,
+                wave_id=wave_id,
+                session_id=session_id,
+                reason="participant_cap",
+            )
+            conn.commit()
             existing = get_wave(wave_id=wave_id, db_path=db_path)
             return (existing, False) if existing else None
 

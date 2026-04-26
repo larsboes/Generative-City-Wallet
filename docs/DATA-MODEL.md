@@ -51,6 +51,7 @@ such as `grid_cell`, `movement_mode`, and `weather_need` rather than raw telemet
 - `OCRTransitParseRequest`, `OCRTransitParseResponse`
 - `OCRTransitPayload`, `OCRTransitIngestResponse`
 - `WaveResponse`, `JoinWaveResponse`
+- wave explainability metadata (`spark_wave_catalyst_bonus`)
 - SQLite tables (`offer_audit_log`, `wallet_transactions`, `graph_event_log`, etc.)
 - optional Neo4j projection entities for personalization and explainability
 
@@ -265,6 +266,7 @@ erDiagram
     text session_id
     text offer_id
     text source
+    text category
     text created_at
   }
 
@@ -298,6 +300,24 @@ Projection is best-effort and idempotency-protected by SQLite `graph_event_log`.
 
 ---
 
+## Spark Wave event semantics
+
+Wave anti-abuse and propagation behavior is persisted via two related stores:
+
+- `spark_waves`
+  - lifecycle/state: `ACTIVE | COMPLETED | EXPIRED`
+  - deterministic bonus basis: `participant_count`, `milestone_target`
+  - bounded runtime scope: `expires_at`
+- `graph_event_log` (wave events)
+  - `event_type='wave_rate_limit'`: join/create attempt counters used for burst gating
+  - `event_type='wave_join'`: idempotent participant replay guard and participation proof
+  - `event_type='wave_join_denied'`: explicit denied-join audit events
+    - `category` stores denial reason (for example `risk_gate`, `session_burst_limit`, `wave_burst_limit`, `join_replay`)
+
+These events support deterministic risk-scored join gating and provide an audit trail for why a join was blocked.
+
+---
+
 ## Offer lifecycle sequence (request to projection)
 
 ```mermaid
@@ -325,6 +345,7 @@ sequenceDiagram
     API->>LLM: generate framing/genui with bounded prompt
     LLM-->>API: LLMOfferOutput
     API->>API: apply hard rails and build OfferObject
+    API->>API: apply spark wave catalyst bonus (if session participates for merchant)
     API->>SQLite: INSERT offer_audit_log (final_offer + rails_audit)
     API->>Graph: best-effort projection (idempotency-keyed)
     API-->>Mobile: OfferObject
@@ -365,3 +386,7 @@ sequenceDiagram
    - inspect `ocr_transit_input.used_for_gating` in offer explainability.
 6. Wave replay joins:
    - inspect `join_applied` in `/api/waves/{id}/join` response.
+7. Wave join denials and risk-gating:
+   - inspect `graph_event_log` for `event_type='wave_join_denied'` and `category` reason values.
+8. Wave offer bonus propagation:
+   - inspect offer explainability for `spark_wave_catalyst_bonus` and compare with wave participation state.

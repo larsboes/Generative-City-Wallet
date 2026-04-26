@@ -21,6 +21,9 @@ from spark.graph.repository import (
 )
 from spark.models.context import IntentVector
 from spark.services import composite as composite_module
+from spark.services.location_cells import latlon_to_h3
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 class StubRepository:
@@ -57,7 +60,7 @@ class StubRepository:
 @pytest.fixture
 def intent() -> IntentVector:
     return IntentVector(
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         time_bucket="tuesday_lunch",
         weather_need="warmth_seeking",
@@ -67,6 +70,9 @@ def intent() -> IntentVector:
         dwell_signal=False,
         battery_low=False,
         session_id="sess-test-composite",
+        activity_signal="active_recently",
+        activity_source="movement_inferred",
+        activity_confidence=0.95,
     )
 
 
@@ -89,6 +95,17 @@ async def test_composite_uses_graph_preferences_when_available(intent, monkeypat
     assert state.user.continuity_source in {"hinted_pseudonym", "session_fallback"}
     assert state.user.continuity_expires_at is not None
     assert any(p.field == "continuity_id" for p in state.user.intent_provenance)
+    assert any(p.field == "activity_signal" for p in state.user.intent_provenance)
+    assert any(p.field == "activity_confidence" for p in state.user.intent_provenance)
+    assert state.user.intent.activity_confidence == 0.7
+    trust_step = next(
+        item
+        for item in (state.decision_trace.trace if state.decision_trace else [])
+        if item.code == "intent_trust_normalization"
+    )
+    fields = trust_step.metadata.get("fields", {})
+    assert "activity_signal" in fields
+    assert "activity_confidence" in fields
 
 
 async def test_composite_falls_back_when_graph_empty(intent):
@@ -101,6 +118,9 @@ async def test_composite_falls_back_when_graph_empty(intent):
     )
 
     assert state.user.preference_scores == composite_module.DEFAULT_PREFERENCE_SCORES
+    assert state.external is not None
+    assert isinstance(state.external.place.provider_available, bool)
+    assert isinstance(state.external.events.provider_available, bool)
 
 
 async def test_composite_falls_back_when_graph_unavailable(intent):
@@ -128,7 +148,7 @@ def test_offer_endpoint_works_without_neo4j(monkeypatch):
     with TestClient(app) as client:
         payload = {
             "intent": {
-                "grid_cell": "STR-MITTE-047",
+                "grid_cell": TEST_CELL,
                 "movement_mode": "browsing",
                 "time_bucket": "tuesday_lunch",
                 "weather_need": "warmth_seeking",

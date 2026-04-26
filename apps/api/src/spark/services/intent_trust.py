@@ -8,6 +8,14 @@ from spark.models.common import WeatherNeed
 from spark.models.context import IntentFieldProvenance, IntentVector
 from spark.services.composite_helpers import classify_time_bucket
 
+ACTIVITY_CONFIDENCE_CAP_BY_SOURCE = {
+    "none": 0.0,
+    "movement_inferred": 0.7,
+    "native_health": 0.9,
+    "strava": 0.95,
+    "hybrid": 0.95,
+}
+
 
 @dataclass(frozen=True)
 class IntentNormalizationResult:
@@ -75,7 +83,80 @@ def normalize_intent_vector(
             )
         )
 
+    normalized, activity_provenance = _normalize_activity_fields(normalized)
+    provenance.extend(activity_provenance)
+
     return IntentNormalizationResult(intent=normalized, provenance=provenance)
+
+
+def _normalize_activity_fields(
+    intent: IntentVector,
+) -> tuple[IntentVector, list[IntentFieldProvenance]]:
+    activity_source = intent.activity_source
+    activity_signal = intent.activity_signal
+    activity_confidence = float(intent.activity_confidence)
+    provenance: list[IntentFieldProvenance] = []
+
+    if activity_source == "none":
+        final_signal = "none"
+        final_confidence = 0.0
+    else:
+        final_signal = activity_signal
+        if activity_signal == "none":
+            final_confidence = 0.0
+        else:
+            confidence_cap = ACTIVITY_CONFIDENCE_CAP_BY_SOURCE.get(activity_source, 0.7)
+            final_confidence = max(0.0, min(activity_confidence, confidence_cap))
+
+    normalized = intent.model_copy(
+        update={
+            "activity_signal": final_signal,
+            "activity_confidence": final_confidence,
+        }
+    )
+
+    provenance.append(
+        IntentFieldProvenance(
+            field="activity_source",
+            policy="advisory",
+            client_value=activity_source,
+            final_value=activity_source,
+            action="accepted",
+            reason="Activity source is accepted as advisory metadata for downstream trust checks.",
+            source="client_intent",
+        )
+    )
+    provenance.append(
+        IntentFieldProvenance(
+            field="activity_signal",
+            policy="advisory",
+            client_value=activity_signal,
+            final_value=final_signal,
+            action="accepted" if activity_signal == final_signal else "overridden",
+            reason=(
+                "Activity signal is reset to 'none' when no trusted activity source is provided."
+                if activity_signal != final_signal
+                else "Activity signal accepted with advisory trust policy."
+            ),
+            source="activity_consistency_policy",
+        )
+    )
+    provenance.append(
+        IntentFieldProvenance(
+            field="activity_confidence",
+            policy="advisory",
+            client_value=activity_confidence,
+            final_value=final_confidence,
+            action="accepted" if activity_confidence == final_confidence else "overridden",
+            reason=(
+                "Activity confidence is clamped by source-specific trust caps and signal/source consistency rules."
+                if activity_confidence != final_confidence
+                else "Activity confidence accepted with advisory trust policy."
+            ),
+            source="activity_consistency_policy",
+        )
+    )
+    return normalized, provenance
 
 
 def provenance_metadata(

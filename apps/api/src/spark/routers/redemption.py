@@ -63,12 +63,14 @@ async def offer_outcome_endpoint(
         return OfferOutcomeResponse(success=False, error="INVALID_STATUS")
 
     category = lookup_merchant_category_for_offer(offer_id)
-    await project_offer_outcome_to_graph(
+    updated = await project_offer_outcome_to_graph(
         session_id=session_id,
         offer_id=offer_id,
         status=status,
         merchant_category=category,
     )
+    if not updated:
+        return OfferOutcomeResponse(success=False, offer_id=offer_id, error="OFFER_NOT_FOUND")
     return OfferOutcomeResponse(success=True, offer_id=offer_id, status=status)
 
 

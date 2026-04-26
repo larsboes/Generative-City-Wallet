@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from spark.db.connection import get_connection
+from spark.services.location_cells import is_valid_h3, neighbor_cells
 
 
 @dataclass(frozen=True)
@@ -11,6 +12,8 @@ class CandidateMerchantRecord:
     merchant_id: str
     merchant_category: str
     merchant_grid_cell: str | None = None
+    merchant_lat: float | None = None
+    merchant_lon: float | None = None
 
 
 @dataclass(frozen=True)
@@ -20,6 +23,9 @@ class OfferDecisionSessionState:
 
 
 class OfferDecisionRepository:
+    LOCAL_CANDIDATE_LIMIT = 5
+    GLOBAL_FALLBACK_LIMIT = 5
+
     def __init__(self, db_path: str | None = None):
         self.db_path = db_path
 
@@ -57,19 +63,66 @@ class OfferDecisionRepository:
     def list_candidate_merchants(self, *, grid_cell: str) -> list[CandidateMerchantRecord]:
         conn = get_connection(self.db_path)
         try:
-            rows = conn.execute(
-                "SELECT id, type, grid_cell FROM merchants WHERE grid_cell = ?",
-                (grid_cell,),
-            ).fetchall()
+            rows: list[dict] = []
+            seen_ids: set[str] = set()
+
+            def _append_records(records) -> None:  # noqa: ANN001
+                for row in records:
+                    if row["id"] in seen_ids:
+                        continue
+                    seen_ids.add(row["id"])
+                    rows.append(row)
+                    if len(rows) >= self.LOCAL_CANDIDATE_LIMIT:
+                        return
+
+            if is_valid_h3(grid_cell):
+                same_cell = conn.execute(
+                    """
+                    SELECT id, type, grid_cell, lat, lon
+                    FROM merchants
+                    WHERE grid_cell = ?
+                    ORDER BY id
+                    """,
+                    (grid_cell,),
+                ).fetchall()
+                _append_records(same_cell)
+
+                for ring_k in (1, 2):
+                    if len(rows) >= self.LOCAL_CANDIDATE_LIMIT:
+                        break
+                    neighbor_ring = neighbor_cells(grid_cell, ring_k)
+                    if not neighbor_ring:
+                        continue
+                    placeholders = ",".join("?" for _ in neighbor_ring)
+                    nearby = conn.execute(
+                        f"""
+                        SELECT id, type, grid_cell, lat, lon
+                        FROM merchants
+                        WHERE grid_cell IN ({placeholders})
+                        ORDER BY id
+                        """,
+                        tuple(neighbor_ring),
+                    ).fetchall()
+                    _append_records(nearby)
+
             if not rows:
                 rows = conn.execute(
-                    "SELECT id, type, grid_cell FROM merchants LIMIT 5"
+                    """
+                    SELECT id, type, grid_cell, lat, lon
+                    FROM merchants
+                    ORDER BY id
+                    LIMIT ?
+                    """,
+                    (self.GLOBAL_FALLBACK_LIMIT,),
                 ).fetchall()
+
             return [
                 CandidateMerchantRecord(
                     merchant_id=row["id"],
                     merchant_category=row["type"],
                     merchant_grid_cell=row["grid_cell"],
+                    merchant_lat=row["lat"],
+                    merchant_lon=row["lon"],
                 )
                 for row in rows
             ]

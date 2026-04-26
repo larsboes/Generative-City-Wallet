@@ -25,7 +25,7 @@ flowchart TD
 
 - Exactly one unresolved offer per session at a time.
 - `movement_mode=exercising` always blocks offer generation.
-- `movement_mode=post_workout` applies deterministic recovery boosts and nightlife suppression.
+- movement-aware category weighting is deterministic for `post_workout`, `cycling`, `transit_waiting`, and `commuting`.
 - If no candidate reaches threshold, return `DO_NOT_RECOMMEND`.
 - LLM does not change selection outcome.
 
@@ -44,7 +44,7 @@ When blocked, result includes `recheck_in_minutes` and trace metadata.
 Movement-aware retry behavior:
 
 - `post_workout` shortens retry windows for negative decisions to keep recommendations aligned with short-lived recovery context.
-- unresolved-offer guard recheck is movement-aware (`post_workout` rechecks sooner than default browsing flow).
+- unresolved-offer guard recheck is movement-aware (`post_workout`, `cycling`, `transit_waiting`, `commuting` recheck sooner than default browsing flow).
 
 ---
 
@@ -53,18 +53,26 @@ Movement-aware retry behavior:
 Current weighted components:
 
 - density drop: `0..40`
-- distance proxy: `0..25` (currently fixed proxy value in backend)
+- distance proxy: `0..25` (deterministic estimator from grid-cell/location abstraction)
 - preference match: `0..20`
 - weather alignment: `0..10`
 - movement-category adjustment:
   - `post_workout` recovery boost: `+18`
   - `post_workout` nightlife suppression: `-14`
+  - `cycling` recovery boost: `+10`
+  - `cycling` nightlife suppression: `-8`
+  - `transit_waiting` quick-stop boost: `+8`
+  - `transit_waiting` long-visit suppression: `-10`
+  - `commuting` quick-stop boost: `+6`
+  - `commuting` long-visit suppression: `-12`
 
 Minimum threshold:
 
 - `MIN_SCORE_THRESHOLD = 30.0`
 
 Conflict resolver acts as a pre-filter: candidates with `DO_NOT_RECOMMEND` are excluded.
+
+Note on economics propagation: Spark Wave catalyst bonus is applied downstream in the offer pipeline (post-selection) and does not affect deterministic merchant ranking in this engine.
 
 ---
 
@@ -126,8 +134,10 @@ No exception path should be required for expected negative decisions.
   - exercising hard block
   - candidate ranking and selection
   - single-offer guard behavior
-  - post-workout recovery preference boost
-  - post-workout movement-aware recheck timing
+  - post-workout recovery preference boost and recheck timing
+  - cycling category weighting and recheck timing
+  - transit-waiting category weighting and recheck timing
+  - commuting category weighting and recheck timing
 
 ---
 
@@ -166,3 +176,5 @@ Example no-offer response shape when blocked:
    - inspect `decision_trace.trace` entries and conflict reason.
 5. Check movement rollout behavior:
    - inspect `decision_trace.trace` for `movement_category_adjustment` and associated metadata.
+6. Check Spark Wave economics propagation (outside selection engine):
+   - inspect offer explainability for `spark_wave_catalyst_bonus` in `POST /api/offers/generate` response.

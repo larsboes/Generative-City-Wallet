@@ -15,6 +15,9 @@ from spark.graph.repository import (
     GraphRepository,
     MerchantOfferStats,
 )
+from spark.services.location_cells import latlon_to_h3
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 @pytest.fixture(autouse=True)
@@ -74,7 +77,7 @@ async def test_write_methods_return_false():
             coupon_type=None,
             discount_pct=0,
             timestamp="2026-04-25T12:00:00",
-            grid_cell="STR-MITTE-047",
+            grid_cell=TEST_CELL,
             movement_mode="browsing",
             time_bucket="tuesday_lunch",
             weather_need="warmth_seeking",

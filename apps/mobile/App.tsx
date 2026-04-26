@@ -5,7 +5,7 @@ import { Button, StyleSheet, Text, View } from "react-native";
 import { postComposite } from "./src/api/spark";
 
 const SAMPLE_INTENT = {
-  grid_cell: "STR-MITTE-047",
+  grid_cell: "891f8d7a49bffff",
   movement_mode: "browsing" as const,
   time_bucket: "tuesday_lunch",
   weather_need: "warmth_seeking" as const,

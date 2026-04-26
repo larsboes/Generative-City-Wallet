@@ -10,6 +10,7 @@ from spark.graph.repository import get_repository
 from spark.models.api import GenerateOfferRequest
 from spark.models.offers import ExplainabilityReason
 from spark.repositories.offers_audit import insert_offer_audit_log
+from spark.repositories.wave import get_session_wave_bonus_for_merchant
 from spark.services.composite import build_composite_state
 from spark.services.graph_rules import GraphValidationService
 from spark.services.hard_rails import enforce_hard_rails
@@ -162,6 +163,18 @@ def _log_offer_audit(
         print(f"⚠️  Audit log write failed: {e}")
 
 
+def _apply_wave_bonus_to_offer(*, offer, session_id: str, merchant_id: str) -> float:
+    bonus_pct = get_session_wave_bonus_for_merchant(
+        session_id=session_id,
+        merchant_id=merchant_id,
+    )
+    if bonus_pct <= 0.0:
+        return 0.0
+    offer.discount.value = round(float(offer.discount.value) * (1.0 + bonus_pct), 2)
+    offer.discount.source = "spark_wave_catalyst_bonus"
+    return bonus_pct
+
+
 async def generate_offer_pipeline(request: GenerateOfferRequest) -> Any:
     agent_decision = None
     agent_reasoning = None
@@ -268,6 +281,11 @@ async def generate_offer_pipeline(request: GenerateOfferRequest) -> Any:
         llm_output = await _generate_offer_llm_with_retry(state)
 
     offer = enforce_hard_rails(llm_output, state, offer_id)
+    wave_bonus_pct = _apply_wave_bonus_to_offer(
+        offer=offer,
+        session_id=state.session_id,
+        merchant_id=state.merchant.id,
+    )
     ocr_meta = None
     if request.ocr_transit:
         ocr_meta = request.ocr_transit.model_dump(mode="json")
@@ -276,6 +294,16 @@ async def generate_offer_pipeline(request: GenerateOfferRequest) -> Any:
     offer.explainability = _build_explainability(
         state, rule_result, agent_reasoning, ocr_meta
     )
+    if wave_bonus_pct > 0.0:
+        offer.explainability = [
+            ExplainabilityReason(
+                code="spark_wave_catalyst_bonus",
+                reason="Active Spark Wave participation increased this offer value.",
+                score=wave_bonus_pct,
+                metadata={"catalyst_bonus_pct": wave_bonus_pct},
+            ),
+            *offer.explainability,
+        ][:4]
     offer.qr_payload = generate_qr_payload(offer_id, state.session_id)
 
     _log_offer_audit(

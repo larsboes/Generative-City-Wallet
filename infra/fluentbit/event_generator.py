@@ -13,6 +13,7 @@ MERCHANTS = [
 ]
 METHODS = ["contactless", "chip", "apple_pay", "google_pay"]
 FLUENTBIT_URL = "http://localhost:8888"
+DEFAULT_GRID_CELL = "891f8d7a49bffff"
 
 
 def generate_event() -> dict:
@@ -23,7 +24,7 @@ def generate_event() -> dict:
         "amount": amount,
         "currency": "EUR",
         "category": cat,
-        "grid_cell": "STR-MITTE-047",
+        "grid_cell": DEFAULT_GRID_CELL,
         "method": random.choice(METHODS),
     }
 

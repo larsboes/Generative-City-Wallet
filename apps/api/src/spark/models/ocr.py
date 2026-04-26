@@ -27,7 +27,9 @@ class OCRTransitParseRequest(BaseModel):
     raw_text: str = Field(min_length=5, max_length=10000)
     city_hint: str | None = None
     district_hint: str | None = None
-    parser_provider: Literal["rule_based", "hybrid_rule_based"] = "hybrid_rule_based"
+    parser_provider: Literal["rule_based", "hybrid_rule_based", "model_assisted"] = (
+        "hybrid_rule_based"
+    )
 
 
 class OCRTransitParseResponse(BaseModel):

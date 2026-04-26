@@ -5,7 +5,10 @@ from datetime import datetime
 from pathlib import Path
 
 from spark.db.connection import get_connection, init_database
+from spark.services.location_cells import latlon_to_h3
 from spark.services.offer_decision import decide_offer
+
+TEST_CELL = latlon_to_h3(48.137154, 11.576124)
 
 
 def _fixture(name: str) -> dict:
@@ -21,9 +24,10 @@ def _seed_minimal_merchants(db_path: str) -> None:
             """
             INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
             VALUES
-                ('MERCHANT_001', 'Cafe One', 'cafe', 48.77, 9.18, 'A', 'STR-MITTE-047'),
-                ('MERCHANT_002', 'Bar Two', 'bar', 48.77, 9.18, 'B', 'STR-MITTE-047')
-            """
+                ('MERCHANT_001', 'Cafe One', 'cafe', 48.77, 9.18, 'A', ?),
+                ('MERCHANT_002', 'Bar Two', 'bar', 48.77, 9.18, 'B', ?)
+            """,
+            (TEST_CELL, TEST_CELL),
         )
         conn.commit()
     finally:
@@ -63,7 +67,7 @@ def test_kreuzberg_short_delay_blocks_offer(tmp_path, monkeypatch) -> None:
 
     result = decide_offer(
         session_id="sess-kreuzberg-short",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="quiet",
         weather_need="neutral",
@@ -101,7 +105,7 @@ def test_kreuzberg_workable_delay_allows_offer(tmp_path, monkeypatch) -> None:
 
     result = decide_offer(
         session_id="sess-kreuzberg-workable",
-        grid_cell="STR-MITTE-047",
+        grid_cell=TEST_CELL,
         movement_mode="browsing",
         social_preference="quiet",
         weather_need="neutral",

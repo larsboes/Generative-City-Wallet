@@ -15,8 +15,10 @@ import sys
 
 import httpx
 
+from spark.services.location_cells import latlon_to_h3
+
 SAMPLE_INTENT = {
-    "grid_cell": "STR-MITTE-047",
+    "grid_cell": latlon_to_h3(48.137154, 11.576124),
     "movement_mode": "browsing",
     "time_bucket": "tuesday_lunch",
     "weather_need": "warmth_seeking",

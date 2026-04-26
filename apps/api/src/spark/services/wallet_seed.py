@@ -25,16 +25,19 @@ WALLET_SEED_DECAY_BY_SOURCE = {
 WALLET_SEED_SOURCE_GOVERNANCE = {
     "wallet_pass": {
         "default_confidence": 0.8,
+        "max_confidence": 0.95,
         "max_artifacts": 10,
         "base_delta_multiplier": 1.0,
     },
     "receipt_ocr": {
         "default_confidence": 0.65,
+        "max_confidence": 0.8,
         "max_artifacts": 8,
         "base_delta_multiplier": 0.85,
     },
     "manual_import": {
         "default_confidence": 0.7,
+        "max_confidence": 0.75,
         "max_artifacts": 6,
         "base_delta_multiplier": 0.75,
     },
@@ -52,6 +55,7 @@ def _normalize_seed(seed: WalletSeedItem) -> WalletSeedItem:
     confidence = max(0.0, min(seed.source_confidence, 1.0))
     if confidence <= 0.0:
         confidence = float(governance["default_confidence"])
+    confidence = min(confidence, float(governance["max_confidence"]))
     artifact_count = max(1, min(seed.artifact_count, int(governance["max_artifacts"])))
     return WalletSeedItem(
         category=seed.category,
@@ -91,10 +95,12 @@ async def apply_wallet_seed_preferences(
     duplicates = 0
     suppressed_by_guardrail = 0
     quality_total = 0.0
+    normalized_sources_seen: set[str] = set()
     await repo.ensure_session(session_id)
     for seed in seeds:
         seed = _normalize_seed(seed)
         source_type = seed.source_type.strip().lower()
+        normalized_sources_seen.add(source_type)
         governance = WALLET_SEED_SOURCE_GOVERNANCE.get(
             source_type,
             WALLET_SEED_SOURCE_GOVERNANCE[DEFAULT_SOURCE_TYPE],
@@ -250,6 +256,11 @@ async def apply_wallet_seed_preferences(
         duplicates=duplicates,
         suppressed_by_guardrail=suppressed_by_guardrail,
         avg_quality_multiplier=avg_quality,
+        normalized_source_types=sorted(normalized_sources_seen),
+        governance_confidence_caps={
+            source: float(config["max_confidence"])
+            for source, config in WALLET_SEED_SOURCE_GOVERNANCE.items()
+        },
     )
 
 

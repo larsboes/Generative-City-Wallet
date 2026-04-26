@@ -9,6 +9,7 @@ from datetime import datetime
 import httpx
 
 from spark.config import (
+    CONTEXT_PROVIDER_TIMEOUT_SECONDS,
     OPENWEATHER_API_KEY,
     STUTTGART_CITY_ID,
     WEATHER_CACHE_TTL_SECONDS,
@@ -31,6 +32,8 @@ STUTTGART_DEFAULTS = {
     "humidity": 72,
     "wind_speed": 3.2,
     "source": "fallback_defaults",
+    "provider_available": False,
+    "cache_hit": False,
 }
 
 
@@ -68,7 +71,7 @@ async def get_stuttgart_weather() -> dict:
 
     now = time.time()
     if _cache and (now - _cache_ts) < WEATHER_CACHE_TTL_SECONDS:
-        return _cache
+        return {**_cache, "cache_hit": True}
 
     if not OPENWEATHER_API_KEY:
         _cache = STUTTGART_DEFAULTS.copy()
@@ -76,7 +79,7 @@ async def get_stuttgart_weather() -> dict:
         return _cache
 
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=CONTEXT_PROVIDER_TIMEOUT_SECONDS) as client:
             resp = await client.get(
                 "https://api.openweathermap.org/data/2.5/weather",
                 params={
@@ -108,6 +111,8 @@ async def get_stuttgart_weather() -> dict:
             "humidity": humidity,
             "wind_speed": wind_speed,
             "source": "openweathermap",
+            "provider_available": True,
+            "cache_hit": False,
         }
 
         _cache = result

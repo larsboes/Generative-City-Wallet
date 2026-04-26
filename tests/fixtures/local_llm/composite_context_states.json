@@ -4,7 +4,7 @@
     "session_id": "fixture-intent-001",
     "user": {
       "intent": {
-        "grid_cell": "STR-MITTE-047",
+        "grid_cell": "891f8d7a49bffff",
         "movement_mode": "browsing",
         "time_bucket": "tuesday_lunch",
         "weather_need": "warmth_seeking",
@@ -66,7 +66,7 @@
     "session_id": "fixture-intent-002",
     "user": {
       "intent": {
-        "grid_cell": "STR-WEST-112",
+        "grid_cell": "891f8d44a37ffff",
         "movement_mode": "commuting",
         "time_bucket": "weekday_evening",
         "weather_need": "refreshment_seeking",

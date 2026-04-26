@@ -409,6 +409,42 @@ def test_wave_join_blocks_when_session_exceeds_burst_limit():
                 assert joined.status_code == 404
 
 
+def test_wave_join_blocks_high_risk_session_after_repeated_denied_attempts():
+    init_database()
+    run_id = uuid.uuid4().hex[:8]
+    risky_session = f"sess-risky-{run_id}"
+    creator_session = f"sess-owner-risk-{run_id}"
+    offer_id = f"offer-wave-risk-{run_id}"
+    _insert_offer_row(offer_id, creator_session)
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/waves",
+            json={
+                "offer_id": offer_id,
+                "merchant_id": "MERCHANT_001",
+                "created_by_session": creator_session,
+                "milestone_target": 4,
+                "ttl_minutes": 30,
+            },
+        )
+        assert created.status_code == 200
+        valid_wave_id = created.json()["wave_id"]
+
+        for _ in range(6):
+            denied = client.post(
+                f"/api/waves/{uuid.uuid4()}/join",
+                json={"session_id": risky_session},
+            )
+            assert denied.status_code == 404
+
+        blocked = client.post(
+            f"/api/waves/{valid_wave_id}/join",
+            json={"session_id": risky_session},
+        )
+        assert blocked.status_code == 404
+
+
 def test_wave_bonus_is_consumed_by_redemption_cashback():
     init_database()
     run_id = uuid.uuid4().hex[:8]
