@@ -7,6 +7,7 @@
     "dev:api": "sh -c 'export PYTHONPATH=apps/api/src && uv run uvicorn spark.main:app --reload --port 8000'",
     "dev:mobile": "npm run start -w @spark/mobile",
     "dev:dashboard": "npm run dev -w @spark/web-dashboard",
+    "dev:wallet": "npm run dev -w @spark/wallet",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "typecheck:web": "turbo run typecheck --filter=@spark/web-dashboard",
