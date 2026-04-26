@@ -71,7 +71,11 @@ def get_merchant_info(merchant_id: str, db_path: str | None = None) -> dict | No
     }
 
 
-def select_best_merchant(grid_cell: str, db_path: str | None = None) -> str | None:
+def select_best_merchant(
+    grid_cell: str,
+    db_path: str | None = None,
+    current_dt: datetime | None = None,
+) -> str | None:
     merchant_ids = list_merchant_ids_by_grid_cell(grid_cell=grid_cell, db_path=db_path)
     if not merchant_ids:
         return get_first_merchant_id(db_path=db_path)
@@ -79,7 +83,11 @@ def select_best_merchant(grid_cell: str, db_path: str | None = None) -> str | No
     best_id = None
     best_drop = -1.0
     for merchant_id in merchant_ids:
-        density = compute_density_signal(merchant_id, db_path=db_path)
+        density = compute_density_signal(
+            merchant_id,
+            current_dt=current_dt,
+            db_path=db_path,
+        )
         if density["drop_pct"] > best_drop:
             best_drop = density["drop_pct"]
             best_id = merchant_id

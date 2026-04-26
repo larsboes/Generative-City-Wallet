@@ -291,3 +291,45 @@ def test_transit_delay_14m_allows_regular_decision(tmp_path, monkeypatch):
 
     assert result.recommendation == "RECOMMEND"
     assert result.trace[0].code != "transit_window_block"
+
+
+def test_social_mid_occupancy_uses_active_coupon(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "decision_social_coupon.db")
+    init_database(db_path)
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            """
+            INSERT INTO merchants (id, name, type, lat, lon, address, grid_cell)
+            VALUES ('MERCHANT_005', 'Club Five', 'club', 48.77, 9.18, 'C', 'STR-MITTE-047')
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO merchant_coupons (merchant_id, coupon_type, config, active, created_at)
+            VALUES ('MERCHANT_005', 'TIME_BOUND', '{"discount_pct": 20}', 1, '2026-04-26T10:00:00')
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    monkeypatch.setattr(
+        "spark.services.offer_decision.compute_density_signal",
+        lambda merchant_id, **kwargs: {"density_score": 0.4, "current_rate": 15.0},  # noqa: ARG005
+    )
+
+    result = decide_offer(
+        session_id="sess-social-coupon",
+        grid_cell="STR-MITTE-047",
+        movement_mode="browsing",
+        social_preference="social",
+        weather_need="neutral",
+        preference_scores={"club": 0.7},
+        db_path=db_path,
+        now=datetime(2026, 4, 24, 20, 0, 0),
+    )
+
+    assert result.recommendation == "RECOMMEND_WITH_FRAMING"
+    assert result.selected_merchant_id == "MERCHANT_005"
+    assert result.trace[-1].metadata["coupon_type"] == "TIME_BOUND"

@@ -56,7 +56,7 @@ async def build_composite_state(
     Assemble all signals into a CompositeContextState.
     Supports demo overrides for the Context Slider.
     """
-    now = datetime.now()
+    now = demo_overrides.current_dt if demo_overrides and demo_overrides.current_dt else datetime.now()
     repo = graph_repo or get_repository()
 
     # Touch the user session in the graph (idempotent, fail-soft).
@@ -89,12 +89,16 @@ async def build_composite_state(
     if merchant_id is None:
         merchant_id = decision.selected_merchant_id
     if not merchant_id:
-        merchant_id = select_best_merchant(intent.grid_cell, db_path) or "MERCHANT_001"
+        merchant_id = select_best_merchant(intent.grid_cell, db_path, current_dt=now)
 
     # ── Merchant info ──────────────────────────────────────────────────────────
     merchant_info = get_merchant_info(merchant_id, db_path)
     if not merchant_info:
-        fallback_merchant_id = select_best_merchant(intent.grid_cell, db_path)
+        fallback_merchant_id = select_best_merchant(
+            intent.grid_cell,
+            db_path,
+            current_dt=now,
+        )
         if fallback_merchant_id:
             merchant_id = fallback_merchant_id
             merchant_info = get_merchant_info(merchant_id, db_path)
@@ -102,7 +106,7 @@ async def build_composite_state(
         raise ValueError(f"Merchant {merchant_id} not found")
 
     # ── Density ────────────────────────────────────────────────────────────────
-    density = compute_density_signal(merchant_id, db_path=db_path)
+    density = compute_density_signal(merchant_id, current_dt=now, db_path=db_path)
 
     density = apply_demo_density_overrides(density, demo_overrides)
 

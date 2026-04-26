@@ -32,6 +32,34 @@ def mark_offer_redeemed(
         conn.close()
 
 
+def mark_offer_outcome(
+    offer_id: str,
+    status: str,
+    occurred_at_iso: str,
+    db_path: str | None = None,
+) -> bool:
+    """Persist a non-redemption offer lifecycle outcome in SQLite."""
+    status = status.upper()
+    timestamp_column = {
+        "ACCEPTED": "accepted_at",
+        "DECLINED": "declined_at",
+        "EXPIRED": "expired_at",
+    }.get(status)
+    if timestamp_column is None:
+        raise ValueError(f"Unsupported offer outcome status: {status}")
+
+    conn = get_connection(db_path)
+    try:
+        result = conn.execute(
+            f"UPDATE offer_audit_log SET status = ?, {timestamp_column} = ? WHERE offer_id = ?",
+            (status, occurred_at_iso, offer_id),
+        )
+        conn.commit()
+        return result.rowcount > 0
+    finally:
+        conn.close()
+
+
 def credit_wallet_transaction(
     session_id: str,
     offer_id: str,

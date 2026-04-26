@@ -67,7 +67,7 @@ def main() -> None:
     imported_venues = upsert_venues(None, venues)
 
     # 3) Generate venue transactions from imported venues.
-    generated_transactions, history_venue_count, start, end = generate_history(
+    history = generate_history(
         merchant_ids=None,
         category=None,
         city=args.city,
@@ -126,10 +126,10 @@ def main() -> None:
     print("Munich demo data loaded.")
     print(f"fixture={fixture_path}")
     print(f"imported_venues={imported_venues}")
-    print(f"generated_transactions={generated_transactions}")
-    print(f"history_venue_count={history_venue_count}")
-    print(f"history_window_start={start.isoformat()}")
-    print(f"history_window_end={end.isoformat()}")
+    print(f"generated_transactions={history.inserted}")
+    print(f"history_venue_count={history.venue_count}")
+    print(f"history_window_start={history.start.isoformat()}")
+    print(f"history_window_end={history.end.isoformat()}")
     for key, value in row_counts.items():
         print(f"{key}={value}")
 
