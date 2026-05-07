@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Spark — Tech Stack</title>
+<script src="deck-stage.js"></script>
+<style>
+  :root {
+    --bg: #FBF8F4;          /* warm off-white */
+    --bg-2: #F4EFE8;        /* warmer panel */
+    --paper: #FFFFFF;
+    --ink: #1C1A18;
+    --ink-2: #4A453F;
+    --ink-3: #8A8278;
+    --rule: #E8E1D6;
+    --rule-2: #D9D0C2;
+    --red: #D7141A;         /* Sparkassen red */
+    --red-soft: #F4D7D8;
+    --red-deep: #A50E13;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; }
+
+  deck-stage > section {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-feature-settings: "ss01", "kern", "liga";
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+  }
+
+  /* ---------- Reusable layout ---------- */
+  .slide-pad {
+    position: absolute; inset: 0;
+    padding: 100px 100px 80px 100px;
+    display: flex; flex-direction: column;
+  }
+  .meta-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 24px; color: var(--ink-3);
+    letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 500;
+  }
+  .meta-row .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--red); display: inline-block;
+    margin-right: 14px; vertical-align: middle;
+    box-shadow: 0 0 0 6px rgba(215,20,26,0.10);
+  }
+  .meta-tag { display: flex; align-items: center; }
+
+  .h1 {
+    font-size: 96px; font-weight: 600; letter-spacing: -0.035em;
+    line-height: 1.02; margin: 0;
+  }
+  .h2 {
+    font-size: 64px; font-weight: 600; letter-spacing: -0.03em;
+    line-height: 1.05; margin: 0;
+  }
+  .sub {
+    font-size: 34px; color: var(--ink-2); font-weight: 400;
+    letter-spacing: -0.01em; line-height: 1.35; margin: 0;
+  }
+  .small { font-size: 26px; color: var(--ink-3); line-height: 1.45; }
+
+  .accent-bar {
+    width: 96px; height: 6px; background: var(--red);
+    border-radius: 999px; margin: 0 0 36px 0;
+  }
+
+  .footer-row {
+    margin-top: auto;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    font-size: 24px; color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Slide 1: title ---------- */
+  .title-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(1200px 700px at 80% 0%, rgba(215,20,26,0.08), transparent 60%),
+      radial-gradient(900px 600px at 0% 100%, rgba(215,20,26,0.05), transparent 60%),
+      var(--bg);
+  }
+  .spark-mark {
+    width: 92px; height: 92px; position: relative;
+  }
+  .spark-mark::before, .spark-mark::after {
+    content: ""; position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--red);
+  }
+  .spark-mark::before {
+    width: 14px; height: 92px; border-radius: 8px;
+    animation: pulseV 3.6s ease-in-out infinite;
+  }
+  .spark-mark::after {
+    width: 92px; height: 14px; border-radius: 8px;
+    animation: pulseH 3.6s ease-in-out infinite;
+  }
+  @keyframes pulseV {
+    0%, 100% { transform: translate(-50%, -50%) scaleY(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scaleY(0.55); opacity: 0.85; }
+  }
+  @keyframes pulseH {
+    0%, 100% { transform: translate(-50%, -50%) scaleX(1); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scaleX(0.55); opacity: 0.85; }
+  }
+
+  .title-grid {
+    position: relative; z-index: 1;
+    height: 100%;
+    display: grid; grid-template-rows: auto 1fr auto;
+    padding: 100px 120px 80px 120px;
+  }
+  .title-h {
+    font-size: 168px; font-weight: 600; letter-spacing: -0.045em;
+    line-height: 0.94; margin: 0;
+  }
+  .title-h em {
+    font-style: normal; color: var(--red);
+  }
+  .title-tag {
+    font-size: 38px; color: var(--ink-2); margin-top: 36px; max-width: 1100px;
+    letter-spacing: -0.005em; line-height: 1.3;
+  }
+
+  /* ---------- Slide 2: tech stack layers ---------- */
+  .stack-grid {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 24px;
+    flex: 1;
+  }
+  .layer {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 24px;
+    padding: 36px 32px 32px 32px;
+    display: flex; flex-direction: column; gap: 20px;
+    position: relative;
+    transition: transform .25s ease;
+  }
+  .layer .num {
+    font-size: 24px; color: var(--red); font-weight: 600;
+    letter-spacing: 0.18em;
+  }
+  .layer .ttl {
+    font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.15; color: var(--ink);
+  }
+  .layer ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+  .layer li {
+    font-size: 24px; line-height: 1.4; color: var(--ink-2);
+    padding-left: 18px; position: relative;
+  }
+  .layer li::before {
+    content: ""; position: absolute; left: 0; top: 14px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--red);
+  }
+  .layer .tools {
+    margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .chip {
+    font-size: 24px; padding: 6px 14px;
+    background: var(--bg-2); color: var(--ink-2);
+    border-radius: 999px; letter-spacing: 0.01em; font-weight: 500;
+  }
+  .chip.red { background: var(--red-soft); color: var(--red-deep); }
+
+  /* ---------- Slide 3: composite signals ---------- */
+  .signals-canvas {
+    flex: 1; position: relative; margin-top: 48px;
+  }
+  .node {
+    position: absolute; background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 18px;
+    padding: 18px 22px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .node .lbl { font-size: 14px; letter-spacing: 0.16em; color: var(--ink-3); text-transform: uppercase; font-weight: 600; }
+  .node .name { font-size: 22px; font-weight: 600; color: var(--ink); margin-top: 4px; line-height: 1.2; }
+  .node .sub2 { font-size: 16px; color: var(--ink-3); margin-top: 4px; line-height: 1.35; }
+  .node.center {
+    background: var(--red); color: #fff; border-color: var(--red);
+  }
+  .node.center .lbl { color: rgba(255,255,255,0.7); }
+  .node.center .name { color: #fff; }
+  .node.center .sub2 { color: rgba(255,255,255,0.85); }
+  .node.intent {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+  }
+  .node.intent .lbl { color: rgba(255,255,255,0.55); }
+  .node.intent .name { color: #fff; }
+  .node.intent .sub2 { color: rgba(255,255,255,0.75); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 15px; }
+
+  .device-zone {
+    position: absolute; left: 0; top: 0; width: 460px; height: 280px;
+    border: 1.5px dashed var(--rule-2); border-radius: 24px;
+    background: rgba(244,239,232,0.5);
+  }
+  .device-zone .zlabel {
+    position: absolute; top: -14px; left: 24px;
+    background: var(--bg); padding: 0 12px;
+    font-size: 17px; letter-spacing: 0.18em;
+    color: var(--ink-2); font-weight: 600; text-transform: uppercase;
+  }
+  .device-zone .zlabel .em { color: var(--red); }
+
+  /* ---------- Slide 4: privacy boundary ---------- */
+  .privacy-grid {
+    flex: 1; display: grid; grid-template-columns: 1fr 80px 1fr;
+    gap: 0; margin-top: 48px;
+  }
+  .zone {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 28px;
+    padding: 44px 44px 40px 44px;
+    display: flex; flex-direction: column; gap: 24px;
+    position: relative;
+  }
+  .zone.device { background: #FFF; border-color: var(--rule); }
+  .zone.cloud {
+    background: #1C1A18; color: #fff; border-color: #1C1A18;
+  }
+  .zone-hd {
+    display: flex; align-items: center; gap: 16px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--rule);
+  }
+  .zone.cloud .zone-hd { border-bottom-color: rgba(255,255,255,0.12); }
+  .zone-hd .icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-2); color: var(--ink); font-weight: 700;
+    font-size: 28px;
+  }
+  .zone.cloud .zone-hd .icon { background: rgba(255,255,255,0.08); color: #fff; }
+  .zone-hd .htxt .h { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+  .zone-hd .htxt .sb { font-size: 18px; letter-spacing: 0.14em; color: var(--red); font-weight: 600; text-transform: uppercase; margin-top: 4px;}
+  .zone.cloud .zone-hd .htxt .sb { color: #FF5F66; }
+
+  .stage {
+    display: flex; gap: 14px; align-items: center;
+  }
+  .stage .sn { width: 44px; flex: none; font-size: 22px; font-weight: 600; color: var(--red); font-variant-numeric: tabular-nums; }
+  .stage .sb { flex: 1; }
+  .stage .h { font-size: 22px; font-weight: 600; color: inherit; }
+  .stage .d { font-size: 17px; color: var(--ink-3); margin-top: 2px; }
+  .zone.cloud .stage .d { color: rgba(255,255,255,0.6); }
+
+  .arrow-strip {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; color: var(--red);
+  }
+  .arrow-strip .lbl {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 15px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600;
+  }
+  .arrow-strip .ar {
+    width: 30px; height: 100px;
+    background: linear-gradient(to bottom, transparent, var(--red));
+    position: relative;
+  }
+  .arrow-strip svg { width: 56px; height: 56px; }
+  .pill {
+    background: var(--red-soft); color: var(--red-deep);
+    border: 1px solid rgba(165,14,19,0.18);
+    padding: 12px 16px; border-radius: 14px;
+    font-size: 17px; line-height: 1.35;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .leaving-list {
+    margin-top: auto; padding-top: 18px; border-top: 1px dashed var(--rule);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .zone.cloud .leaving-list { border-top-color: rgba(255,255,255,0.12); }
+
+  /* ---------- Slide 5: class model ---------- */
+  .class-canvas {
+    flex: 1; position: relative; margin-top: 36px;
+  }
+  .cls {
+    position: absolute; background: var(--paper); border: 1px solid var(--rule);
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .cls .ch {
+    background: var(--bg-2); padding: 10px 14px;
+    font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+    color: var(--ink); border-bottom: 1px solid var(--rule);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .cls .ch .tag { font-size: 12px; color: var(--ink-3); letter-spacing: 0.16em; font-weight: 600; }
+  .cls.center-cls .ch { background: var(--red); color: #fff; border-bottom-color: var(--red-deep); }
+  .cls.center-cls .ch .tag { color: rgba(255,255,255,0.85); }
+  .cls.derived .ch { background: var(--ink); color: #fff; border-bottom-color: #000; }
+  .cls.derived .ch .tag { color: rgba(255,255,255,0.65); }
+  .cls ul {
+    list-style: none; padding: 8px 14px; margin: 0;
+    font-size: 13px; line-height: 1.5; color: var(--ink-2);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  .cls li { padding: 2px 0; }
+  .cls .typ { color: var(--red); }
+  .cls.derived li .typ { color: #FF7A80; }
+
+  /* ---------- Slide 6: graph projection ---------- */
+  .graph-canvas {
+    flex: 1; position: relative; margin-top: 48px;
+  }
+  .gnode {
+    position: absolute;
+    width: 240px; padding: 22px 24px;
+    background: var(--paper); border: 1.5px solid var(--ink);
+    border-radius: 999px;
+    text-align: center;
+    font-size: 24px; font-weight: 600; letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .gnode .glb {
+    display: block; font-size: 15px; letter-spacing: 0.18em;
+    color: var(--ink-3); font-weight: 600; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .gnode.user { border-color: var(--red); color: var(--red-deep); background: var(--red-soft); }
+  .gnode.user .glb { color: var(--red); }
+  .gnode.offer { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .gnode.offer .glb { color: rgba(255,255,255,0.7); }
+
+  .edge-label {
+    position: absolute; background: var(--bg);
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 15px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-weight: 600; color: var(--red); border: 1px solid var(--rule);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+
+  svg.lines { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+  svg.lines path, svg.lines line { fill: none; stroke: var(--ink-3); stroke-width: 1.5; }
+  svg.lines .red { stroke: var(--red); stroke-width: 2; }
+  svg.lines .dash { stroke-dasharray: 6 6; }
+
+  /* ---------- entrance animations ---------- */
+  deck-stage > section { animation: fade .5s ease both; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .reveal { animation: rise .8s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal-2 { animation: rise .8s .12s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal-3 { animation: rise .8s .24s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal-4 { animation: rise .8s .36s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal-5 { animation: rise .8s .48s cubic-bezier(.2,.7,.2,1) both; }
+  .reveal-6 { animation: rise .8s .60s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .draw path, .draw line {
+    stroke-dasharray: 1200; stroke-dashoffset: 1200;
+    animation: draw 1.6s .3s cubic-bezier(.4,.1,.2,1) forwards;
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+</style>
+</head>
+<body>
+
+<deck-stage width="1920" height="1080">
+
+  <!-- ============== SLIDE 1: TITLE ============== -->
+  <section data-label="01 Title">
+    <div class="title-bg"></div>
+    <div class="title-grid">
+      <div class="meta-row reveal">
+        <span class="meta-tag"><span class="dot"></span>Spark · Generative City Wallet</span>
+        <span>HackNation 2026 · Tech Stack</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 60px;">
+        <div class="spark-mark reveal-2"></div>
+        <div>
+          <h1 class="title-h reveal-2">The <em>Spark</em><br/>tech stack.</h1>
+          <p class="title-tag reveal-3">A hardened clean architecture for privacy, deterministic reliability, and just-in-time personalization.</p>
+        </div>
+      </div>
+
+      <div class="footer-row reveal-4">
+        <span>Right place. Right time. Right Spark.</span>
+        <span>01 / 05</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SLIDE 2: TECH STACK ============== -->
+  <section data-label="02 Tech Stack">
+    <div class="slide-pad">
+      <div class="meta-row reveal">
+        <span class="meta-tag"><span class="dot"></span>Tech Stack</span>
+        <span>02 / 05</span>
+      </div>
+
+      <div class="reveal-2" style="margin-top: 28px;">
+        <div class="accent-bar"></div>
+        <h2 class="h2">Five layers, one offer.</h2>
+        <p class="sub" style="margin-top: 18px; max-width: 1300px;">Edge-first AI keeps PII on-device. A deterministic backend gates entitlement. A learning graph explains every decision.</p>
+      </div>
+
+      <div class="stack-grid">
+        <div class="layer reveal-3">
+          <div class="num">01 · FRONTEND</div>
+          <div class="ttl">Privacy-first PWA</div>
+          <ul>
+            <li>Cross-platform React PWA</li>
+            <li>Edge AI via Gemma 3n on Google AI Edge</li>
+            <li>H3 grid quantization (~50m)</li>
+          </ul>
+          <div class="tools">
+            <span class="chip">React</span>
+            <span class="chip red">Gemma 3n</span>
+            <span class="chip">H3</span>
+          </div>
+        </div>
+
+        <div class="layer reveal-3">
+          <div class="num">02 · BACKEND</div>
+          <div class="ttl">Deterministic FastAPI</div>
+          <ul>
+            <li>Gemini Flash for GenUI framing</li>
+            <li>Rules-first decision engine</li>
+            <li>Domain-Driven Design isolation</li>
+          </ul>
+          <div class="tools">
+            <span class="chip">FastAPI</span>
+            <span class="chip red">Gemini Flash</span>
+            <span class="chip">DDD</span>
+          </div>
+        </div>
+
+        <div class="layer reveal-4">
+          <div class="num">03 · GRAPH</div>
+          <div class="ttl">Self-learning brain</div>
+          <ul>
+            <li>Weighted preference decay</li>
+            <li>Machine-readable audit trace</li>
+            <li>Continuity-id pseudonyms</li>
+          </ul>
+          <div class="tools">
+            <span class="chip">Neo4j</span>
+            <span class="chip">Cypher</span>
+          </div>
+        </div>
+
+        <div class="layer reveal-4">
+          <div class="num">04 · INFRA</div>
+          <div class="ttl">Pipeline & guardrails</div>
+          <ul>
+            <li>Fluent Bit + Lua ingestion</li>
+            <li>SQLite audit & idempotency</li>
+            <li>Ruff, Pyright, AST guards</li>
+          </ul>
+          <div class="tools">
+            <span class="chip">Fluent Bit</span>
+            <span class="chip">SQLite</span>
+            <span class="chip">uv</span>
+          </div>
+        </div>
+
+        <div class="layer reveal-5">
+          <div class="num">05 · ECOSYSTEM</div>
+          <div class="ttl">Real-world signals</div>
+          <ul>
+            <li>Google Places busyness</li>
+            <li>OpenWeatherMap triggers</li>
+            <li>Luma events · Mapbox heatmap</li>
+          </ul>
+          <div class="tools">
+            <span class="chip">Places</span>
+            <span class="chip">OWM</span>
+            <span class="chip">Luma</span>
+            <span class="chip">Mapbox</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-row reveal-6">
+        <span>Hardened clean architecture · privacy-first · deterministic</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SLIDE 3: SIGNALS & PRIVACY (MERGED) ============== -->
+  <style>
+    /* Merged slide: device boundary → cloud composite */
+    .sp-canvas {
+      flex: 1; position: relative; margin-top: 36px;
+      display: grid; grid-template-columns: 1.05fr 0.55fr 1.4fr; gap: 0;
+    }
+
+    /* Privacy boundary zone (left) */
+    .sp-device {
+      position: relative; padding: 30px 32px 28px;
+      border: 1.5px dashed var(--rule-2); border-radius: 28px;
+      background: rgba(244,239,232,0.55);
+    }
+    .sp-device::before {
+      content: "📱 ON-DEVICE · PRIVACY BOUNDARY";
+      position: absolute; top: -13px; left: 28px;
+      background: var(--bg); padding: 0 14px;
+      font-size: 13px; letter-spacing: 0.2em;
+      color: var(--ink-2); font-weight: 700;
+    }
+    .sp-raw {
+      display: grid; grid-template-columns: 1fr; gap: 10px;
+      margin-bottom: 18px;
+    }
+    .sp-raw .row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px; background: rgba(255,255,255,0.55);
+      border: 1px solid var(--rule); border-radius: 14px;
+    }
+    .sp-raw .row .src {
+      width: 64px; flex: none; font-size: 13px; letter-spacing: 0.16em;
+      color: var(--red); font-weight: 700; text-transform: uppercase;
+    }
+    .sp-raw .row .desc { font-size: 17px; color: var(--ink-2); line-height: 1.3; }
+    .sp-raw .row .desc b { color: var(--ink); font-weight: 600; }
+    .sp-arrow-down {
+      display: flex; justify-content: center; margin: 6px 0;
+      color: var(--rule-2);
+    }
+    .sp-iv {
+      background: var(--ink); color: #fff; border-radius: 18px;
+      padding: 18px 22px; position: relative;
+      box-shadow: 0 12px 28px -18px rgba(0,0,0,0.4);
+    }
+    .sp-iv .lbl {
+      font-size: 12px; letter-spacing: 0.22em;
+      color: rgba(255,255,255,0.55); font-weight: 700; text-transform: uppercase;
+    }
+    .sp-iv .name {
+      font-size: 26px; font-weight: 600; letter-spacing: -0.01em;
+      margin-top: 6px;
+    }
+    .sp-iv .fields {
+      margin-top: 10px; font-family: "SF Mono", ui-monospace, Menlo, monospace;
+      font-size: 14px; color: rgba(255,255,255,0.78); line-height: 1.55;
+    }
+    .sp-stays {
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px dashed var(--rule-2);
+      font-size: 14px; color: var(--ink-3);
+    }
+    .sp-stays b { color: var(--red); font-weight: 600; }
+
+    /* Privacy hop column (center) */
+    .sp-hop {
+      position: relative; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 0 12px;
+    }
+    .sp-hop .vline {
+      position: absolute; left: 50%; top: 24px; bottom: 24px;
+      width: 0; border-left: 2px dashed var(--rule-2);
+      transform: translateX(-1px);
+    }
+    .sp-hop .pill-label {
+      font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--ink-3); font-weight: 700; margin-bottom: 16px;
+      background: var(--bg); padding: 4px 8px; position: relative;
+    }
+    .sp-hop .sample {
+      background: var(--red-soft); color: var(--red-deep);
+      border: 1px solid rgba(215,20,26,0.18);
+      padding: 14px 18px; border-radius: 14px;
+      font-family: "SF Mono", ui-monospace, Menlo, monospace;
+      font-size: 14px; line-height: 1.55; text-align: center;
+      position: relative; min-width: 230px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    }
+    .sp-hop .arrow-row {
+      display: flex; align-items: center; gap: 8px;
+      margin: 14px 0; color: var(--red);
+    }
+    .sp-hop .arrow-row svg { width: 64px; height: 16px; }
+    .sp-hop .send-pill {
+      font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--red); font-weight: 700;
+      background: var(--bg); padding: 4px 10px; position: relative;
+    }
+
+    /* Cloud composite (right) */
+    .sp-cloud {
+      position: relative; padding: 30px 28px 28px;
+      background: #1C1A18; color: #fff; border-radius: 28px;
+    }
+    .sp-cloud::before {
+      content: "☁︎ SPARK CLOUD · COMPOSITE ASSEMBLY";
+      position: absolute; top: -13px; left: 28px;
+      background: var(--bg); padding: 0 14px;
+      font-size: 13px; letter-spacing: 0.2em;
+      color: var(--ink-2); font-weight: 700;
+    }
+    .sp-composite {
+      background: var(--red); color: #fff;
+      padding: 18px 22px; border-radius: 18px;
+      box-shadow: 0 12px 30px -16px rgba(215,20,26,0.55);
+      margin-bottom: 20px;
+    }
+    .sp-composite .lbl {
+      font-size: 12px; letter-spacing: 0.22em; font-weight: 700;
+      text-transform: uppercase; color: rgba(255,255,255,0.7);
+    }
+    .sp-composite .name {
+      font-size: 28px; font-weight: 600; letter-spacing: -0.01em;
+      font-family: "SF Mono", ui-monospace, Menlo, monospace;
+      margin-top: 4px;
+    }
+    .sp-composite .name .word {
+      font-family: "Inter", -apple-system, system-ui, sans-serif;
+      font-size: 22px; color: rgba(255,255,255,0.92); margin-left: 8px;
+      font-weight: 500;
+    }
+    .sp-composite .desc {
+      font-size: 14px; color: rgba(255,255,255,0.85); margin-top: 6px;
+    }
+    .sp-cloud-sources {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .sp-src {
+      padding: 12px 14px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+    }
+    .sp-src .src-lbl {
+      font-size: 12px; letter-spacing: 0.16em; font-weight: 700;
+      color: #FF8088; text-transform: uppercase;
+    }
+    .sp-src .src-name {
+      font-size: 16px; font-weight: 600; color: #fff; margin-top: 3px;
+    }
+    .sp-src .src-fields {
+      font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 3px;
+      font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    }
+    .sp-src-wide { grid-column: 1 / -1; }
+    .sp-next {
+      margin-top: 18px; padding-top: 16px;
+      border-top: 1px dashed rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sp-next .lbl {
+      font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+      font-weight: 700; color: rgba(255,255,255,0.5);
+    }
+    .sp-next .target {
+      font-size: 18px; font-weight: 600; color: #fff;
+    }
+    .sp-next .target span { color: #FF8088; }
+  </style>
+  <section data-label="03 Signals & Privacy">
+    <div class="slide-pad">
+      <div class="meta-row reveal">
+        <span class="meta-tag"><span class="dot"></span>Signal Sources &amp; Privacy Boundary</span>
+        <span>03 / 05</span>
+      </div>
+
+      <div class="reveal-2" style="margin-top: 24px;">
+        <div class="accent-bar"></div>
+        <h2 class="h2">Raw data stays on device. Only an <span style="color: var(--red);">Intent Vector</span> crosses.</h2>
+        <p class="sub" style="margin-top: 12px; max-width: 1320px;">On-device quantizers abstract every signal before it leaves. The cloud folds it together with four external feeds into one Composite Context State.</p>
+      </div>
+
+      <div class="sp-canvas">
+        <!-- LEFT: Device boundary -->
+        <div class="sp-device reveal-3">
+          <div class="sp-raw">
+            <div class="row">
+              <div class="src">GPS</div>
+              <div class="desc">Raw stream → Quantizer → <b>H3 grid cell</b> (~50m)</div>
+            </div>
+            <div class="row">
+              <div class="src">IMU</div>
+              <div class="desc">Accelerometer → Classifier → <b>movement_mode</b></div>
+            </div>
+            <div class="row">
+              <div class="src">HISTORY</div>
+              <div class="desc">Local SQLite → preference shaping (never synced)</div>
+            </div>
+          </div>
+
+          <div class="sp-arrow-down">
+            <svg viewBox="0 0 24 28" width="22" height="26" fill="none">
+              <path d="M 12 0 L 12 22" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M 6 18 L 12 26 L 18 18" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+
+          <div class="sp-iv">
+            <div class="lbl">Privacy contract</div>
+            <div class="name">Intent Vector</div>
+            <div class="fields">grid_cell · movement_mode · time_bucket<br/>weather_need · price_tier · session_id</div>
+          </div>
+
+          <div class="sp-stays">
+            <b>Stays local · never uploaded</b>&nbsp; raw_gps · imu_stream · history
+          </div>
+        </div>
+
+        <!-- CENTER: Privacy hop -->
+        <div class="sp-hop reveal-4">
+          <div class="vline"></div>
+          <div class="pill-label">That leaves</div>
+          <div class="sample">
+            "891f8d7a49bffff"<br/>"walking"
+          </div>
+          <div class="arrow-row">
+            <svg viewBox="0 0 64 16">
+              <path d="M 0 8 L 56 8" stroke="var(--red)" stroke-width="2.5" fill="none"/>
+              <polygon points="52,3 62,8 52,13" fill="var(--red)"/>
+            </svg>
+          </div>
+          <div class="send-pill">HTTPS · only abstract fields</div>
+        </div>
+
+        <!-- RIGHT: Cloud composite -->
+        <div class="sp-cloud reveal-5">
+          <div class="sp-composite">
+            <div class="lbl">Deterministic assembly</div>
+            <div class="name">composite.py<span class="word">→ Composite Context State</span></div>
+            <div class="desc">Folds Intent Vector + four cloud signals into one typed object before the offer gate runs.</div>
+          </div>
+
+          <div class="sp-cloud-sources">
+            <div class="sp-src">
+              <div class="src-lbl">OpenWeatherMap</div>
+              <div class="src-name">Weather</div>
+              <div class="src-fields">temp · feels_like → need</div>
+            </div>
+            <div class="sp-src">
+              <div class="src-lbl">Payone</div>
+              <div class="src-name">Merchant Density</div>
+              <div class="src-fields">density_score · drop_pct</div>
+            </div>
+            <div class="sp-src">
+              <div class="src-lbl">Google Places</div>
+              <div class="src-name">Place Busyness</div>
+              <div class="src-fields">nearby_count · rating</div>
+            </div>
+            <div class="sp-src">
+              <div class="src-lbl">Luma</div>
+              <div class="src-name">Local Events</div>
+              <div class="src-fields">events_tonight · nearest</div>
+            </div>
+            <div class="sp-src sp-src-wide">
+              <div class="src-lbl">Neo4j</div>
+              <div class="src-name">User Graph</div>
+              <div class="src-fields">preference_scores · continuity_id</div>
+            </div>
+          </div>
+
+          <div class="sp-next">
+            <div class="lbl">Next stage</div>
+            <div class="target">→ Offer <span>Pipeline</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ============== SLIDE 4: CORE CLASS MODEL ============== -->
+  <section data-label="04 Class Model">
+    <div class="slide-pad">
+      <div class="meta-row reveal">
+        <span class="meta-tag"><span class="dot"></span>Core Class Model · Contracts</span>
+        <span>04 / 05</span>
+      </div>
+
+      <div class="reveal-2" style="margin-top: 24px;">
+        <div class="accent-bar"></div>
+        <h2 class="h2">Eleven typed contracts compose every offer.</h2>
+        <p class="sub" style="margin-top: 12px; max-width: 1300px;">CompositeContextState aggregates user, merchant, environment and decision trace. OfferObject is derived, never invented.</p>
+      </div>
+
+      <div class="class-canvas">
+        <svg class="lines draw" viewBox="0 0 1720 700" preserveAspectRatio="none">
+          <!-- UserContext → IntentVector -->
+          <path d="M 100 250 L 100 410" />
+          <!-- MerchantContext → MerchantDemand -->
+          <path d="M 480 250 L 480 410" />
+          <!-- MerchantContext → ActiveCoupon -->
+          <path d="M 600 250 L 720 410" />
+          <!-- Composite → User -->
+          <path class="red" d="M 870 130 L 200 230" />
+          <!-- Composite → Merchant -->
+          <path class="red" d="M 900 130 L 540 230" />
+          <!-- Composite → Environment -->
+          <path class="red" d="M 1000 130 L 1000 230" />
+          <!-- Composite → Conflict -->
+          <path class="red" d="M 1060 130 L 1340 230" />
+          <!-- Composite → DecisionTrace -->
+          <path class="red" d="M 1000 170 L 1500 410" />
+          <!-- DecisionTrace → DecisionTraceItem -->
+          <path d="M 1500 540 L 1240 600" />
+          <!-- OfferObject derived from LLMOfferOutput -->
+          <path class="dash red" d="M 360 600 L 200 600" />
+        </svg>
+
+        <!-- Composite (center top) -->
+        <div class="cls center-cls" style="left: 800px; top: 0; width: 300px;">
+          <div class="ch"><span>CompositeContextState</span><span class="tag">ROOT</span></div>
+          <ul>
+            <li><span class="typ">string</span> timestamp</li>
+            <li><span class="typ">string</span> session_id</li>
+            <li><span class="typ">UserContext</span> user</li>
+            <li><span class="typ">MerchantContext</span> merchant</li>
+            <li><span class="typ">EnvironmentContext</span> environment</li>
+            <li><span class="typ">ConflictResolutionContext</span> conflict_resolution</li>
+            <li><span class="typ">OfferDecisionTrace?</span> decision_trace</li>
+          </ul>
+        </div>
+
+        <!-- UserContext -->
+        <div class="cls" style="left: 40px; top: 90px; width: 280px;">
+          <div class="ch"><span>UserContext</span><span class="tag">USER</span></div>
+          <ul>
+            <li><span class="typ">IntentVector</span> intent</li>
+            <li><span class="typ">map</span> preference_scores</li>
+            <li><span class="typ">SocialPreference</span> social_preference</li>
+            <li><span class="typ">PriceTier</span> price_tier</li>
+          </ul>
+        </div>
+
+        <!-- IntentVector -->
+        <div class="cls" style="left: 40px; top: 340px; width: 280px;">
+          <div class="ch"><span>IntentVector</span><span class="tag">PRIVACY</span></div>
+          <ul>
+            <li><span class="typ">string</span> grid_cell</li>
+            <li><span class="typ">MovementMode</span> movement_mode</li>
+            <li><span class="typ">WeatherNeed</span> weather_need</li>
+            <li><span class="typ">PriceTier</span> price_tier</li>
+            <li><span class="typ">string</span> session_id</li>
+          </ul>
+        </div>
+
+        <!-- MerchantContext -->
+        <div class="cls" style="left: 380px; top: 90px; width: 280px;">
+          <div class="ch"><span>MerchantContext</span><span class="tag">MERCHANT</span></div>
+          <ul>
+            <li><span class="typ">string</span> id · name · category</li>
+            <li><span class="typ">float</span> distance_m</li>
+            <li><span class="typ">bool</span> places_verified</li>
+            <li><span class="typ">MerchantDemand</span> demand</li>
+            <li><span class="typ">ActiveCoupon</span> active_coupon</li>
+          </ul>
+        </div>
+
+        <!-- MerchantDemand -->
+        <div class="cls" style="left: 380px; top: 360px; width: 240px;">
+          <div class="ch"><span>MerchantDemand</span><span class="tag">DEMAND</span></div>
+          <ul>
+            <li><span class="typ">float</span> density_score</li>
+            <li><span class="typ">float</span> drop_pct</li>
+            <li><span class="typ">DensitySignal</span> signal</li>
+            <li><span class="typ">bool</span> offer_eligible</li>
+          </ul>
+        </div>
+
+        <!-- ActiveCoupon -->
+        <div class="cls" style="left: 660px; top: 360px; width: 240px;">
+          <div class="ch"><span>ActiveCoupon</span><span class="tag">COUPON</span></div>
+          <ul>
+            <li><span class="typ">CouponType?</span> type</li>
+            <li><span class="typ">float</span> max_discount_pct</li>
+            <li><span class="typ">int</span> valid_window_min</li>
+            <li><span class="typ">map?</span> config</li>
+          </ul>
+        </div>
+
+        <!-- Environment -->
+        <div class="cls" style="left: 940px; top: 230px; width: 250px;">
+          <div class="ch"><span>EnvironmentContext</span><span class="tag">ENV</span></div>
+          <ul>
+            <li><span class="typ">string</span> weather_condition</li>
+            <li><span class="typ">float</span> temp_celsius</li>
+            <li><span class="typ">string</span> weather_need</li>
+            <li><span class="typ">list</span> local_events</li>
+            <li><span class="typ">string</span> vibe_signal</li>
+          </ul>
+        </div>
+
+        <!-- ConflictResolutionContext -->
+        <div class="cls" style="left: 1230px; top: 230px; width: 250px;">
+          <div class="ch"><span>ConflictResolutionContext</span><span class="tag">FRAMING</span></div>
+          <ul>
+            <li><span class="typ">ConflictRecommendation</span> recommendation</li>
+            <li><span class="typ">string?</span> framing_band</li>
+            <li><span class="typ">list</span> allowed_vocabulary</li>
+            <li><span class="typ">list</span> banned_vocabulary</li>
+          </ul>
+        </div>
+
+        <!-- OfferDecisionTrace -->
+        <div class="cls" style="left: 1370px; top: 380px; width: 280px;">
+          <div class="ch"><span>OfferDecisionTrace</span><span class="tag">AUDIT</span></div>
+          <ul>
+            <li><span class="typ">ConflictRecommendation</span> recommendation</li>
+            <li><span class="typ">string?</span> selected_merchant_id</li>
+            <li><span class="typ">float</span> selected_merchant_score</li>
+            <li><span class="typ">int?</span> recheck_in_minutes</li>
+            <li><span class="typ">list</span> candidate_scores</li>
+            <li><span class="typ">list</span> trace</li>
+          </ul>
+        </div>
+
+        <!-- DecisionTraceItem -->
+        <div class="cls" style="left: 1080px; top: 510px; width: 250px;">
+          <div class="ch"><span>DecisionTraceItem</span><span class="tag">ITEM</span></div>
+          <ul>
+            <li><span class="typ">string</span> code · reason</li>
+            <li><span class="typ">float</span> score</li>
+          </ul>
+        </div>
+
+        <!-- LLMOfferOutput -->
+        <div class="cls" style="left: 380px; top: 510px; width: 240px;">
+          <div class="ch"><span>LLMOfferOutput</span><span class="tag">LLM</span></div>
+          <ul>
+            <li><span class="typ">LLMContent</span> content</li>
+            <li><span class="typ">LLMGenUI</span> genui</li>
+          </ul>
+        </div>
+
+        <!-- OfferObject -->
+        <div class="cls derived" style="left: 40px; top: 510px; width: 320px;">
+          <div class="ch"><span>OfferObject</span><span class="tag">DERIVED</span></div>
+          <ul>
+            <li><span class="typ">string</span> offer_id · session_id</li>
+            <li><span class="typ">MerchantInfo</span> merchant</li>
+            <li><span class="typ">DiscountInfo</span> discount</li>
+            <li><span class="typ">string</span> expires_at</li>
+          </ul>
+        </div>
+      </div>
+
+
+    </div>
+  </section>
+
+  <!-- ============== SLIDE 5: SELF-LEARNING LOOP ============== -->
+  <section data-label="05 Self-Learning Loop">
+    <style>
+      .loop-wrap { position: relative; flex: 1; margin-top: 36px; display: grid; grid-template-columns: 1.05fr 1fr; gap: 60px; align-items: center; }
+
+      /* Left: orbital learning loop */
+      .orbit { position: relative; width: 680px; height: 600px; margin: 0 auto; }
+      .orbit svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .orbit .ring { fill: none; stroke: var(--rule-2); stroke-width: 1.5; stroke-dasharray: 3 6; }
+      .orbit .ring2 { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 8; }
+      .orbit .flow { fill: none; stroke: var(--red); stroke-width: 2.5; stroke-linecap: round; }
+      .orbit .arrowhead { fill: var(--red); }
+
+      .core {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        width: 180px; height: 180px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #fff, var(--red-soft) 60%, var(--red) 100%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: #fff; box-shadow: 0 30px 60px -25px rgba(215,20,26,0.45), inset 0 -10px 30px rgba(165,14,19,0.3);
+        animation: corePulse 4.5s ease-in-out infinite;
+      }
+      @keyframes corePulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(1.04); }
+      }
+      .core .core-lbl { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(255,255,255,0.85); font-weight: 600; }
+      .core .core-h { font-size: 30px; font-weight: 700; margin-top: 4px; letter-spacing: -0.01em; }
+      .core .core-s { font-size: 16px; margin-top: 4px; color: rgba(255,255,255,0.85); font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+
+      .satellite {
+        position: absolute; transform: translate(-50%, -50%);
+        background: var(--paper);
+        border: 1px solid var(--rule);
+        border-radius: 18px;
+        padding: 14px 18px;
+        width: 200px;
+        box-shadow: 0 8px 24px -16px rgba(0,0,0,0.18);
+      }
+      .satellite .step { font-size: 14px; color: var(--red); font-weight: 700; letter-spacing: 0.18em; }
+      .satellite .head { font-size: 20px; font-weight: 600; color: var(--ink); margin-top: 4px; line-height: 1.2; letter-spacing: -0.01em; }
+      .satellite .meta { font-size: 14px; color: var(--ink-3); margin-top: 6px; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+
+      .pulse-dot {
+        position: absolute; width: 10px; height: 10px; border-radius: 50%;
+        background: var(--red); transform: translate(-50%, -50%);
+        offset-path: path('M 340 70 A 230 230 0 1 1 339.99 70');
+        offset-rotate: 0deg;
+        animation: trace 9s linear infinite;
+        box-shadow: 0 0 0 6px rgba(215,20,26,0.18);
+      }
+      .pulse-dot.d2 { animation-delay: -3s; opacity: 0.7; }
+      .pulse-dot.d3 { animation-delay: -6s; opacity: 0.5; }
+      @keyframes trace { to { offset-distance: 100%; } }
+
+      /* Right column */
+      .legend-card {
+        background: var(--paper); border: 1px solid var(--rule);
+        border-radius: 24px; padding: 36px 36px 32px 36px;
+      }
+      .legend-card h3 { font-size: 32px; font-weight: 600; margin: 0 0 8px 0; letter-spacing: -0.02em; }
+      .legend-card p.lead { font-size: 22px; color: var(--ink-2); margin: 0 0 24px 0; line-height: 1.4; }
+
+      .relrow { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; padding: 14px 0; border-top: 1px solid var(--rule); align-items: center; }
+      .relrow:first-of-type { border-top: 0; }
+      .relrow .from, .relrow .to {
+        font-size: 18px; font-weight: 600; color: var(--ink);
+        background: var(--bg-2); padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+      }
+      .relrow .to { background: var(--red-soft); color: var(--red-deep); }
+      .relrow .edge {
+        font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase;
+        font-weight: 600; color: var(--red);
+        font-family: "SF Mono", ui-monospace, Menlo, monospace;
+        text-align: center;
+        position: relative;
+      }
+      .relrow .edge::before, .relrow .edge::after {
+        content: ""; position: absolute; top: 50%; height: 1px; background: var(--rule-2); width: 30%;
+      }
+      .relrow .edge::before { left: 0; }
+      .relrow .edge::after { right: 0; }
+
+      .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+      .stat { background: var(--bg-2); border-radius: 16px; padding: 16px 18px; }
+      .stat .v { font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+      .stat .v em { font-style: normal; color: var(--red); }
+      .stat .l { font-size: 14px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+    </style>
+
+    <div class="slide-pad">
+      <div class="meta-row reveal">
+        <span class="meta-tag"><span class="dot"></span>Self-Learning Graph Loop</span>
+        <span>05 / 05</span>
+      </div>
+
+      <div class="reveal-2" style="margin-top: 22px;">
+        <div class="accent-bar" style="margin-bottom: 24px;"></div>
+        <h2 class="h2" style="font-size: 60px;">The brain that learns from every redemption.</h2>
+        <p class="sub" style="margin-top: 12px; max-width: 1300px; font-size: 28px;">Outcomes flow back into <span style="color: var(--red); font-family: 'SF Mono', ui-monospace, monospace;">PREFERS</span> weights — bounded, idempotent, and fully audit-traceable.</p>
+      </div>
+
+      <div class="loop-wrap" style="margin-top: 24px;">
+        <!-- Orbital loop -->
+        <div class="orbit reveal-3">
+          <svg viewBox="0 0 680 600">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" class="arrowhead"/>
+              </marker>
+              <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(215,20,26,0.10)"/>
+                <stop offset="70%" stop-color="rgba(215,20,26,0.0)"/>
+              </radialGradient>
+            </defs>
+
+            <!-- Decorative halos -->
+            <circle cx="340" cy="300" r="290" fill="url(#halo)"/>
+            <circle cx="340" cy="300" r="230" class="ring"/>
+            <circle cx="340" cy="300" r="160" class="ring2"/>
+
+            <!-- Curved arc connectors between satellites (clockwise, r=230) -->
+            <path class="flow" d="M 430 95 A 230 230 0 0 1 570 300" marker-end="url(#ah)"/>
+            <path class="flow" d="M 570 320 A 230 230 0 0 1 430 505" marker-end="url(#ah)"/>
+            <path class="flow" d="M 250 505 A 230 230 0 0 1 110 320" marker-end="url(#ah)"/>
+            <path class="flow" d="M 110 300 A 230 230 0 0 1 250 95" marker-end="url(#ah)"/>
+          </svg>
+
+          <!-- Animated pulses along the loop -->
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot d2"></div>
+          <div class="pulse-dot d3"></div>
+
+          <!-- Core -->
+          <div class="core">
+            <div class="core-lbl">Neo4j</div>
+            <div class="core-h">PREFERS</div>
+            <div class="core-s">weight ∈ [0, 1]</div>
+          </div>
+
+          <!-- 4 satellites arranged on the ring -->
+          <div class="satellite" style="left: 50%; top: 0;">
+            <div class="step">01 · SIGNAL</div>
+            <div class="head">Offer received</div>
+            <div class="meta">RECEIVED_OFFER</div>
+          </div>
+
+          <div class="satellite" style="left: 100%; top: 50%;">
+            <div class="step">02 · OUTCOME</div>
+            <div class="head">Redemption fires</div>
+            <div class="meta">FOR_OFFER · CREDIT_FOR</div>
+          </div>
+
+          <div class="satellite" style="left: 50%; top: 100%;">
+            <div class="step">03 · UPDATE</div>
+            <div class="head">Reinforce category</div>
+            <div class="meta">PREFERS += Δ · decay</div>
+          </div>
+
+          <div class="satellite" style="left: 0; top: 50%;">
+            <div class="step">04 · ATTRIBUTE</div>
+            <div class="head">Log + explain</div>
+            <div class="meta">preference_update_log</div>
+          </div>
+        </div>
+
+        <!-- Right: relationship legend + safety stats -->
+        <div>
+          <div class="legend-card reveal-4">
+            <h3>Edges that learn.</h3>
+            <p class="lead">Every interaction is a typed edge with a bounded delta and provenance.</p>
+
+            <div class="relrow">
+              <span class="from">UserSession</span>
+              <span class="edge">RECEIVED_OFFER</span>
+              <span class="to">Offer</span>
+            </div>
+            <div class="relrow">
+              <span class="from">Offer</span>
+              <span class="edge">AT_MERCHANT</span>
+              <span class="to">Merchant</span>
+            </div>
+            <div class="relrow">
+              <span class="from">Offer</span>
+              <span class="edge">GENERATED_IN</span>
+              <span class="to">Context</span>
+            </div>
+            <div class="relrow">
+              <span class="from">Redemption</span>
+              <span class="edge">FOR_OFFER</span>
+              <span class="to">Offer</span>
+            </div>
+            <div class="relrow">
+              <span class="from">WalletEvent</span>
+              <span class="edge">CREDIT_FOR</span>
+              <span class="to">Redemption</span>
+            </div>
+            <div class="relrow">
+              <span class="from">UserSession</span>
+              <span class="edge">PREFERS&nbsp;·&nbsp;weight</span>
+              <span class="to">Category</span>
+            </div>
+          </div>
+
+          <div class="stat-row reveal-5">
+            <div class="stat"><div class="v">[<em>0</em>, <em>1</em>]</div><div class="l">Weight bound</div></div>
+            <div class="stat"><div class="v"><em>idem-</em>potent</div><div class="l">Replay-safe</div></div>
+            <div class="stat"><div class="v"><em>fail-</em>soft</div><div class="l">Graph optional</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</deck-stage>
+
+</body>
+</html>
